@@ -100,18 +100,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 "invalid lock period (7-365 days)");
             ExecutionEngine.Assert(principalAmount >= CAPSULE_MIN_DEPOSIT, "min 20 NEO deposit");
 
-            // Consume only the requested principalAmount; refund the rest back to
-            // the user's credit ledger so they can withdraw it via WithdrawCredit.
-            StorageMap neoCredits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
-            ByteString creditKey = (ByteString)(byte[])owner;
-            ByteString creditData = neoCredits.Get(creditKey);
-            BigInteger availableCredit = creditData == null ? 0 : (BigInteger)creditData;
-            ExecutionEngine.Assert(availableCredit >= principalAmount, "insufficient NEO credit");
-
             BigInteger neoAmount = principalAmount;
-            BigInteger remainingCredit = availableCredit - principalAmount;
-            if (remainingCredit == 0) neoCredits.Delete(creditKey);
-            else neoCredits.Put(creditKey, remainingCredit);
+            ConsumeNeoCredit(appId, owner, principalAmount);
 
             // Track unique users
             ByteString userCountKey = AppKey(appId, PREFIX_USER_CAPSULE_COUNT, owner);
@@ -188,6 +178,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, capsule.Principal),
                 "principal transfer failed");
+            EnsureNeoCreditSolvent();
 
             // Transfer GAS compound minus fee. The fee portion that's actually
             // retained equals min(fee, compound) — when compound <= fee, the
@@ -204,6 +195,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 ExecutionEngine.Assert(
                     GAS.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, capsule.Compound - fee),
                     "compound transfer failed");
+                EnsureGasCreditSolvent();
             }
 
             UpdateTotalLocked(appId, capsule.Principal, false);
@@ -237,6 +229,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, payout),
                 "early withdrawal transfer failed");
+            EnsureNeoCreditSolvent();
 
             UpdateTotalLocked(appId, capsule.Principal, false);
 
@@ -281,6 +274,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, to, amount),
                 "penalty withdrawal transfer failed");
+            EnsureNeoCreditSolvent();
 
             OnCapsulePenaltiesWithdrawn(appId, to, amount);
         }

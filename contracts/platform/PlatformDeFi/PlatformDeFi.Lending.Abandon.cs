@@ -71,6 +71,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, to, amount),
                 "abandoned collateral transfer failed");
+            EnsureNeoCreditSolvent();
 
             OnAbandonedCollateralWithdrawn(appId, to, amount);
         }

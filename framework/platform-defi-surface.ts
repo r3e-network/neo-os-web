@@ -64,8 +64,14 @@ export interface FrameworkPlatformDeFiSurface {
   getCapsule(capsuleId: Amount): Promise<unknown>;
   getCapsuleStats(): Promise<unknown>;
   getCapsuleDetails(capsuleId: Amount): Promise<unknown>;
-  withdrawNeoCredit(amount: Amount, options?: FrameworkPlatformDeFiInvokeOptions): Promise<FrameworkPlatformDeFiTx>;
-  withdrawGasCredit(amount: Amount, options?: FrameworkPlatformDeFiInvokeOptions): Promise<FrameworkPlatformDeFiTx>;
+  neoCreditOf(account?: string): Promise<bigint>;
+  gasCreditOf(account?: string): Promise<bigint>;
+  neoCreditLiability(): Promise<bigint>;
+  gasCreditLiability(): Promise<bigint>;
+  totalNeoCreditLiability(): Promise<bigint>;
+  totalGasCreditLiability(): Promise<bigint>;
+  withdrawNeoCredit(amount: Amount, account?: string, options?: FrameworkPlatformDeFiInvokeOptions): Promise<FrameworkPlatformDeFiTx>;
+  withdrawGasCredit(amount: Amount, account?: string, options?: FrameworkPlatformDeFiInvokeOptions): Promise<FrameworkPlatformDeFiTx>;
   withdrawLendingFees(to?: string, options?: FrameworkPlatformDeFiInvokeOptions): Promise<FrameworkPlatformDeFiTx>;
   getTotalLendingFees(): Promise<bigint>;
   withdrawCapsuleFees(to?: string, options?: FrameworkPlatformDeFiInvokeOptions): Promise<FrameworkPlatformDeFiTx>;
@@ -181,7 +187,7 @@ export function createPlatformDeFiSurface(
     accountArg(await account(value)),
     accountArg(defiHash()),
     amountArg(amount, "amount"),
-    { type: "Any", value: null },
+    { type: "String", value: `${appId()}:credit` },
   ], { ...(options ?? {}), scriptHash: tokenHash() }));
 
   return {
@@ -209,8 +215,22 @@ export function createPlatformDeFiSurface(
     getCapsule: async (capsuleId) => read("getCapsule", [...tenantArgs(), amountArg(capsuleId, "capsuleId")]),
     getCapsuleStats: async () => read("getCapsuleStats", tenantArgs()),
     getCapsuleDetails: async (capsuleId) => read("getCapsuleDetails", [...tenantArgs(), amountArg(capsuleId, "capsuleId")]),
-    withdrawNeoCredit: write(async (amount, options) => invoke("withdrawNeoCredit", [amountArg(amount, "amount")], options)),
-    withdrawGasCredit: write(async (amount, options) => invoke("withdrawGasCredit", [amountArg(amount, "amount")], options)),
+    neoCreditOf: async (value) => parseBigInt(await read("getDirectNeoCredit", [
+      ...tenantArgs(), accountArg(await account(value)),
+    ])),
+    gasCreditOf: async (value) => parseBigInt(await read("getDirectGasCredit", [
+      ...tenantArgs(), accountArg(await account(value)),
+    ])),
+    neoCreditLiability: async () => parseBigInt(await read("neoCreditLiabilityOf", tenantArgs())),
+    gasCreditLiability: async () => parseBigInt(await read("gasCreditLiabilityOf", tenantArgs())),
+    totalNeoCreditLiability: async () => parseBigInt(await read("totalNeoCreditLiability")),
+    totalGasCreditLiability: async () => parseBigInt(await read("totalGasCreditLiability")),
+    withdrawNeoCredit: write(async (amount, value, options) => invoke("withdrawNeoCredit", [
+      ...tenantArgs(), accountArg(await account(value)), amountArg(amount, "amount"),
+    ], options)),
+    withdrawGasCredit: write(async (amount, value, options) => invoke("withdrawGasCredit", [
+      ...tenantArgs(), accountArg(await account(value)), amountArg(amount, "amount"),
+    ], options)),
     withdrawLendingFees: write(async (to, options) => invoke("withdrawLendingFees", [
       ...tenantArgs(), accountArg(await account(to)),
     ], options)),

@@ -1,10 +1,10 @@
 # PlatformDeFi Framework Interface
 
-Generated: 2026-07-23T00:31:13.326Z
+Generated: 2026-07-23T03:43:43.023Z
 
 - Interface audit: **PASS**
-- Tenant contract ABI: 49 methods
-- Framework ABI operations: 49 methods
+- Tenant contract ABI: 55 methods
+- Framework ABI operations: 55 methods
 - Native prepaid deposit operations: 1
 - Missing methods: none
 - Extra methods: none

@@ -49,7 +49,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     [DisplayName("PlatformDeFi")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
-    [ManifestExtra("Version", "1.0.0")]
+    [ManifestExtra("Version", "1.1.0")]
     [ManifestExtra("Description", "Multi-tenant DeFi engine for Neo N3. Consolidates SelfLoan, FlashLoan, and CompoundCapsule products into a single reusable contract with per-app isolation.")]
     [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer", "vote")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "balanceOf", "transfer")]
@@ -65,6 +65,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         #region Global Prefixes (0x01-0x0F reserved for platform admin)
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_PAUSED = new byte[] { 0x02 };
+        private static readonly byte[] PREFIX_TOTAL_NEO_CREDIT_LIABILITY = new byte[] { 0x03 };
+        private static readonly byte[] PREFIX_TOTAL_GAS_CREDIT_LIABILITY = new byte[] { 0x04 };
 
         // Per-app registration
         private static readonly byte[] PREFIX_APP_TYPE = new byte[] { 0x10 };
@@ -95,6 +97,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         //     and the pool balance, so it is the third segregated GAS pool.
         private static readonly byte[] PREFIX_LENDING_GAS_LIQUIDITY = new byte[] { 0x16 };
         private static readonly byte[] PREFIX_CAPSULE_GAS_RESERVE = new byte[] { 0x17 };
+        private static readonly byte[] PREFIX_APP_NEO_CREDIT_LIABILITY = new byte[] { 0x18 };
+        private static readonly byte[] PREFIX_APP_GAS_CREDIT_LIABILITY = new byte[] { 0x19 };
         #endregion
 
         #region Lending Prefixes (0x20-0x2F)

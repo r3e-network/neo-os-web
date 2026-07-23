@@ -34,7 +34,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract bool? isLiquidatable(string appId, BigInteger loanId);
 
         // Credit (surplus collateral lands here)
-        public abstract void withdrawNeoCredit(BigInteger amount);
+        public abstract BigInteger? withdrawNeoCredit(string appId, UInt160 payer, BigInteger amount);
     }
 
     /// <summary>
@@ -160,14 +160,14 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             // Fund lending liquidity.
             FundGas(engine, admin, 300 * GAS);
             engine.SetTransactionSigners(admin);
-            engine.Native.GAS.Transfer(admin, defi.Hash, 100 * GAS, null);
+            engine.Native.GAS.Transfer(admin, defi.Hash, 100 * GAS, "lend:credit");
             defi.lendingDeposit("lend", admin, 100 * GAS);
 
             // Borrower posts 10 NEO collateral, takes a tier3 (40%) loan = 20 GAS gross.
             var bob = TestEngine.GetNewSigner().Account;
             FundNeo(engine, bob, 50);
             engine.SetTransactionSigners(bob);
-            engine.Native.NEO.Transfer(bob, defi.Hash, 10, null);
+            engine.Native.NEO.Transfer(bob, defi.Hash, 10, "lend:credit");
             BigInteger loanId = defi.createLoan("lend", bob, 3, 10) ?? 0;
             Assert.True(loanId > 0);
             Assert.False(defi.isLiquidatable("lend", loanId)); // healthy at 5 GAS/NEO
@@ -182,7 +182,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var keeper = TestEngine.GetNewSigner().Account;
             FundGas(engine, keeper, 100 * GAS);
             engine.SetTransactionSigners(keeper);
-            engine.Native.GAS.Transfer(keeper, defi.Hash, 50 * GAS, null);
+            engine.Native.GAS.Transfer(keeper, defi.Hash, 50 * GAS, "lend:credit");
             Assert.ThrowsAny<Exception>(() => defi.liquidateLoan("lend", loanId, keeper));
 
             // After the grace period elapses, liquidation succeeds.
@@ -206,14 +206,14 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             FundGas(engine, admin, 300 * GAS);
             engine.SetTransactionSigners(admin);
-            engine.Native.GAS.Transfer(admin, defi.Hash, 100 * GAS, null);
+            engine.Native.GAS.Transfer(admin, defi.Hash, 100 * GAS, "lend:credit");
             defi.lendingDeposit("lend", admin, 100 * GAS);
 
             // Borrower posts 10 NEO, tier3 loan = 20 GAS gross debt.
             var bob = TestEngine.GetNewSigner().Account;
             FundNeo(engine, bob, 50);
             engine.SetTransactionSigners(bob);
-            engine.Native.NEO.Transfer(bob, defi.Hash, 10, null);
+            engine.Native.NEO.Transfer(bob, defi.Hash, 10, "lend:credit");
             BigInteger loanId = defi.createLoan("lend", bob, 3, 10) ?? 0;
 
             // Drive price down to 2.048 GAS/NEO (liquidatable), wait out grace.
@@ -224,7 +224,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var keeper = TestEngine.GetNewSigner().Account;
             FundGas(engine, keeper, 100 * GAS);
             engine.SetTransactionSigners(keeper);
-            engine.Native.GAS.Transfer(keeper, defi.Hash, 50 * GAS, null);
+            engine.Native.GAS.Transfer(keeper, defi.Hash, 50 * GAS, "lend:credit");
 
             BigInteger keeperNeoBefore = engine.Native.NEO.BalanceOf(keeper) ?? 0;
 
@@ -239,7 +239,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             // Borrower has no surplus credit to withdraw in this fully-underwater case.
             engine.SetTransactionSigners(bob);
-            Assert.ThrowsAny<Exception>(() => defi.withdrawNeoCredit(1));
+            Assert.ThrowsAny<Exception>(() => defi.withdrawNeoCredit("lend", bob, 1));
         }
 
         [Fact]
@@ -256,7 +256,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             FundGas(engine, admin, 600 * GAS);
             engine.SetTransactionSigners(admin);
-            engine.Native.GAS.Transfer(admin, defi.Hash, 200 * GAS, null);
+            engine.Native.GAS.Transfer(admin, defi.Hash, 200 * GAS, "lend:credit");
             defi.lendingDeposit("lend", admin, 200 * GAS);
 
             // Deposit 110 NEO; create a tier1 (20%) loan against 100 NEO (value 500 GAS ->
@@ -264,7 +264,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var bob = TestEngine.GetNewSigner().Account;
             FundNeo(engine, bob, 200);
             engine.SetTransactionSigners(bob);
-            engine.Native.NEO.Transfer(bob, defi.Hash, 110, null);
+            engine.Native.NEO.Transfer(bob, defi.Hash, 110, "lend:credit");
             BigInteger loanId = defi.createLoan("lend", bob, 1, 100) ?? 0;
             Assert.True(loanId > 0);
 
@@ -283,7 +283,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var keeper = TestEngine.GetNewSigner().Account;
             FundGas(engine, keeper, 300 * GAS);
             engine.SetTransactionSigners(keeper);
-            engine.Native.GAS.Transfer(keeper, defi.Hash, 150 * GAS, null);
+            engine.Native.GAS.Transfer(keeper, defi.Hash, 150 * GAS, "lend:credit");
 
             BigInteger keeperNeoBefore = engine.Native.NEO.BalanceOf(keeper) ?? 0;
             engine.SetTransactionSigners(keeper);
@@ -302,10 +302,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             // one more reverts.
             engine.SetTransactionSigners(bob);
             BigInteger bobNeoBefore = engine.Native.NEO.BalanceOf(bob) ?? 0;
-            defi.withdrawNeoCredit(expectedSurplus);
+            Assert.Equal(expectedSurplus, defi.withdrawNeoCredit("lend", bob, expectedSurplus));
             Assert.Equal(bobNeoBefore + expectedSurplus, engine.Native.NEO.BalanceOf(bob));
             engine.SetTransactionSigners(bob);
-            Assert.ThrowsAny<Exception>(() => defi.withdrawNeoCredit(1));
+            Assert.ThrowsAny<Exception>(() => defi.withdrawNeoCredit("lend", bob, 1));
         }
 
         // ---- LOW: CreateLoan rejects a zero-value loan -----------------------------
@@ -325,13 +325,13 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             FundGas(engine, admin, 50 * GAS);
             engine.SetTransactionSigners(admin);
-            engine.Native.GAS.Transfer(admin, defi.Hash, 10 * GAS, null);
+            engine.Native.GAS.Transfer(admin, defi.Hash, 10 * GAS, "lend:credit");
             defi.lendingDeposit("lend", admin, 10 * GAS);
 
             var bob = TestEngine.GetNewSigner().Account;
             FundNeo(engine, bob, 10);
             engine.SetTransactionSigners(bob);
-            engine.Native.NEO.Transfer(bob, defi.Hash, 1, null);
+            engine.Native.NEO.Transfer(bob, defi.Hash, 1, "lend:credit");
 
             // loanAmount = 1 * 4 * 2000 / 10000 = 0 -> rejected up front.
             Assert.ThrowsAny<Exception>(() => defi.createLoan("lend", bob, 1, 1));

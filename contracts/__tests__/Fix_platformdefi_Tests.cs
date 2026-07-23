@@ -108,7 +108,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var alice = TestEngine.GetNewSigner().Account;
             FundNeo(engine, alice, 100);
             engine.SetTransactionSigners(alice);
-            engine.Native.NEO.Transfer(alice, defi.Hash, 10, null);
+            engine.Native.NEO.Transfer(alice, defi.Hash, 10, "app-lend:credit");
 
             Assert.Equal(BigInteger.Zero, defi.getLendingLiquidity("app-lend"));
 
@@ -129,14 +129,14 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             // Admin funds the lending GAS pool with 100 GAS.
             FundGas(engine, admin, 200 * GAS);
             engine.SetTransactionSigners(admin);
-            engine.Native.GAS.Transfer(admin, defi.Hash, 100 * GAS, null);
+            engine.Native.GAS.Transfer(admin, defi.Hash, 100 * GAS, "app-lend:credit");
             defi.lendingDeposit("app-lend", admin, 100 * GAS);
             Assert.Equal(new BigInteger(100 * GAS), defi.getLendingLiquidity("app-lend"));
 
             var alice = TestEngine.GetNewSigner().Account;
             FundNeo(engine, alice, 100);
             engine.SetTransactionSigners(alice);
-            engine.Native.NEO.Transfer(alice, defi.Hash, 10, null);
+            engine.Native.NEO.Transfer(alice, defi.Hash, 10, "app-lend:credit");
 
             BigInteger grossLoan = 10 * GAS;            // 20% of 50 GAS
             BigInteger fee = grossLoan * 50 / 10000;    // 0.5%
@@ -155,7 +155,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             // Fund alice with enough GAS to cover the gross debt (she only received net).
             FundGas(engine, alice, grossLoan);
             engine.SetTransactionSigners(alice);
-            engine.Native.GAS.Transfer(alice, defi.Hash, grossLoan, null);
+            engine.Native.GAS.Transfer(alice, defi.Hash, grossLoan, "app-lend:credit");
             defi.repayLoan("app-lend", loanId);
             Assert.Equal(expectedLiquidity + grossLoan, defi.getLendingLiquidity("app-lend"));
         }
@@ -178,7 +178,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var lp = TestEngine.GetNewSigner().Account;
             FundGas(engine, lp, 60 * GAS);
             engine.SetTransactionSigners(lp);
-            engine.Native.GAS.Transfer(lp, defi.Hash, 50 * GAS, null);
+            engine.Native.GAS.Transfer(lp, defi.Hash, 50 * GAS, "flash:credit");
             defi.flashDeposit("flash", lp, 50 * GAS);
             Assert.Equal(new BigInteger(50 * GAS), defi.getFlashTotalLpDeposits("flash"));
 
@@ -186,7 +186,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var bob = TestEngine.GetNewSigner().Account;
             FundNeo(engine, bob, 100);
             engine.SetTransactionSigners(bob);
-            engine.Native.NEO.Transfer(bob, defi.Hash, 10, null);
+            engine.Native.NEO.Transfer(bob, defi.Hash, 10, "lend:credit");
 
             // Contract holds 50 GAS (the LP's), but lending liquidity is 0 -> revert.
             Assert.Equal(BigInteger.Zero, defi.getLendingLiquidity("lend"));
@@ -212,7 +212,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             FundGas(engine, admin, 30 * GAS);
             engine.SetTransactionSigners(admin);
-            engine.Native.GAS.Transfer(admin, defi.Hash, 20 * GAS, null);
+            engine.Native.GAS.Transfer(admin, defi.Hash, 20 * GAS, "vault:credit");
             defi.fundCapsuleYieldReserve("vault", admin, 20 * GAS);
             Assert.Equal(new BigInteger(20 * GAS), defi.getCapsuleYieldReserve("vault"));
 
@@ -254,7 +254,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             FundGas(engine, admin, 30 * GAS);
             engine.SetTransactionSigners(admin);
-            engine.Native.GAS.Transfer(admin, defi.Hash, 10 * GAS, null);
+            engine.Native.GAS.Transfer(admin, defi.Hash, 10 * GAS, "lend:credit");
             defi.lendingDeposit("lend", admin, 10 * GAS);
             Assert.Equal(new BigInteger(10 * GAS), defi.getLendingLiquidity("lend"));
 

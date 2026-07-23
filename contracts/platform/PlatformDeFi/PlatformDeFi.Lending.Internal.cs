@@ -67,6 +67,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
             bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, borrower, amount);
             ExecutionEngine.Assert(transferred, "GAS transfer failed");
+            EnsureGasCreditSolvent();
         }
 
         private static void ReturnLoanCollateralToBorrower(string appId, BigInteger loanId, Loan loan)
@@ -81,6 +82,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, loan.Borrower, loan.Collateral),
                 "collateral return failed");
+            EnsureNeoCreditSolvent();
         }
     }
 }

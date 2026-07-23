@@ -54,6 +54,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, to, amount),
                 "lending fee transfer failed");
+            EnsureGasCreditSolvent();
 
             OnLendingFeesWithdrawn(appId, to, amount);
         }
@@ -76,6 +77,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, to, amount),
                 "capsule fee transfer failed");
+            EnsureGasCreditSolvent();
 
             OnCapsuleFeesWithdrawn(appId, to, amount);
         }
@@ -106,6 +108,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, to, amount),
                 "flash loan fee transfer failed");
+            EnsureGasCreditSolvent();
 
             OnFlashLoanFeesWithdrawn(appId, to, amount);
         }
