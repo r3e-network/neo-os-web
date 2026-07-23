@@ -13,6 +13,7 @@ import { createStatsSurface } from "./stats-surface";
 import { createNotifyModule } from "./notify-surface";
 import { createPlatformSurface } from "./platform-surface";
 import { createStorageSurface } from "./storage-surface";
+import { createBadgeSurface } from "./badge-surface";
 import type {
   FrameworkAppMode,
   FrameworkAssetSymbol,
@@ -105,6 +106,12 @@ export function createMiniAppFramework(
     let instance: T | undefined;
     return () => (instance ??= factory());
   };
+
+  const getBadge = lazyModule(() =>
+    createBadgeSurface({
+      osBadge: () => os.badge,
+    }),
+  );
 
   /**
    * app.permissions (S11) — manifest permission gating sourced from the
@@ -512,6 +519,10 @@ export function createMiniAppFramework(
 
     storage: storageSurface,
 
+    get badge() {
+      return getBadge();
+    },
+
     /** app.actions — extracted module (RFC P0-1 residual split). */
     actions: actionsSurface,
 
@@ -649,6 +660,8 @@ export { createNotifyModule } from "./notify-surface";
 export type { NotifyModule, NotifySurfaceDeps, RunWithNotifyOptions } from "./notify-surface";
 export { createStorageSurface } from "./storage-surface";
 export type { StorageSurfaceDeps } from "./storage-surface";
+export { createBadgeSurface } from "./badge-surface";
+export type { BadgeSurfaceDeps } from "./badge-surface";
 export { createAmountSurface, gasFixed8Amount, neoWholeAmount } from "./amounts-surface";
 export {
   accountToHash160,

@@ -234,6 +234,7 @@ export interface MiniAppFrameworkOS {
   badge?: {
     define(badgeId: string, name: string, criteria: string): Promise<void>;
     award(badgeId: string, user: string): Promise<void>;
+    revoke?(badgeId: string, user: string): Promise<void>;
     list(user?: string): Promise<unknown[]>;
     updateStat?(user: string, statKey: string, value: string): Promise<void>;
     getStat?(user: string, statKey: string): Promise<string>;
@@ -754,6 +755,16 @@ export interface FrameworkStorageSurface {
   remote: FrameworkRemoteStorageSurface;
 }
 
+export interface FrameworkBadgeSurface {
+  readonly available: boolean;
+  define(badgeId: string, name: string, criteria: string): Promise<boolean>;
+  award(badgeId: string, user: string): Promise<boolean>;
+  revoke(badgeId: string, user: string): Promise<boolean>;
+  list(user?: string): Promise<unknown[]>;
+  updateStat(user: string, statKey: string, value: string): Promise<boolean>;
+  getStat(user: string, statKey: string): Promise<string | null>;
+}
+
 /** app.actions — registered action handlers with toast wrapping. */
 export interface FrameworkActionsSurface {
   /**
@@ -1235,6 +1246,8 @@ export interface MiniAppFramework {
   state: FrameworkStateSurface;
   /** app.storage — local / remote keyed storage. */
   storage: FrameworkStorageSurface;
+  /** app.badge — OS badge operations with capability-safe fallbacks. */
+  readonly badge: FrameworkBadgeSurface;
   /** app.actions — registered actions with toast wrapping + drop-mode single-flight. */
   actions: FrameworkActionsSurface;
   /** app.chain — reads, writes, args, events, signing. */

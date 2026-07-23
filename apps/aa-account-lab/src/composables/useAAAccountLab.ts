@@ -1,6 +1,8 @@
 import { createObservable, type Observable } from "@shared/react/context";
-import type { MiniAppFramework } from "@shared/react";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type {
+  FrameworkRemoteStorageSurface,
+  MiniAppFramework,
+} from "@shared/react";
 import {
   addressToScriptHash,
   normalizeScriptHash,
@@ -47,7 +49,7 @@ export type AARegistrationResult =
 
 export interface UseAAAccountLabOptions {
   app: MiniAppFramework;
-  storageService: StorageProxy;
+  storageService: FrameworkRemoteStorageSurface;
   t: (key: string, params?: Record<string, string | number>) => string;
   outcomeReader?: (pending: PendingAARegistration) => Promise<AARegistrationOutcome>;
   sleep?: (milliseconds: number) => Promise<void>;

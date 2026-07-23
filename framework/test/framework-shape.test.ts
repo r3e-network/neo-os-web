@@ -77,6 +77,7 @@ describe("framework runtime shape snapshot", () => {
       "aa",
       "actions",
       "amount",
+      "badge",
       "bus",
       "chain",
       "clipboard",
