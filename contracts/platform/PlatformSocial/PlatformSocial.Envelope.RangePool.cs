@@ -106,6 +106,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, claimer, amount),
                 "claim payout failed");
+            EnsureGasCreditSolvent();
 
             OnRangeGasPoolClaimed(appId, poolId, claimer, amount, pool.RemainingAmount, remainingClaims);
             if (remainingClaims == 0)
@@ -170,6 +171,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, pool.Creator, refund),
                 "refund failed");
+            EnsureGasCreditSolvent();
 
             OnRangeGasPoolRefunded(appId, poolId, pool.Creator, refund);
             return refund;

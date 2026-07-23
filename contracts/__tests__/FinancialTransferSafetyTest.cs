@@ -150,6 +150,27 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
+        public void PlatformSocialBusinessPayoutsPreserveDirectCreditSolvency()
+        {
+            string envelope = ContractSourceAssertions.ReadSourcesByPattern("PlatformSocial.Envelope*.cs", "contracts", "platform", "PlatformSocial");
+            string trust = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Trust.cs");
+            string vault = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Vault.cs");
+
+            Assert.Equal(4, envelope.Split("EnsureGasCreditSolvent();").Length - 1);
+            Assert.Equal(2, trust.Split("EnsureNeoCreditSolvent();").Length - 1);
+            Assert.Equal(2, vault.Split("EnsureGasCreditSolvent();").Length - 1);
+            Assert.Contains(
+                "ExecutionEngine.Assert(\n                        NEO.Transfer(Runtime.ExecutingScriptHash, admin, platformFee)",
+                trust);
+            Assert.Contains(
+                "ExecutionEngine.Assert(\n                        NEO.Transfer(Runtime.ExecutingScriptHash, admin, penalty)",
+                trust);
+            Assert.Contains(
+                "ExecutionEngine.Assert(\n                            GAS.Transfer(Runtime.ExecutingScriptHash, admin, fee)",
+                vault);
+        }
+
+        [Fact]
         public void PlatformSocialPayoutsStayWithinTheirDomainRoles()
         {
             string envelope = ContractSourceAssertions.ReadSourcesByPattern("PlatformSocial.Envelope*.cs", "contracts", "platform", "PlatformSocial");
