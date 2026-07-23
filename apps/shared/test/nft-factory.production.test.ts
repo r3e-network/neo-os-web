@@ -262,6 +262,7 @@ describe("NFT Factory production contract", () => {
     expect(manifest.supported_networks).toEqual(["neo-n3-testnet"]);
     expect(manifest.features.offlineSupport).toBe(false);
     expect(manifest.permissions).toEqual([
+      "invoke:platform-factory",
       "wallet:sign-message",
       "read:blockchain",
     ]);

@@ -40,6 +40,7 @@ import type {
   RewardGameSession,
 } from "./gamefi";
 import type { FrameworkPlatformGameSurface } from "./platform-game-surface";
+import { PLATFORM_INVOKE_PERMISSIONS } from "./permissions";
 import type { TeeSessionOp, TeeStepResult } from "./logic/tee-session";
 import {
   toScriptHash,
@@ -100,22 +101,21 @@ export interface GameFacadeDeps {
 export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
   const { appId, storagePrefix, chain, guards } = deps;
   const assertNotGuest = () => guards.assertNotGuest();
-  const requireInvokePrimary = () => guards.requirePermission("invoke:primary");
+  const requireRewardInvoke = () =>
+    guards.requirePermission(
+      deps.platformGameHash
+        ? PLATFORM_INVOKE_PERMISSIONS.game
+        : "invoke:primary",
+    );
   const requireOracleRequest = () => guards.requirePermission("oracle:request");
 
   /**
    * Chain adapter for the reward-game SDK (app.game.reward). The broadcast
    * lanes (invoke / invokeWithPayment) wrap the RAW host chain service, so
-   * they carry the SAME guards as app.chain.invoke — guest guard first, then
-   * the S11 "invoke:primary" manifest gate (ordering matches the round-2
-   * idiom) — otherwise the entire app.game.reward surface (start / finalize /
-   * expire / withdrawCredit) would broadcast primary-contract invokes with no
-   * permission check. `async` so a denial rejects instead of throwing
-   * synchronously. Hosts that deliver NO permission declaration default-allow
-   * (see app.permissions), so existing games are unchanged; TEE games with
-   * pinned empty declarations are guest-only, where this firing is desired
-   * defense-in-depth. Read lanes (read / listEvents / address / detectNetwork)
-   * stay ungated so guests can still read the reward pool.
+   * they carry guest-first permission guards. Standalone contracts require
+   * "invoke:primary"; a shared PlatformGame binding requires only
+   * "invoke:platform-game", so one grant cannot authorize both targets.
+   * Read lanes stay ungated so guests can still inspect reward state.
    */
   const rewardChain = () => ({
     address: chain.address,
@@ -129,7 +129,7 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
       invokeOptions?: FrameworkInvokeOptions,
     ) => {
       assertNotGuest();
-      requireInvokePrimary();
+      requireRewardInvoke();
       return chain.invoke(operation, args, invokeOptions);
     },
     invokeWithPayment: async (
@@ -140,7 +140,7 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
       invokeOptions?: FrameworkInvokeOptions,
     ) => {
       assertNotGuest();
-      requireInvokePrimary();
+      requireRewardInvoke();
       return chain.invokeWithPayment(paymentAmount, memo, operation, args, invokeOptions);
     },
     ...(chain.listEvents
@@ -204,10 +204,9 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
         },
         start(difficulty: number) {
           assertNotGuest();
-          // S11 pre-gate (same "invoke:primary" as the adapter's invoke
-          // lanes): deny BEFORE the SDK's ensureWallet fires a wallet
-          // prompt; the adapter gate backstops the broadcast itself.
-          requireInvokePrimary();
+          // Deny before the SDK can prompt for a wallet. Shared bindings use
+          // the module-specific grant; standalone bindings use invoke:primary.
+          requireRewardInvoke();
           return startRewardGame(config, chainAdapter, difficulty, storage);
         },
         openSession(gameId: string, difficulty: number) {
@@ -219,7 +218,7 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
           // them. TEE sessions are oracle traffic, so they carry the SAME
           // "oracle:request" permission as the app.oracle request/dispatch
           // lanes (no new manifest vocabulary; a re-enabled gamefi TEE game
-          // grants it alongside "invoke:primary"). Denial fires BEFORE the
+          // grants it alongside the applicable invoke grant). Denial fires BEFORE the
           // identity build and the enclave request — zero TEE traffic — and
           // throws synchronously like the sibling reward guards (the P0-2
           // documented sync-throw exemption). Standard ordering: guest
@@ -256,7 +255,7 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
           // is the oracle public-key READ (the same endpoint the ungated
           // app.oracle.seal.publicKey client hits) + local encryption — it
           // opens no TEE session; the broadcast is the gated side effect.
-          requireInvokePrimary();
+          requireRewardInvoke();
           return finalizeRewardGame(config, chainAdapter, session, storage, {
             ...finalizeOptions,
             fetcher: finalizeOptions?.fetcher ?? rewardOptions.fetcher,
@@ -268,13 +267,13 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
         expire(gameId: string) {
           assertNotGuest();
           // S11 pre-gate — see start(); expire broadcasts expireGame.
-          requireInvokePrimary();
+          requireRewardInvoke();
           return expireRewardGame(config, chainAdapter, gameId, storage);
         },
         withdrawCredit(creditFixed8?: bigint | number | string) {
           assertNotGuest();
           // S11 pre-gate: deny BEFORE the SDK's ensureWallet wallet prompt.
-          requireInvokePrimary();
+          requireRewardInvoke();
           return withdrawRewardCredit(config, chainAdapter, creditFixed8);
         },
         snapshot(gameId: string) {

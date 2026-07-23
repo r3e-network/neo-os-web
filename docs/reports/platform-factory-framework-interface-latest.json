@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T00:40:34.157Z",
+  "generated_at_utc": "2026-07-23T09:08:10.237Z",
   "passed": true,
   "tenant_abi_method_count": 13,
   "framework_operation_count": 13,
@@ -38,7 +38,8 @@
   "wiring": {
     "options_config": true,
     "framework_surface": true,
-    "composition_root": true
+    "composition_root": true,
+    "scoped_write_guard": true
   },
   "consumers": {
     "shared_factory_runtime": true,

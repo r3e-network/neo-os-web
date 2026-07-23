@@ -1,6 +1,6 @@
 # PlatformAnchor Framework Interface
 
-Generated: 2026-07-23T00:18:00.859Z
+Generated: 2026-07-23T09:08:10.035Z
 
 - Interface audit: **PASS**
 - Tenant contract ABI: 32 methods
@@ -18,6 +18,7 @@ Generated: 2026-07-23T00:18:00.859Z
 - framework_surface: PASS
 - composition_root: PASS
 - manifest_binding: PASS
+- scoped_write_guard: PASS
 
 ## Consumers
 

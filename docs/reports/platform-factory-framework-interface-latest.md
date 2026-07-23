@@ -1,6 +1,6 @@
 # MiniAppFactory Framework Interface
 
-Generated: 2026-07-23T00:40:34.157Z
+Generated: 2026-07-23T09:08:10.237Z
 
 - Interface audit: **PASS**
 - Tenant contract ABI: 13 methods
@@ -17,6 +17,7 @@ Generated: 2026-07-23T00:40:34.157Z
 - options_config: PASS
 - framework_surface: PASS
 - composition_root: PASS
+- scoped_write_guard: PASS
 
 ## Consumers
 

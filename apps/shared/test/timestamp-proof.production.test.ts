@@ -14,6 +14,7 @@ describe("timestamp-proof production contract", () => {
     expect(manifest.features.stateless).toBe(false);
     expect(manifest.platform.transactions).toBe(true);
     expect(manifest.permissions).toContain("invoke:primary");
+    expect(manifest.permissions).toContain("invoke:platform-social");
     expect(manifest.permissions).toContain("read:blockchain");
     expect(manifest).not.toHaveProperty("stateSource");
     expect(manifest.urls.banner).toBe("/miniapps/timestamp-proof/proof-desk.webp");

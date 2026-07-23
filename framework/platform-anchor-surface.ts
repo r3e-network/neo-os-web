@@ -1,6 +1,6 @@
 import { FrameworkCapabilityError } from "./aa";
 import { accountToHash160 } from "./chain-surface";
-import { WRITE_PRIMARY, guardedWrite } from "./internal/guards";
+import { WRITE_PLATFORM_ANCHOR, guardedWrite } from "./internal/guards";
 import type { FrameworkGuardDeps } from "./internal/guards";
 import type { Observable } from "./reactive";
 import { parseHash160 } from "./utils/neo";
@@ -172,7 +172,7 @@ export function createPlatformAnchorSurface(
     options?: FrameworkPlatformAnchorInvokeOptions,
   ) => deps.chain.invoke(operation, args, { ...(options ?? {}), scriptHash: anchorHash() });
   const write = <A extends unknown[]>(run: (...args: A) => Promise<FrameworkPlatformAnchorTx>) =>
-    guardedWrite(deps.guards, WRITE_PRIMARY, run);
+    guardedWrite(deps.guards, WRITE_PLATFORM_ANCHOR, run);
 
   return {
     get available() {

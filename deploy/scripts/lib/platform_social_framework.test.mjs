@@ -7,7 +7,7 @@ const method = (name) => ({ name });
 test("PlatformSocial framework audit accepts exact ABI coverage and wiring", () => {
   const result = evaluatePlatformSocialFramework({
     manifest: { abi: { methods: [method("admin"), method("createEnvelope"), method("getEnvelope")] } },
-    surfaceSource: 'invoke("createEnvelope", []); read("getEnvelope", []); invoke("transfer", []); prepayGasCredit; prepayNeoCredit; `${appId()}:credit`;',
+    surfaceSource: 'WRITE_PLATFORM_SOCIAL; invoke("createEnvelope", []); read("getEnvelope", []); invoke("transfer", []); prepayGasCredit; prepayNeoCredit; `${appId()}:credit`;',
     typesSource: "platformSocial?: FrameworkPlatformSocialConfig; readonly platformSocial: FrameworkPlatformSocialSurface;",
     indexSource: "createPlatformSocialSurface; get platformSocial() {}",
     defineMiniAppSource: 'moduleId !== "platform-social"; platformSocial={resolvedPlatformSocial}',

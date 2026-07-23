@@ -129,12 +129,17 @@ describe("app.platformFactory", () => {
     })).rejects.toThrow(/guest-mode/);
     expect(guest.chain.invoke).not.toHaveBeenCalled();
 
-    const denied = makeApp({}, { appId: APP_ID, permissions: {} });
+    const denied = makeApp({}, { appId: APP_ID, permissions: { "invoke:primary": true } });
     await expect(denied.app.platformFactory.deployFromTemplate(NETWORK, {
       templateId: "tpl", packageId: "pkg", digest: "digest", initParams: "{}",
     })).rejects.toSatisfy(
-      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:primary",
+      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:platform-factory",
     );
     expect(denied.chain.invoke).not.toHaveBeenCalled();
+
+    const allowed = makeApp({}, { appId: APP_ID, permissions: { "invoke:platform-factory": true } });
+    await expect(allowed.app.platformFactory.deployFromTemplate(NETWORK, {
+      templateId: "tpl", packageId: "pkg", digest: "digest", initParams: "{}",
+    })).resolves.toMatchObject({ txid: "0xtx" });
   });
 });

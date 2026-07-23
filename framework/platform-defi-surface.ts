@@ -1,6 +1,6 @@
 import { FrameworkCapabilityError } from "./aa";
 import { accountToHash160 } from "./chain-surface";
-import { WRITE_PRIMARY, guardedWrite } from "./internal/guards";
+import { WRITE_PLATFORM_DEFI, guardedWrite } from "./internal/guards";
 import type { FrameworkGuardDeps } from "./internal/guards";
 import type { Observable } from "./reactive";
 import { parseHash160 } from "./utils/neo";
@@ -198,7 +198,7 @@ export function createPlatformDeFiSurface(
     options?: FrameworkPlatformDeFiInvokeOptions,
   ) => deps.chain.invoke(operation, args, { ...(options ?? {}), scriptHash: defiHash() });
   const write = <A extends unknown[]>(run: (...args: A) => Promise<FrameworkPlatformDeFiTx>) =>
-    guardedWrite(deps.guards, WRITE_PRIMARY, run);
+    guardedWrite(deps.guards, WRITE_PLATFORM_DEFI, run);
   const deposit = (tokenHash: () => string) => write(async (
     amount: Amount,
     value?: string,

@@ -248,11 +248,14 @@ describe("app.platformSocial", () => {
     await expect(guest.app.platformSocial.claimEnvelope(1)).rejects.toThrow(/guest-mode/);
     expect(guest.chain.invoke).not.toHaveBeenCalled();
 
-    const denied = makeApp({}, { appId: APP_ID, permissions: {} });
+    const denied = makeApp({}, { appId: APP_ID, permissions: { "invoke:primary": true } });
     await expect(denied.app.platformSocial.claimEnvelope(1)).rejects.toSatisfy(
-      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:primary",
+      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:platform-social",
     );
     expect(denied.chain.invoke).not.toHaveBeenCalled();
+
+    const allowed = makeApp({}, { appId: APP_ID, permissions: { "invoke:platform-social": true } });
+    await expect(allowed.app.platformSocial.claimEnvelope(1)).resolves.toMatchObject({ txid: "0xtx" });
   });
 
   it("rejects invalid ids and hashes before invoking", async () => {

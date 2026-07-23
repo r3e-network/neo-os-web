@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T07:05:59.555Z",
+  "generated_at_utc": "2026-07-23T09:08:10.136Z",
   "passed": true,
   "tenant_abi_method_count": 58,
   "framework_operation_count": 58,
@@ -132,7 +132,8 @@
     "options_config": true,
     "framework_surface": true,
     "composition_root": true,
-    "manifest_binding": true
+    "manifest_binding": true,
+    "scoped_write_guard": true
   },
   "shared_binding_count": 0,
   "shared_bindings": [],
