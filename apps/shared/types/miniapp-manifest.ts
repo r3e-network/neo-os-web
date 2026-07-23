@@ -324,6 +324,20 @@ export interface ContractBinding {
 // ============================================================================
 
 export interface PlatformPermissions {
+  /** Invoke the app's standalone primary contract. */
+  "invoke:primary"?: boolean;
+  /** Invoke tenant operations on the shared PlatformRegistry. */
+  "invoke:platform-registry"?: boolean;
+  /** Invoke tenant operations on the shared PlatformGame engine. */
+  "invoke:platform-game"?: boolean;
+  /** Invoke tenant operations on the shared PlatformSocial engine. */
+  "invoke:platform-social"?: boolean;
+  /** Invoke tenant operations on the shared PlatformAnchor engine. */
+  "invoke:platform-anchor"?: boolean;
+  /** Invoke tenant operations on the shared PlatformDeFi engine. */
+  "invoke:platform-defi"?: boolean;
+  /** Invoke tenant deployment operations on MiniAppFactory. */
+  "invoke:platform-factory"?: boolean;
   /** Access to payment processing */
   payments?: boolean;
   /** Access to governance features */

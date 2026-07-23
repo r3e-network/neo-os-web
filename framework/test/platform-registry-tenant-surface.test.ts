@@ -181,7 +181,7 @@ describe("app.registry tenant surface", () => {
     expect(operations).toEqual(tenantAbi);
   });
 
-  it("runs guest then invoke:primary guards before wallet access or broadcast", async () => {
+  it("runs guest then invoke:platform-registry guards before wallet access or broadcast", async () => {
     const guest = makeApp({}, { appId: APP_ID, permissions: {} });
     guest.chain.address.set(null);
     guest.app.mode.set("guest");
@@ -189,11 +189,14 @@ describe("app.registry tenant surface", () => {
     expect(guest.chain.ensureWallet).not.toHaveBeenCalled();
     expect(guest.chain.invoke).not.toHaveBeenCalled();
 
-    const denied = makeApp({}, { appId: APP_ID, permissions: {} });
+    const denied = makeApp({}, { appId: APP_ID, permissions: { "invoke:primary": true } });
     await expect(denied.app.registry.materializeAbstractAccount()).rejects.toSatisfy(
-      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:primary",
+      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:platform-registry",
     );
     expect(denied.chain.invoke).not.toHaveBeenCalled();
+
+    const allowed = makeApp({}, { appId: APP_ID, permissions: { "invoke:platform-registry": true } });
+    await expect(allowed.app.registry.materializeAbstractAccount()).resolves.toMatchObject({ txid: "0xtx" });
   });
 
   it("rejects invalid tenant values before broadcasting", async () => {

@@ -71,6 +71,7 @@
   },
   "permissions": [
     "invoke:primary",
+    "invoke:platform-anchor",
     "read:blockchain"
   ],
   "features": {

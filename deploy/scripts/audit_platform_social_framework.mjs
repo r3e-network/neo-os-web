@@ -72,6 +72,7 @@ export function evaluatePlatformSocialFramework({
     tenant_credit_prepayment: surfaceSource.includes("prepayGasCredit") &&
       surfaceSource.includes("prepayNeoCredit") &&
       surfaceSource.includes('`${appId()}:credit`'),
+    scoped_write_guard: surfaceSource.includes("WRITE_PLATFORM_SOCIAL"),
   };
   return {
     passed: missingMethods.length === 0 && extraMethods.length === 0 &&

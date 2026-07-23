@@ -1,6 +1,6 @@
 # PlatformDeFi Framework Interface
 
-Generated: 2026-07-23T07:05:59.555Z
+Generated: 2026-07-23T09:08:10.136Z
 
 - Interface audit: **PASS**
 - Tenant contract ABI: 58 methods
@@ -19,6 +19,7 @@ Generated: 2026-07-23T07:05:59.555Z
 - framework_surface: PASS
 - composition_root: PASS
 - manifest_binding: PASS
+- scoped_write_guard: PASS
 
 ## Boundary
 

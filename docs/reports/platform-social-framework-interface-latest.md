@@ -1,6 +1,6 @@
 # PlatformSocial Framework Interface
 
-Generated: 2026-07-23T03:08:47.888Z
+Generated: 2026-07-23T09:08:09.934Z
 
 - Interface audit: **PASS**
 - User-facing contract ABI: 36 methods
@@ -20,6 +20,7 @@ Generated: 2026-07-23T03:08:47.888Z
 - manifest_binding: PASS
 - timestamp_proof_dual_path: PASS
 - tenant_credit_prepayment: PASS
+- scoped_write_guard: PASS
 
 ## Boundary
 

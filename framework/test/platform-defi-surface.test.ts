@@ -221,11 +221,14 @@ describe("app.platformDeFi", () => {
     await expect(guest.app.platformDeFi.repayLoan(1)).rejects.toThrow(/guest-mode/);
     expect(guest.chain.invoke).not.toHaveBeenCalled();
 
-    const denied = makeApp({}, { appId: APP_ID, permissions: {} });
+    const denied = makeApp({}, { appId: APP_ID, permissions: { "invoke:primary": true } });
     await expect(denied.app.platformDeFi.depositGas(1)).rejects.toSatisfy(
-      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:primary",
+      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:platform-defi",
     );
     expect(denied.chain.invoke).not.toHaveBeenCalled();
+
+    const allowed = makeApp({}, { appId: APP_ID, permissions: { "invoke:platform-defi": true } });
+    await expect(allowed.app.platformDeFi.depositGas(1)).resolves.toMatchObject({ txid: "0xtx" });
   });
 
   it("rejects invalid values before invoking", async () => {

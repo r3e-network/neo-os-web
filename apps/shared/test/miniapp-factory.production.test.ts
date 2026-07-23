@@ -25,6 +25,7 @@ describe("MiniApp Studio production contract", () => {
     expect(manifest.default_network).toBe("neo-n3-testnet");
     expect(manifest.permissions).toEqual([
       "invoke:primary",
+      "invoke:platform-factory",
       "wallet:sign-message",
       "read:blockchain",
     ]);

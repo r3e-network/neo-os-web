@@ -80,6 +80,7 @@ export function evaluatePlatformDeFiFramework({
       indexSource.includes("get platformDeFi()"),
     manifest_binding: defineMiniAppSource.includes("platformDeFiConfigFromManifest") &&
       defineMiniAppSource.includes("platformDeFi={resolvedPlatformDeFi}"),
+    scoped_write_guard: surfaceSource.includes("WRITE_PLATFORM_DEFI"),
   };
   return {
     passed: missingMethods.length === 0 && extraMethods.length === 0 &&

@@ -57,6 +57,7 @@ export function evaluatePlatformAnchorFramework({
       indexSource.includes("get platformAnchor()"),
     manifest_binding: defineMiniAppSource.includes("platformAnchorConfigFromManifest") &&
       defineMiniAppSource.includes("platformAnchor={resolvedPlatformAnchor}"),
+    scoped_write_guard: surfaceSource.includes("WRITE_PLATFORM_ANCHOR"),
   };
   const consumers = {
     trust_runtime_surface: trustRuntimeSource.includes("app.platformAnchor.stats()") &&
@@ -141,7 +142,6 @@ export function renderPlatformAnchorFrameworkMarkdown(report) {
     "## Boundary",
     "",
     report.boundary,
-    "",
   ].join("\n")}\n`;
 }
 

@@ -25,6 +25,7 @@ export const manifest: MiniAppManifest = {
     moduleId: "PlatformAnchor",
   },
   permissions: {
+    "invoke:platform-anchor": true,
     payments: true,
   },
 };

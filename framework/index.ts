@@ -307,8 +307,7 @@ export function createMiniAppFramework(
    * PlatformGame RewardGame engine lane. The surface auto-threads the host
    * appId into every call and auto-targets `options.platformGame.gameHash`
    * (platform config pattern); writes run the RFC P0-2 guarded-write stanza
-   * (guest guard + S11 "invoke:primary" — the same named policy as
-   * app.chain.invoke), reads stay ungated. Absent config ⇒ typed
+   * (guest guard + S11 "invoke:platform-game"), reads stay ungated. Absent config ⇒ typed
    * FrameworkCapabilityError.
    */
   const invokePlatformBatch = async (
@@ -764,8 +763,13 @@ export type {
 } from "./clipboard";
 
 // S11 app.permissions
-export { createPermissionsSurface, FrameworkPermissionError } from "./permissions";
+export {
+  createPermissionsSurface,
+  FrameworkPermissionError,
+  PLATFORM_INVOKE_PERMISSIONS,
+} from "./permissions";
 export type {
+  FrameworkPlatformInvokePermission,
   FrameworkPermissionsInput,
   FrameworkPermissionsSurface,
   PermissionsSurfaceDeps,

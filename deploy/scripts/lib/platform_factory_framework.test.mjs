@@ -16,7 +16,7 @@ const consumers = {
 test("MiniAppFactory framework audit accepts exact ABI and consumer routing", () => {
   const result = evaluatePlatformFactoryFramework({
     manifest: { abi: { methods: [method("admin"), method("getTemplate"), method("createMiniAppFromTemplate")] } },
-    surfaceSource: 'read(network, "getTemplate", []); invoke(network, "createMiniAppFromTemplate", []);',
+    surfaceSource: 'WRITE_PLATFORM_FACTORY; read(network, "getTemplate", []); invoke(network, "createMiniAppFromTemplate", []);',
     typesSource: "platformFactory?: FrameworkPlatformFactoryConfig; readonly platformFactory: FrameworkPlatformFactorySurface;",
     indexSource: "createPlatformFactorySurface; get platformFactory() {}",
     ...consumers,

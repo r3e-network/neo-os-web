@@ -47,6 +47,7 @@ export function evaluatePlatformFactoryFramework({
     framework_surface: typesSource.includes("readonly platformFactory: FrameworkPlatformFactorySurface"),
     composition_root: indexSource.includes("createPlatformFactorySurface") &&
       indexSource.includes("get platformFactory()"),
+    scoped_write_guard: surfaceSource.includes("WRITE_PLATFORM_FACTORY"),
   };
   const consumers = {
     shared_factory_runtime: sharedRuntimeSource.includes("ctx.framework.platformFactory.executeDeploymentCall") &&
@@ -131,7 +132,6 @@ export function renderPlatformFactoryFrameworkMarkdown(report) {
     "## Boundary",
     "",
     report.boundary,
-    "",
   ].join("\n")}\n`;
 }
 

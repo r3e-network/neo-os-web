@@ -41,6 +41,7 @@
   },
   "permissions": [
     "invoke:primary",
+    "invoke:platform-defi",
     "read:blockchain"
   ],
   "features": {

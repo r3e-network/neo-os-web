@@ -25,7 +25,7 @@
     "icon": "/miniapps/nft-factory/logo.webp",
     "banner": "/miniapps/nft-factory/banner.webp"
   },
-  "permissions": ["wallet:sign-message", "read:blockchain"],
+  "permissions": ["invoke:platform-factory", "wallet:sign-message", "read:blockchain"],
   "features": {
     "stateless": true,
     "offlineSupport": false,

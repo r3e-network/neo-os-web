@@ -235,6 +235,7 @@ describe("Asset Factory production safety", () => {
     expect(manifest.features.stateless).toBe(false);
     expect(manifest.contracts["neo-n3-testnet"]).toMatch(/^0x[a-f0-9]{40}$/);
     expect(manifest.permissions).toEqual([
+      "invoke:platform-factory",
       "wallet:sign-message",
       "read:blockchain",
     ]);

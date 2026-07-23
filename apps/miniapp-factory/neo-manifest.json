@@ -25,7 +25,7 @@
     "icon": "/miniapps/miniapp-factory/logo.webp",
     "banner": "/miniapps/miniapp-factory/banner.webp"
   },
-  "permissions": ["invoke:primary", "wallet:sign-message", "read:blockchain"],
+  "permissions": ["invoke:primary", "invoke:platform-factory", "wallet:sign-message", "read:blockchain"],
   "features": {
     "stateless": false,
     "offlineSupport": false,

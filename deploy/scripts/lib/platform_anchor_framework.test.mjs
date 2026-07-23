@@ -16,7 +16,7 @@ const wiring = {
 test("PlatformAnchor framework audit accepts exact ABI and native-deposit coverage", () => {
   const result = evaluatePlatformAnchorFramework({
     manifest: { abi: { methods: [method("admin"), method("getAnchorStats"), method("withdraw")] } },
-    surfaceSource: 'read("getAnchorStats", []); invoke("withdraw", []); deps.chain.invoke("transfer", []);',
+    surfaceSource: 'WRITE_PLATFORM_ANCHOR; read("getAnchorStats", []); invoke("withdraw", []); deps.chain.invoke("transfer", []);',
     ...wiring,
   });
   assert.equal(result.passed, true);
@@ -27,7 +27,7 @@ test("PlatformAnchor framework audit accepts exact ABI and native-deposit covera
 test("PlatformAnchor framework audit fails on direct consumer ABI calls", () => {
   const result = evaluatePlatformAnchorFramework({
     manifest: { abi: { methods: [method("getAnchorStats")] } },
-    surfaceSource: 'read("getAnchorStats", []); deps.chain.invoke("transfer", []);',
+    surfaceSource: 'WRITE_PLATFORM_ANCHOR; read("getAnchorStats", []); deps.chain.invoke("transfer", []);',
     ...wiring,
     trustRuntimeSource: 'app.chain.readRaw("getAnchorStats", []); app.platformAnchor.stakeNeo();',
   });

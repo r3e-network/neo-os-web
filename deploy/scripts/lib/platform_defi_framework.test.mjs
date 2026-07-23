@@ -12,7 +12,7 @@ const wiring = {
 test("PlatformDeFi framework audit accepts exact tenant ABI and native deposit coverage", () => {
   const result = evaluatePlatformDeFiFramework({
     manifest: { abi: { methods: [method("admin"), method("getLoan"), method("repayLoan")] } },
-    surfaceSource: 'read("getLoan", []); invoke("repayLoan", []); deps.chain.invoke("transfer", []);',
+    surfaceSource: 'WRITE_PLATFORM_DEFI; read("getLoan", []); invoke("repayLoan", []); deps.chain.invoke("transfer", []);',
     bindings: [],
     ...wiring,
   });

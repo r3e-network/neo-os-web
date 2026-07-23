@@ -18,7 +18,8 @@
  *   "invoke:primary", oracle request/dispatch AND the app.game.reward TEE
  *   session lanes (openSession / recordOp / replayOps — direct enclave
  *   round-trips on the same oracle host) → "oracle:request") so gating
- *   happens once, centrally.
+ *   happens once, centrally. Shared platform contracts use separate
+ *   `invoke:platform-*` grants so `invoke:primary` cannot authorize them.
  */
 
 import { MiniAppError } from "./utils/errors";
@@ -31,6 +32,25 @@ export type FrameworkPermissionsInput =
   | Record<string, boolean | undefined>
   | null
   | undefined;
+
+/**
+ * Narrow write grants for shared platform modules.
+ *
+ * `invoke:primary` remains the grant for an app's standalone primary
+ * contract. Shared modules use distinct grants so permission to call one
+ * engine never authorizes writes to every other platform contract.
+ */
+export const PLATFORM_INVOKE_PERMISSIONS = {
+  registry: "invoke:platform-registry",
+  game: "invoke:platform-game",
+  social: "invoke:platform-social",
+  anchor: "invoke:platform-anchor",
+  defi: "invoke:platform-defi",
+  factory: "invoke:platform-factory",
+} as const;
+
+export type FrameworkPlatformInvokePermission =
+  (typeof PLATFORM_INVOKE_PERMISSIONS)[keyof typeof PLATFORM_INVOKE_PERMISSIONS];
 
 export interface PermissionsSurfaceDeps {
   /**

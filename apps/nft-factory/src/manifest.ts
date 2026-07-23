@@ -37,6 +37,7 @@ export const manifest: MiniAppManifest = {
     recipeId: "factory.nep11.collection.v1",
   },
   permissions: {
+    "invoke:platform-factory": true,
     payments: false,
     storage: false,
   },
