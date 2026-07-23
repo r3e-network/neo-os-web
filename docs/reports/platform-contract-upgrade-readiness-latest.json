@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T03:10:51.974Z",
+  "generated_at_utc": "2026-07-23T05:21:51.527Z",
   "network": "neo-n3-testnet",
   "network_magic": 894710606,
   "live_evidence": "docs/reports/platform-contract-testnet-live-latest.json",
@@ -10,7 +10,10 @@
     "breaking_abi_removals": 1,
     "unchanged_serialized_record_layouts": 4,
     "changed_prefix_values": 0,
-    "staged_update_candidates": 2,
+    "breaking_storage_key_schemas": 1,
+    "blocking_legacy_credit_rows": 3,
+    "underbacked_legacy_credit_contracts": 1,
+    "staged_update_candidates": 1,
     "preflight_halt": 4,
     "preflight_transactions": 0
   },
@@ -120,6 +123,7 @@
           "removed": [],
           "changed": []
         },
+        "key_schemas": [],
         "prefix_values_changed": false,
         "stored_record_layouts_changed": false,
         "compatibility": "additive-or-unchanged"
@@ -142,7 +146,7 @@
       "hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
       "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
       "route": "direct-in-place-update",
-      "readiness": "staged-update-candidate",
+      "readiness": "legacy-credit-recovery-bridge-review-required",
       "deployed_artifact": {
         "checksum": 3687605410,
         "update_counter": 0,
@@ -165,7 +169,7 @@
         ]
       },
       "candidate_artifact": {
-        "checksum": 3365527823
+        "checksum": 334460533
       },
       "preflight": {
         "report": "docs/reports/platform-update-shared-admin-preflight-latest.json",
@@ -181,31 +185,49 @@
       },
       "abi": {
         "previous_methods": 36,
-        "current_methods": 62,
+        "current_methods": 80,
         "added": [
           "abandonLoan",
+          "activateLegacyCreditRecovery",
           "fundCapsuleYieldReserve",
+          "gasCreditLiabilityOf",
           "getCapsuleYieldReserve",
+          "getDirectGasCredit",
+          "getDirectNeoCredit",
           "getFlashProviderBalance",
           "getFlashTotalLpDeposits",
           "getLastPriceDropTime",
+          "getLegacyGasCredit",
+          "getLegacyNeoCredit",
           "getLendingLiquidity",
           "getNeoGasPrice",
           "getTotalAbandonedCollateral",
           "getTotalCapsuleFees",
           "getTotalLendingFees",
           "getUnclaimedFlashLoanFees",
+          "initializeLegacyCreditRecovery",
           "isLiquidatable",
+          "legacyCreditRecoveryState",
+          "legacyCreditSnapshotHash",
+          "legacyGasCreditLiability",
+          "legacyGasCreditRows",
+          "legacyNeoCreditLiability",
+          "legacyNeoCreditRows",
           "lendingDeposit",
           "liquidateLoan",
           "migrateFlashProviderBalance",
+          "neoCreditLiabilityOf",
           "setNeoGasPrice",
+          "totalGasCreditLiability",
+          "totalNeoCreditLiability",
           "withdrawAbandonedCollateral",
           "withdrawCapsuleFees",
           "withdrawCapsulePenalties",
           "withdrawCapsuleYieldReserve",
           "withdrawFlashLoanFees",
           "withdrawGasCredit",
+          "withdrawLegacyGasCredit",
+          "withdrawLegacyNeoCredit",
           "withdrawLendingFees",
           "withdrawLendingLiquidity",
           "withdrawNeoCredit"
@@ -217,6 +239,14 @@
         "prefixes": {
           "added": [
             {
+              "name": "PREFIX_APP_GAS_CREDIT_LIABILITY",
+              "value": "0x19"
+            },
+            {
+              "name": "PREFIX_APP_NEO_CREDIT_LIABILITY",
+              "value": "0x18"
+            },
+            {
               "name": "PREFIX_CAPSULE_GAS_RESERVE",
               "value": "0x17"
             },
@@ -227,6 +257,30 @@
             {
               "name": "PREFIX_FLASH_TOTAL_LP_DEPOSITS",
               "value": "0x37"
+            },
+            {
+              "name": "PREFIX_LEGACY_CREDIT_RECOVERY_STATE",
+              "value": "0x05"
+            },
+            {
+              "name": "PREFIX_LEGACY_CREDIT_SNAPSHOT_HASH",
+              "value": "0x06"
+            },
+            {
+              "name": "PREFIX_LEGACY_GAS_CREDIT_LIABILITY",
+              "value": "0x08"
+            },
+            {
+              "name": "PREFIX_LEGACY_GAS_CREDIT_ROWS",
+              "value": "0x0a"
+            },
+            {
+              "name": "PREFIX_LEGACY_NEO_CREDIT_LIABILITY",
+              "value": "0x07"
+            },
+            {
+              "name": "PREFIX_LEGACY_NEO_CREDIT_ROWS",
+              "value": "0x09"
             },
             {
               "name": "PREFIX_LENDING_GAS_LIQUIDITY",
@@ -253,8 +307,16 @@
               "value": "0x49"
             },
             {
+              "name": "PREFIX_TOTAL_GAS_CREDIT_LIABILITY",
+              "value": "0x04"
+            },
+            {
               "name": "PREFIX_TOTAL_LENDING_FEES",
               "value": "0x2b"
+            },
+            {
+              "name": "PREFIX_TOTAL_NEO_CREDIT_LIABILITY",
+              "value": "0x03"
             }
           ],
           "removed": [],
@@ -265,17 +327,55 @@
           "removed": [],
           "changed": []
         },
+        "key_schemas": [
+          {
+            "prefix": "0x14",
+            "name": "PREFIX_NEO_CREDIT",
+            "previous": "payer Hash160",
+            "current": "appId + payer Hash160",
+            "risk": "an existing payer-only NEO credit cannot be assigned to a tenant deterministically"
+          },
+          {
+            "prefix": "0x15",
+            "name": "PREFIX_GAS_CREDIT",
+            "previous": "payer Hash160",
+            "current": "appId + payer Hash160",
+            "risk": "an existing payer-only GAS credit cannot be assigned to a tenant deterministically"
+          }
+        ],
         "prefix_values_changed": false,
         "stored_record_layouts_changed": false,
-        "compatibility": "additive-or-unchanged"
+        "compatibility": "breaking-key-schema-change",
+        "live_snapshot": {
+          "report": "docs/reports/platform-defi-legacy-credit-snapshot-latest.json",
+          "generated_at_utc": "2026-07-23T05:21:42.650Z",
+          "block_count": 17924995,
+          "legacy_credit_rows": 3,
+          "neo_legacy_credit_rows": 0,
+          "gas_legacy_credit_rows": 3,
+          "gas_legacy_credit_total_datoshi": "1600000002",
+          "gas_native_balance_datoshi": "1465773666",
+          "gas_backing_gap_datoshi": "-134226336",
+          "migration_status": "blocked-nonempty-and-underbacked",
+          "transactions": 0
+        }
       },
       "behavior_changes": [
-        "adds lending liquidity, liquidation, fee sweep, abandoned-collateral, pricing, and flash-provider accounting lanes"
+        "adds lending liquidity, liquidation, fee sweep, abandoned-collateral, pricing, and flash-provider accounting lanes",
+        "changes direct NEO and GAS credit ownership from payer-global to appId-and-payer scoped with exact appId:credit routing",
+        "adds per-app and global direct-credit liabilities and preserves them across every native-asset payout",
+        "adds an auto-paused legacy-credit recovery state machine with exact snapshot initialization, deficit top-up, activation, and payer-witnessed withdrawals"
       ],
       "required_gates": [
-        "simulate update with the DeFi admin identity",
-        "snapshot balances, credits, product rows, loans, capsules, and flash-loan accounting",
-        "verify checksum, update counter, old safe reads, and every new safe read afterward",
+        "freeze deposits and enumerate every legacy 0x14 and 0x15 storage row from one exact state snapshot",
+        "review the exact payer arrays and 32-byte snapshot hash before initializing the recovery bridge",
+        "simulate the exact update and require automatic pause plus recovery state SnapshotRequired before any other action",
+        "initialize the snapshot and require the recorded row counts and NEO/GAS liabilities to match the public snapshot exactly",
+        "resolve the 134226336 datoshi GAS deficit through a separately approved top-up before activation; no withdrawal or unpause may succeed while underbacked",
+        "simulate every legacy payer withdrawal and require zero residual rows and liabilities before recovery completes",
+        "prefer a fresh PlatformDeFi v1.2 deployment because the current testnet contract has zero tenant bindings",
+        "snapshot native balances, product rows, loans, capsules, flash-loan accounting, and all new liability totals",
+        "verify checksum, update counter, old safe reads, every new safe read, and native-balance-versus-liability solvency afterward",
         "run funded lending, capsule, and flash-loan lifecycle probes before binding a live tenant"
       ]
     },
@@ -342,6 +442,7 @@
           "removed": [],
           "changed": []
         },
+        "key_schemas": [],
         "prefix_values_changed": false,
         "stored_record_layouts_changed": false,
         "compatibility": "additive-or-unchanged"
@@ -430,6 +531,7 @@
           "removed": [],
           "changed": []
         },
+        "key_schemas": [],
         "prefix_values_changed": false,
         "stored_record_layouts_changed": false,
         "compatibility": "review-orphaned-prefixes"
@@ -449,10 +551,10 @@
   ],
   "ordered_plan": [
     "PlatformRegistry: add timelocked updater support, schedule exact candidate hashes, wait, execute, then reconcile all Registry and AppAccount-artifact invariants.",
-    "PlatformDeFi: take accounting snapshots, simulate a direct in-place update, verify old and new reads, then run funded product lifecycles before tenant binding.",
+    "PlatformDeFi: review and simulate the v1.2 auto-paused recovery bridge against the exact public legacy-credit snapshot, separately resolve the GAS deficit, prove all payer withdrawals, and because bindings are zero still prefer a fresh deployment before funded product lifecycles and tenant binding.",
     "MiniAppFactory: retain the completed creator-artifact builder and fail-closed consumer cutover, then certify the exact live ABI, governed artifacts, and funded transaction/event/readback recovery lifecycle before updating.",
     "PlatformAnchor: make an explicit public-ABI deprecation decision before removing setAgentAccounts and setAgentWeight on-chain.",
     "PlatformSocial: treat first deployment or retirement as a separate architecture decision, not part of this update batch."
   ],
-  "boundary": "This ledger proves artifact provenance and static ABI/storage deltas. It does not authorize a chain write or prove stateful upgrade safety; exact pre/post state snapshots and funded lifecycle probes remain mandatory."
+  "boundary": "This ledger proves artifact provenance and static ABI/storage deltas, including declared storage-key schema changes that prefix-byte comparison cannot detect. It does not authorize a chain write or prove stateful upgrade safety; exact pre/post state snapshots and funded lifecycle probes remain mandatory."
 }

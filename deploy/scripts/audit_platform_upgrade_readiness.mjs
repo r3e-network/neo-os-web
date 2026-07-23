@@ -9,6 +9,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..");
 const liveReportPath = "docs/reports/platform-contract-testnet-live-latest.json";
+const platformDeFiLegacyCreditReportPath =
+  "docs/reports/platform-defi-legacy-credit-snapshot-latest.json";
 const preflightReportPaths = [
   "docs/reports/platform-update-registry-preflight-latest.json",
   "docs/reports/platform-update-shared-admin-preflight-latest.json",
@@ -34,14 +36,39 @@ const policy = {
   PlatformDeFi: {
     order: 2,
     route: "direct-in-place-update",
-    readiness: "staged-update-candidate",
+    readiness: "legacy-credit-recovery-bridge-review-required",
+    storage_key_changes: [
+      {
+        prefix: "0x14",
+        name: "PREFIX_NEO_CREDIT",
+        previous: "payer Hash160",
+        current: "appId + payer Hash160",
+        risk: "an existing payer-only NEO credit cannot be assigned to a tenant deterministically",
+      },
+      {
+        prefix: "0x15",
+        name: "PREFIX_GAS_CREDIT",
+        previous: "payer Hash160",
+        current: "appId + payer Hash160",
+        risk: "an existing payer-only GAS credit cannot be assigned to a tenant deterministically",
+      },
+    ],
     behavior_changes: [
       "adds lending liquidity, liquidation, fee sweep, abandoned-collateral, pricing, and flash-provider accounting lanes",
+      "changes direct NEO and GAS credit ownership from payer-global to appId-and-payer scoped with exact appId:credit routing",
+      "adds per-app and global direct-credit liabilities and preserves them across every native-asset payout",
+      "adds an auto-paused legacy-credit recovery state machine with exact snapshot initialization, deficit top-up, activation, and payer-witnessed withdrawals",
     ],
     gates: [
-      "simulate update with the DeFi admin identity",
-      "snapshot balances, credits, product rows, loans, capsules, and flash-loan accounting",
-      "verify checksum, update counter, old safe reads, and every new safe read afterward",
+      "freeze deposits and enumerate every legacy 0x14 and 0x15 storage row from one exact state snapshot",
+      "review the exact payer arrays and 32-byte snapshot hash before initializing the recovery bridge",
+      "simulate the exact update and require automatic pause plus recovery state SnapshotRequired before any other action",
+      "initialize the snapshot and require the recorded row counts and NEO/GAS liabilities to match the public snapshot exactly",
+      "resolve the 134226336 datoshi GAS deficit through a separately approved top-up before activation; no withdrawal or unpause may succeed while underbacked",
+      "simulate every legacy payer withdrawal and require zero residual rows and liabilities before recovery completes",
+      "prefer a fresh PlatformDeFi v1.2 deployment because the current testnet contract has zero tenant bindings",
+      "snapshot native balances, product rows, loans, capsules, flash-loan accounting, and all new liability totals",
+      "verify checksum, update counter, old safe reads, every new safe read, and native-balance-versus-liability solvency afterward",
       "run funded lending, capsule, and flash-loan lifecycle probes before binding a live tenant",
     ],
   },
@@ -228,6 +255,7 @@ function buildContractReadiness(live, preflightByContract) {
   const removedMethods = previousMethods.filter((method) => !currentMethods.includes(method));
   const prefixValuesChanged = prefixDelta.changed.length > 0;
   const storedRecordsChanged = recordDelta.changed.length > 0 || recordDelta.removed.length > 0;
+  const storageKeyChanges = contractPolicy.storage_key_changes ?? [];
   const preflight = preflightByContract.get(live.name) ?? null;
 
   return {
@@ -257,9 +285,12 @@ function buildContractReadiness(live, preflightByContract) {
     storage: {
       prefixes: prefixDelta,
       stored_records: recordDelta,
+      key_schemas: storageKeyChanges,
       prefix_values_changed: prefixValuesChanged,
       stored_record_layouts_changed: storedRecordsChanged,
-      compatibility: prefixValuesChanged || storedRecordsChanged
+      compatibility: storageKeyChanges.length > 0
+        ? "breaking-key-schema-change"
+        : prefixValuesChanged || storedRecordsChanged
         ? "blocked-layout-change"
         : prefixDelta.removed.length > 0
           ? "review-orphaned-prefixes"
@@ -296,6 +327,40 @@ export function buildUpgradeReadinessLedger({ now = () => new Date() } = {}) {
   const contracts = drifted
     .map((contract) => buildContractReadiness(contract, preflightByContract))
     .sort((left, right) => left.order - right.order);
+  const platformDeFiLegacyCreditReport = fs.existsSync(
+    path.join(repoRoot, platformDeFiLegacyCreditReportPath),
+  )
+    ? readJson(platformDeFiLegacyCreditReportPath)
+    : null;
+  const platformDeFi = contracts.find((contract) => contract.name === "PlatformDeFi");
+  if (platformDeFiLegacyCreditReport && platformDeFi) {
+    if (
+      platformDeFiLegacyCreditReport.platform_defi_hash !== platformDeFi.hash ||
+      platformDeFiLegacyCreditReport.network_magic !== liveReport.network_magic
+    ) {
+      throw new Error("PlatformDeFi legacy credit snapshot target does not match live evidence");
+    }
+    platformDeFi.storage.live_snapshot = {
+      report: platformDeFiLegacyCreditReportPath,
+      generated_at_utc: platformDeFiLegacyCreditReport.generated_at_utc,
+      block_count: platformDeFiLegacyCreditReport.block_count,
+      legacy_credit_rows:
+        platformDeFiLegacyCreditReport.summary.legacy_credit_rows,
+      neo_legacy_credit_rows:
+        platformDeFiLegacyCreditReport.summary.neo_legacy_credit_rows,
+      gas_legacy_credit_rows:
+        platformDeFiLegacyCreditReport.summary.gas_legacy_credit_rows,
+      gas_legacy_credit_total_datoshi:
+        platformDeFiLegacyCreditReport.legacy_credit_prefixes.gas.total_datoshi,
+      gas_native_balance_datoshi:
+        platformDeFiLegacyCreditReport.legacy_credit_prefixes.gas.native_balance_datoshi,
+      gas_backing_gap_datoshi:
+        platformDeFiLegacyCreditReport.legacy_credit_prefixes.gas.backing_gap_datoshi,
+      migration_status:
+        platformDeFiLegacyCreditReport.summary.migration_status,
+      transactions: platformDeFiLegacyCreditReport.summary.transactions,
+    };
+  }
   return {
     generated_at_utc: now().toISOString(),
     network: liveReport.network,
@@ -318,6 +383,16 @@ export function buildUpgradeReadinessLedger({ now = () => new Date() } = {}) {
       changed_prefix_values: contracts.filter(
         (contract) => contract.storage.prefix_values_changed,
       ).length,
+      breaking_storage_key_schemas: contracts.filter(
+        (contract) => contract.storage.key_schemas.length > 0,
+      ).length,
+      blocking_legacy_credit_rows:
+        platformDeFi?.storage.live_snapshot?.legacy_credit_rows ?? null,
+      underbacked_legacy_credit_contracts: contracts.filter(
+        (contract) =>
+          contract.storage.live_snapshot?.migration_status ===
+          "blocked-nonempty-and-underbacked",
+      ).length,
       staged_update_candidates: contracts.filter(
         (contract) => contract.readiness === "staged-update-candidate",
       ).length,
@@ -333,13 +408,13 @@ export function buildUpgradeReadinessLedger({ now = () => new Date() } = {}) {
     contracts,
     ordered_plan: [
       "PlatformRegistry: add timelocked updater support, schedule exact candidate hashes, wait, execute, then reconcile all Registry and AppAccount-artifact invariants.",
-      "PlatformDeFi: take accounting snapshots, simulate a direct in-place update, verify old and new reads, then run funded product lifecycles before tenant binding.",
+      "PlatformDeFi: review and simulate the v1.2 auto-paused recovery bridge against the exact public legacy-credit snapshot, separately resolve the GAS deficit, prove all payer withdrawals, and because bindings are zero still prefer a fresh deployment before funded product lifecycles and tenant binding.",
       "MiniAppFactory: retain the completed creator-artifact builder and fail-closed consumer cutover, then certify the exact live ABI, governed artifacts, and funded transaction/event/readback recovery lifecycle before updating.",
       "PlatformAnchor: make an explicit public-ABI deprecation decision before removing setAgentAccounts and setAgentWeight on-chain.",
       "PlatformSocial: treat first deployment or retirement as a separate architecture decision, not part of this update batch.",
     ],
     boundary:
-      "This ledger proves artifact provenance and static ABI/storage deltas. It does not authorize a chain write or prove stateful upgrade safety; exact pre/post state snapshots and funded lifecycle probes remain mandatory.",
+      "This ledger proves artifact provenance and static ABI/storage deltas, including declared storage-key schema changes that prefix-byte comparison cannot detect. It does not authorize a chain write or prove stateful upgrade safety; exact pre/post state snapshots and funded lifecycle probes remain mandatory.",
   };
 }
 
@@ -357,6 +432,9 @@ export function renderUpgradeReadinessMarkdown(ledger) {
     `- ABI-breaking removals: ${ledger.summary.breaking_abi_removals}`,
     `- Unchanged serialized record layouts: ${ledger.summary.unchanged_serialized_record_layouts}/${ledger.summary.drifted_contracts}`,
     `- Changed storage-prefix values: ${ledger.summary.changed_prefix_values}`,
+    `- Breaking storage-key schemas: ${ledger.summary.breaking_storage_key_schemas}`,
+    `- Blocking legacy credit rows: ${ledger.summary.blocking_legacy_credit_rows ?? "not scanned"}`,
+    `- Underbacked legacy-credit contracts: ${ledger.summary.underbacked_legacy_credit_contracts}`,
     `- Staged update candidates: ${ledger.summary.staged_update_candidates}`,
     `- Exact update preflights HALT: ${ledger.summary.preflight_halt}/${ledger.summary.drifted_contracts}`,
     `- Preflight transactions broadcast: ${ledger.summary.preflight_transactions}`,
@@ -370,7 +448,7 @@ export function renderUpgradeReadinessMarkdown(ledger) {
   ];
   for (const contract of ledger.contracts) {
     const abiDelta = `+${contract.abi.added.length}/-${contract.abi.removed.length}`;
-    const storageDelta = `prefix +${contract.storage.prefixes.added.length}/-${contract.storage.prefixes.removed.length}/~${contract.storage.prefixes.changed.length}; records ~${contract.storage.stored_records.changed.length}`;
+    const storageDelta = `prefix +${contract.storage.prefixes.added.length}/-${contract.storage.prefixes.removed.length}/~${contract.storage.prefixes.changed.length}; records ~${contract.storage.stored_records.changed.length}; keys ~${contract.storage.key_schemas.length}`;
     lines.push(
       `| ${contract.order} | ${contract.name} | ${contract.deployed_artifact.source_revision.revision.slice(0, 12)} | ${abiDelta} (${contract.abi.compatibility}) | ${storageDelta} (${contract.storage.compatibility}) | ${contract.route} | ${contract.readiness} |`,
     );
@@ -386,6 +464,8 @@ export function renderUpgradeReadinessMarkdown(ledger) {
     lines.push(`- ABI removed: ${contract.abi.removed.length ? contract.abi.removed.join(", ") : "none"}`);
     lines.push(`- Added storage prefixes: ${contract.storage.prefixes.added.length ? contract.storage.prefixes.added.map((entry) => entry.name).join(", ") : "none"}`);
     lines.push(`- Removed storage prefixes: ${contract.storage.prefixes.removed.length ? contract.storage.prefixes.removed.map((entry) => entry.name).join(", ") : "none"}`);
+    lines.push(`- Changed storage-key schemas: ${contract.storage.key_schemas.length ? contract.storage.key_schemas.map((entry) => `${entry.name} ${entry.previous} -> ${entry.current} (${entry.risk})`).join("; ") : "none"}`);
+    lines.push(`- Live storage snapshot: ${contract.storage.live_snapshot ? `${contract.storage.live_snapshot.report}, block count ${contract.storage.live_snapshot.block_count}, legacy rows ${contract.storage.live_snapshot.legacy_credit_rows}, status ${contract.storage.live_snapshot.migration_status}, transactions ${contract.storage.live_snapshot.transactions}` : "none"}`);
     lines.push(`- Behavior changes: ${contract.behavior_changes.join("; ")}`);
     lines.push(`- Required gates: ${contract.required_gates.join("; ")}`);
     lines.push("");

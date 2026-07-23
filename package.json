@@ -55,6 +55,7 @@
     "audit:platform:registry-framework": "node deploy/scripts/audit_platform_registry_framework.mjs",
     "check:platform:registry-framework": "node deploy/scripts/audit_platform_registry_framework.mjs --check",
     "audit:platform:defi-framework": "node deploy/scripts/audit_platform_defi_framework.mjs",
+    "audit:platform:defi-legacy-credits": "node deploy/scripts/audit_platform_defi_legacy_credits.mjs",
     "check:platform:defi-framework": "node deploy/scripts/audit_platform_defi_framework.mjs --check",
     "audit:platform:factory-framework": "node deploy/scripts/audit_platform_factory_framework.mjs",
     "check:platform:factory-framework": "node deploy/scripts/audit_platform_factory_framework.mjs --check",
