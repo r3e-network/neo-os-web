@@ -21,6 +21,18 @@ const controlMethods = new Set([
   "setAppPaused",
   "isAppPaused",
   "onNEP17Payment",
+  "legacyCreditRecoveryState",
+  "legacyCreditSnapshotHash",
+  "legacyNeoCreditLiability",
+  "legacyGasCreditLiability",
+  "legacyNeoCreditRows",
+  "legacyGasCreditRows",
+  "getLegacyNeoCredit",
+  "getLegacyGasCredit",
+  "initializeLegacyCreditRecovery",
+  "activateLegacyCreditRecovery",
+  "withdrawLegacyNeoCredit",
+  "withdrawLegacyGasCredit",
 ]);
 
 function read(relativePath) {
@@ -107,7 +119,7 @@ export function buildPlatformDeFiFrameworkReport({ now = () => new Date() } = {}
       current_local_artifact_match: deployment.current_local_artifact_match,
       missing_on_chain_methods: deployment.abi?.missing_on_chain ?? [],
     } : null,
-    boundary: "The framework covers the current local PlatformDeFi tenant ABI and native prepaid deposits, but no miniapp is bound to it. Existing SelfLoan, FlashLoan, and TimeCapsule apps use materially different standalone ABIs and money/recovery state machines; they must not be rebound without a named migration, compatibility adapter, invariant suite, drain/rollback plan, deployed-artifact equality, and funded lifecycle proof.",
+    boundary: "The framework covers the current local PlatformDeFi tenant ABI, exact appId:credit native deposits, app-scoped direct credits, tenant/global liabilities, and pause-immune withdrawals, but no miniapp is bound to it. The deployed contract stores legacy credits by payer under the same 0x14/0x15 prefixes that v1.2 rekeys to appId plus payer. The local candidate now auto-pauses an upgraded legacy contract and exposes an exact-snapshot, deficit-top-up, payer-withdrawal recovery bridge, but that bridge still requires public snapshot reconciliation, separate deficit authorization, and full TestEngine plus RPC simulation before any chain write. With zero bindings, a fresh v1.2 deployment remains preferred. Existing SelfLoan, FlashLoan, and TimeCapsule apps use materially different standalone ABIs and money/recovery state machines; they must not be rebound without a named migration, compatibility adapter, invariant suite, drain/rollback plan, deployed-artifact equality, and funded lifecycle proof.",
     chain_writes_performed: false,
   };
 }
@@ -136,7 +148,6 @@ export function renderPlatformDeFiFrameworkMarkdown(report) {
     "## Boundary",
     "",
     report.boundary,
-    "",
   ].join("\n")}\n`;
 }
 

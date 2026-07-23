@@ -15,8 +15,19 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         public static void _deploy(object data, bool update)
         {
-            if (update) return;
+            if (update)
+            {
+                if (LegacyCreditRecoveryState() == LegacyRecoveryUninitialized)
+                {
+                    Put((ByteString)PREFIX_LEGACY_CREDIT_RECOVERY_STATE,
+                        LegacyRecoverySnapshotRequired);
+                    Storage.Put(Storage.CurrentContext, PREFIX_PAUSED, 1);
+                }
+                return;
+            }
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
+            Put((ByteString)PREFIX_LEGACY_CREDIT_RECOVERY_STATE,
+                LegacyRecoveryComplete);
         }
 
         #endregion
@@ -74,12 +85,25 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         public static void SetPaused(bool paused)
         {
             ValidateAdmin();
+            if (!paused)
+            {
+                BigInteger recoveryState = LegacyCreditRecoveryState();
+                ExecutionEngine.Assert(
+                    recoveryState == LegacyRecoveryActive ||
+                    recoveryState == LegacyRecoveryComplete,
+                    "legacy credit recovery not active");
+                EnsureNeoCreditSolvent();
+                EnsureGasCreditSolvent();
+            }
             Storage.Put(Storage.CurrentContext, PREFIX_PAUSED, paused ? 1 : 0);
         }
 
         public static void Update(ByteString nef, string manifest)
         {
             ValidateAdmin();
+            ExecutionEngine.Assert(IsPaused(), "pause before update");
+            EnsureNeoCreditSolvent();
+            EnsureGasCreditSolvent();
             ContractManagement.Update(nef, manifest, new object[0]);
         }
 

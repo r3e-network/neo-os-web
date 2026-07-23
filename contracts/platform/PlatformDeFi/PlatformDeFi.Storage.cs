@@ -22,6 +22,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static ByteString AppKey(string appId, byte[] prefix, UInt160 addr) =>
             Helper.Concat(AppKey(appId, prefix), (ByteString)(byte[])addr);
 
+        private static ByteString LegacyCreditKey(byte[] prefix, UInt160 addr) =>
+            Helper.Concat((ByteString)prefix, (ByteString)(byte[])addr);
+
         /// <summary>Build an app-scoped key: appId + prefix + BigInteger id + address.</summary>
         private static ByteString AppKey(string appId, byte[] prefix, BigInteger id, UInt160 addr) =>
             Helper.Concat(AppKey(appId, prefix, id), (ByteString)(byte[])addr);
