@@ -160,9 +160,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 UInt160 admin = Admin();
                 if (admin != UInt160.Zero && admin.IsValid)
                 {
-                    NEO.Transfer(Runtime.ExecutingScriptHash, admin, platformFee);
+                    ExecutionEngine.Assert(
+                        NEO.Transfer(Runtime.ExecutingScriptHash, admin, platformFee),
+                        "platform fee transfer failed");
                 }
             }
+            EnsureNeoCreditSolvent();
 
             OnTrustExecuted(appId, trustId, trust.Heir, heirAmount);
         }
@@ -210,9 +213,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 UInt160 admin = Admin();
                 if (admin != UInt160.Zero && admin.IsValid)
                 {
-                    NEO.Transfer(Runtime.ExecutingScriptHash, admin, penalty);
+                    ExecutionEngine.Assert(
+                        NEO.Transfer(Runtime.ExecutingScriptHash, admin, penalty),
+                        "penalty transfer failed");
                 }
             }
+            EnsureNeoCreditSolvent();
 
             OnTrustCancelled(appId, trustId, trust.Owner, refundAmount);
         }

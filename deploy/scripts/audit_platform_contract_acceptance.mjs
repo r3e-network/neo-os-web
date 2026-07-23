@@ -387,6 +387,7 @@ export function renderAcceptanceMarkdown(ledger) {
     lines.push(`- Generated artifact hashes: ${row.checks.generated_hashes_fresh ? "fresh" : "stale"}`);
     lines.push(`- Boundary: ${row.boundary}`, "");
   }
+  if (lines[lines.length - 1] === "") lines.pop();
   return `${lines.join("\n")}\n`;
 }
 

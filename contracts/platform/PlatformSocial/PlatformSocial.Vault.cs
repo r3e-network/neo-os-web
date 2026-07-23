@@ -168,9 +168,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                     UInt160 admin = Admin();
                     if (admin != UInt160.Zero && admin.IsValid)
                     {
-                        GAS.Transfer(Runtime.ExecutingScriptHash, admin, fee);
+                        ExecutionEngine.Assert(
+                            GAS.Transfer(Runtime.ExecutingScriptHash, admin, fee),
+                            "platform fee transfer failed");
                     }
                 }
+                EnsureGasCreditSolvent();
 
                 OnVaultBroken(appId, vaultId, attacker, reward);
             }
@@ -241,6 +244,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, vault.Creator, refund),
                 "refund transfer failed");
+            EnsureGasCreditSolvent();
 
             OnVaultRefunded(appId, vaultId, vault.Creator, refund);
             return refund;

@@ -1,6 +1,6 @@
 # Platform Contract Acceptance Ledger
 
-Generated: 2026-07-23T01:33:22.881Z
+Generated: 2026-07-23T03:10:27.311Z
 
 ## Summary
 
@@ -24,7 +24,7 @@ Generated: 2026-07-23T01:33:22.881Z
 | PlatformAnchor | 45/8 | 4 | yes | yes | 5 | accepted | live-artifact-drift | deployment-report | testnet and mainnet deployment reports retained |
 | PlatformGame | 77/36 | 6 | yes | yes | 17 | accepted | live-artifact-match | deployment-report | testnet and mainnet deployment reports retained; testnet Registry row active |
 | PlatformDeFi | 62/30 | 5 | yes | yes | 8 | accepted | live-artifact-drift | deployment-report | testnet hash retained in anchor deployment report; no live app bindings |
-| PlatformSocial | 44/23 | 6 | yes | yes | 6 | accepted | no-deployment-record | none | no deployment record |
+| PlatformSocial | 48/25 | 6 | yes | yes | 8 | accepted | no-deployment-record | none | no deployment record |
 
 ## Factory Templates
 
@@ -89,7 +89,7 @@ Generated: 2026-07-23T01:33:22.881Z
 ### PlatformSocial
 
 - Source files: 11
-- Test files: `contracts/__tests__/ContractSecurityRegressionTest.cs`, `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/FinancialTransferSafetyTest.cs`, `contracts/__tests__/MiniAppContractFunctionalTests.cs`, `contracts/__tests__/PlatformSocialNotaryTests.cs`, `contracts/__tests__/platform-contracts-only.test.ts`
+- Test files: `contracts/__tests__/ContractSecurityRegressionTest.cs`, `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/FinancialTransferSafetyTest.cs`, `contracts/__tests__/MiniAppContractFunctionalTests.cs`, `contracts/__tests__/OnNep17PaymentConventionTests.cs`, `contracts/__tests__/PlatformSocialCreditIsolationTests.cs`, `contracts/__tests__/PlatformSocialNotaryTests.cs`, `contracts/__tests__/platform-contracts-only.test.ts`
 - Deployment evidence: none
 - Current testnet artifact: no-deployment-record
 - Failed checks: none
@@ -103,6 +103,7 @@ Generated: 2026-07-23T01:33:22.881Z
 - Lifecycle tests: `contracts/__tests__/FactoryTokenTemplateTests.cs`
 - Generated artifact hashes: fresh
 - Boundary: Template source/build/lifecycle acceptance does not prove the current testnet Factory exposes the six-argument deployment ABI or that a funded deployment has recovered end to end.
+
 ### FactoryNep11Collection
 
 - Standard: NEP-11

@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T01:33:22.881Z",
+  "generated_at_utc": "2026-07-23T03:10:27.311Z",
   "scope": "current source/build/test evidence plus retained deployment artifacts",
   "summary": {
     "contracts": 7,
@@ -14,7 +14,7 @@
   },
   "live_testnet_evidence": {
     "path": "docs/reports/platform-contract-testnet-live-latest.json",
-    "generated_at_utc": "2026-07-23T01:33:00.990Z",
+    "generated_at_utc": "2026-07-23T03:08:55.310Z",
     "network": "neo-n3-testnet",
     "network_magic": 894710606
   },
@@ -480,8 +480,8 @@
         "contracts/platform/PlatformSocial/PlatformSocial.cs"
       ],
       "abi": {
-        "methods": 44,
-        "events": 23,
+        "methods": 48,
+        "events": 25,
         "permissions": 6,
         "supported_standards": []
       },
@@ -491,6 +491,8 @@
         "contracts/__tests__/ContractUpdateCoverageTest.cs",
         "contracts/__tests__/FinancialTransferSafetyTest.cs",
         "contracts/__tests__/MiniAppContractFunctionalTests.cs",
+        "contracts/__tests__/OnNep17PaymentConventionTests.cs",
+        "contracts/__tests__/PlatformSocialCreditIsolationTests.cs",
         "contracts/__tests__/PlatformSocialNotaryTests.cs",
         "contracts/__tests__/platform-contracts-only.test.ts"
       ],
@@ -501,7 +503,7 @@
         "status": "no-deployment-record",
         "kind": "undeployed",
         "hash": null,
-        "local_nef_checksum": 67671598,
+        "local_nef_checksum": 2068556140,
         "on_chain_nef_checksum": null,
         "current_local_artifact_match": false,
         "missing_on_chain_methods": []

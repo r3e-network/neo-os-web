@@ -120,6 +120,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, claimer, amount),
                 "claim payout failed");
+            EnsureGasCreditSolvent();
 
             BigInteger remaining = envelope.PacketCount - envelope.ClaimedCount;
             OnEnvelopeClaimed(appId, envelopeId, claimer, amount, remaining);
@@ -165,6 +166,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, envelope.Creator, refund),
                 "refund transfer failed");
+            EnsureGasCreditSolvent();
 
             OnEnvelopeRefunded(appId, envelopeId, envelope.Creator, refund);
             return refund;

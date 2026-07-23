@@ -21,7 +21,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract BigInteger? withdrawGasCredit(string appId, UInt160 user, BigInteger amount);
         public abstract BigInteger? withdrawNeoCredit(string appId, UInt160 user, BigInteger amount);
         public abstract BigInteger? createEnvelope(string appId, UInt160 creator, BigInteger packetCount, BigInteger expiryMs);
+        public abstract BigInteger? claimEnvelope(string appId, BigInteger envelopeId, UInt160 claimer);
         public abstract BigInteger? createTrust(string appId, UInt160 owner, UInt160 heir, BigInteger heartbeatIntervalMs);
+        public abstract void cancelTrust(string appId, BigInteger trustId);
     }
 
     public class PlatformSocialCreditIsolationTests
@@ -54,7 +56,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             social.registerApp(TrustA, 2, alice, "");
             social.registerApp(TrustB, 2, alice, "");
             engine.Native.GAS.Transfer(engine.ValidatorsAddress, alice, 20 * GAS_UNIT, null);
-            engine.Native.NEO.Transfer(engine.ValidatorsAddress, alice, 20, null);
+            engine.Native.NEO.Transfer(engine.ValidatorsAddress, alice, 30, null);
             return new World { Engine = engine, Social = social, Alice = alice, Bob = bob };
         }
 
@@ -115,6 +117,23 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
+        public void EnvelopePayout_PreservesAnotherTenantGasLiability()
+        {
+            World world = Setup();
+            DepositGas(world, EnvelopeA, 2 * GAS_UNIT);
+            DepositGas(world, EnvelopeB, 3 * GAS_UNIT);
+
+            world.Engine.SetTransactionSigners(world.Alice);
+            Assert.Equal(BigInteger.One, world.Social.createEnvelope(EnvelopeA, world.Alice, 1, 60_000));
+
+            world.Engine.SetTransactionSigners(world.Bob);
+            Assert.Equal(new BigInteger(2 * GAS_UNIT), world.Social.claimEnvelope(EnvelopeA, BigInteger.One, world.Bob));
+            Assert.Equal(new BigInteger(3 * GAS_UNIT), world.Social.getDirectGasCredit(EnvelopeB, world.Alice));
+            Assert.Equal(new BigInteger(3 * GAS_UNIT), world.Social.totalGasCreditLiability());
+            Assert.Equal(new BigInteger(3 * GAS_UNIT), world.Engine.Native.GAS.BalanceOf(world.Social.Hash));
+        }
+
+        [Fact]
         public void NeoCredit_IsolatedByTenantAndTrustConsumesOnlyItsTenant()
         {
             World world = Setup();
@@ -135,6 +154,26 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(new BigInteger(2), world.Social.getDirectNeoCredit(TrustB, world.Alice));
             Assert.Equal(BigInteger.Zero, world.Social.neoCreditLiabilityOf(TrustA));
             Assert.Equal(new BigInteger(2), world.Social.totalNeoCreditLiability());
+        }
+
+        [Fact]
+        public void TrustCancellation_PreservesAnotherTenantNeoLiability()
+        {
+            World world = Setup();
+            DepositNeo(world, TrustA, 20);
+            DepositNeo(world, TrustB, 2);
+
+            world.Engine.SetTransactionSigners(world.Alice);
+            Assert.Equal(BigInteger.One, world.Social.createTrust(
+                TrustA,
+                world.Alice,
+                world.Bob,
+                HeartbeatMinMs));
+            world.Social.cancelTrust(TrustA, BigInteger.One);
+
+            Assert.Equal(new BigInteger(2), world.Social.getDirectNeoCredit(TrustB, world.Alice));
+            Assert.Equal(new BigInteger(2), world.Social.totalNeoCreditLiability());
+            Assert.Equal(new BigInteger(2), world.Engine.Native.NEO.BalanceOf(world.Social.Hash));
         }
 
         [Fact]
