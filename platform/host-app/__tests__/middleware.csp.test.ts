@@ -53,6 +53,11 @@ describe("middleware CSP", () => {
     expect(csp).toContain(
       "frame-ancestors 'self' https://neomini.app https://onegate.space",
     );
+    expect(csp).toContain("img-src 'self' data: blob: https:");
+    expect(csp).toContain(
+      "connect-src 'self' https://*.supabase.co",
+    );
+    expect(csp).toContain("https://neoxt4seed1.ngd.network");
   });
 
   it("allows iOS OneGate to inject its provider on vault pages", () => {

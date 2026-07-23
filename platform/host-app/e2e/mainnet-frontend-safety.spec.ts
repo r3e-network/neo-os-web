@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { isReadOnlyPostRequest } from "./read-only-request";
 
 type CatalogApp = {
   app_id?: string;
@@ -16,23 +17,6 @@ type ButtonInfo = {
   disabled: boolean;
   navigation: boolean;
 };
-
-const READ_ONLY_POST_ENDPOINTS = new Set(["/api/rpc/neo-read"]);
-const READ_ONLY_EDGE_ENDPOINTS = new Set([
-  "os-badge-get-stat",
-  "os-badge-list",
-  "os-checkin-streak",
-  "os-escrow-get",
-  "os-game-status",
-  "os-leaderboard-get",
-  "os-nft-list",
-  "os-payment-balance",
-  "os-storage-get",
-  "os-storage-list",
-  "os-storage-read-shared",
-  "os-vesting-get",
-  "os-vesting-list",
-]);
 
 const NON_UNIFIED_DETAIL_LAYOUT_APP_IDS = new Set([
   "miniapp-gas-lucky-pool",
@@ -132,15 +116,7 @@ async function captureUnsafeFrontendRequests(page: Page, failures: string[]) {
     const pageUrl = new URL(page.url());
     if (requestUrl.origin !== pageUrl.origin) return;
 
-    const edgeEndpoint =
-      requestUrl.pathname.startsWith("/api/edge/")
-        ? requestUrl.pathname.slice("/api/edge/".length)
-        : "";
-    const allowedReadOnlyPost =
-      method === "POST" &&
-      (READ_ONLY_POST_ENDPOINTS.has(requestUrl.pathname) ||
-        (edgeEndpoint && READ_ONLY_EDGE_ENDPOINTS.has(edgeEndpoint)));
-    if (!allowedReadOnlyPost) {
+    if (!isReadOnlyPostRequest(request)) {
       failures.push(`unexpected mutating request ${method} ${requestUrl.pathname}`);
     }
   });
