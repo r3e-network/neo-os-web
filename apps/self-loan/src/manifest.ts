@@ -75,6 +75,7 @@ export const manifest: MiniAppManifest = {
 
   // ── Permissions ───────────────────────────────────────────────────────
   permissions: {
+    "invoke:platform-defi": true,
     payments: true,
     governance: false,
   },

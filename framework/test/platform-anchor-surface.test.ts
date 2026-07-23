@@ -97,11 +97,14 @@ describe("app.platformAnchor", () => {
     await expect(guest.app.platformAnchor.claimRewards()).rejects.toThrow(/guest-mode/);
     expect(guest.chain.invoke).not.toHaveBeenCalled();
 
-    const denied = makeApp({}, { appId: APP_ID, permissions: {} });
+    const denied = makeApp({}, { appId: APP_ID, permissions: { "invoke:primary": true } });
     await expect(denied.app.platformAnchor.withdraw(1)).rejects.toSatisfy(
-      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:primary",
+      (error: unknown) => error instanceof FrameworkPermissionError && error.permission === "invoke:platform-anchor",
     );
     expect(denied.chain.invoke).not.toHaveBeenCalled();
+
+    const allowed = makeApp({}, { appId: APP_ID, permissions: { "invoke:platform-anchor": true } });
+    await expect(allowed.app.platformAnchor.withdraw(1)).resolves.toMatchObject({ txid: "0xtx" });
   });
 
   it("rejects invalid amounts and agent material before invoking", async () => {

@@ -25,10 +25,9 @@
  * balance (unused entries + won payouts).
  *
  * Guards: every write lane goes through the RFC P0-2 guarded-write stanza —
- * guest guard first, then the S11 "invoke:primary" manifest gate (the same
- * named WRITE_PRIMARY policy as app.chain.invoke and the app.game.reward
- * broadcast lanes; a per-engine permission vocabulary is the design doc's
- * open question 6, deliberately NOT invented here). Reads stay ungated like
+ * guest guard first, then the S11 "invoke:platform-game" manifest gate.
+ * The scoped grant does not authorize standalone or sibling platform
+ * contracts. Reads stay ungated like
  * every other framework read lane, so guest-mode upsell UI can still quote
  * the pool.
  *
@@ -44,7 +43,7 @@ import { FrameworkCapabilityError } from "./aa";
 import { accountToHash160 } from "./chain-surface";
 import { mapField, rewardGameStatusOf } from "./gamefi/reward-game-sdk";
 import type { RewardGameStatus } from "./gamefi/reward-game-sdk";
-import { WRITE_PRIMARY, guardedWrite } from "./internal/guards";
+import { WRITE_PLATFORM_GAME, guardedWrite } from "./internal/guards";
 import type { FrameworkGuardDeps } from "./internal/guards";
 import type { Observable } from "./reactive";
 import { eventStateValue } from "./utils/chain-events";
@@ -213,7 +212,7 @@ export interface FrameworkPlatformGameSurface {
    * connected wallet in practice) at `difficulty` (0..2). Consumes the entry
    * from the player's prepaid engine credit and reserves the base reward —
    * NO payment rides along (fund credit first via an `<appId>:entry` GAS
-   * transfer). Guest guard + S11 "invoke:primary".
+   * transfer). Guest guard + S11 "invoke:platform-game".
    */
   startGame(player: string, difficulty: number): Promise<FrameworkPlatformGameStartResult>;
   /**
@@ -221,7 +220,7 @@ export interface FrameworkPlatformGameSurface {
    * kernel for settlement (one request per game; the engine locates the game
    * through the player's active-game pointer). `sealedOpLogHex` must be
    * non-empty even-length lowercase hex (the engine's codec contract).
-   * Guest guard + S11 "invoke:primary".
+   * Guest guard + S11 "invoke:platform-game".
    */
   finalizeGame(
     player: string,
@@ -231,13 +230,13 @@ export interface FrameworkPlatformGameSurface {
    * Close a game that can no longer settle (active/settling past deadline +
    * settle grace), releasing its reservation. Permissionless on-chain — the
    * surface still runs the standard write stanza (guest guard + S11
-   * "invoke:primary") like every other framework broadcast lane.
+   * "invoke:platform-game") like every other framework broadcast lane.
    */
   expireGame(gameId: string | number | bigint): Promise<FrameworkPlatformGameTx>;
   /**
    * Reclaim the connected wallet's whole engine credit (unused entries + won
    * payouts) — the pause-immune pull-payment exit. Skips the broadcast when
-   * the credit read is zero. Guest guard + S11 "invoke:primary".
+   * the credit read is zero. Guest guard + S11 "invoke:platform-game".
    */
   withdraw(): Promise<FrameworkPlatformGameWithdrawResult>;
   /** Pool not reserved by active games, GAS fixed8 base units. */
@@ -384,7 +383,7 @@ export function createPlatformGameSurface(
 
   const startGame = guardedWrite(
     deps.guards,
-    WRITE_PRIMARY,
+    WRITE_PLATFORM_GAME,
     async (player: string, difficulty: number): Promise<FrameworkPlatformGameStartResult> => {
       const cfg = requireConfig();
       const playerHash = accountToHash160(player);
@@ -435,7 +434,7 @@ export function createPlatformGameSurface(
 
   const finalizeGame = guardedWrite(
     deps.guards,
-    WRITE_PRIMARY,
+    WRITE_PLATFORM_GAME,
     async (
       player: string,
       sealedOpLogHex: string,
@@ -468,7 +467,7 @@ export function createPlatformGameSurface(
 
   const expireGame = guardedWrite(
     deps.guards,
-    WRITE_PRIMARY,
+    WRITE_PLATFORM_GAME,
     async (gameId: string | number | bigint): Promise<FrameworkPlatformGameTx> => {
       const cfg = requireConfig();
       return chain.invoke(
@@ -484,7 +483,7 @@ export function createPlatformGameSurface(
 
   const withdraw = guardedWrite(
     deps.guards,
-    WRITE_PRIMARY,
+    WRITE_PLATFORM_GAME,
     async (): Promise<FrameworkPlatformGameWithdrawResult> => {
       const cfg = requireConfig();
       const appId = resolveAppId();

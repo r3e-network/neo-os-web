@@ -32,6 +32,7 @@
   },
   "permissions": [
     "invoke:primary",
+    "invoke:platform-social",
     "read:blockchain"
   ],
   "features": {

@@ -1,5 +1,5 @@
 import { FrameworkCapabilityError } from "./aa";
-import { WRITE_PRIMARY, guardedWrite } from "./internal/guards";
+import { WRITE_PLATFORM_FACTORY, guardedWrite } from "./internal/guards";
 import type { FrameworkGuardDeps } from "./internal/guards";
 import { parseBigInt, parseBool } from "./utils/parsers";
 
@@ -121,7 +121,7 @@ export function createPlatformFactorySurface(
     options?: FrameworkPlatformFactoryInvokeOptions,
   ) => deps.chain.invoke(operation, args, { ...(options ?? {}), scriptHash: factoryHash(network) });
   const write = <A extends unknown[]>(run: (...args: A) => Promise<FrameworkPlatformFactoryTx>) =>
-    guardedWrite(deps.guards, WRITE_PRIMARY, run);
+    guardedWrite(deps.guards, WRITE_PLATFORM_FACTORY, run);
   const fourArgs = (input: { templateId: string; packageId: string; digest: string; initParams: string }) => [
     stringArg(input.templateId, "templateId"),
     stringArg(input.packageId, "packageId"),

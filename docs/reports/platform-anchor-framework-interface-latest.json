@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T00:18:00.859Z",
+  "generated_at_utc": "2026-07-23T09:08:10.035Z",
   "passed": true,
   "tenant_abi_method_count": 32,
   "framework_operation_count": 32,
@@ -80,7 +80,8 @@
     "options_config": true,
     "framework_surface": true,
     "composition_root": true,
-    "manifest_binding": true
+    "manifest_binding": true,
+    "scoped_write_guard": true
   },
   "consumers": {
     "trust_runtime_surface": true,

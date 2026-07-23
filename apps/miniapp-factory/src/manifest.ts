@@ -34,6 +34,7 @@ export const manifest: MiniAppManifest = {
     recipeId: "factory.miniapp.template.v1",
   },
   permissions: {
+    "invoke:platform-factory": true,
     storage: true,
   },
 };

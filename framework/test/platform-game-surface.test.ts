@@ -10,7 +10,7 @@
  *   expireGame / withdraw + the eight reads), appId-first on the wire but
  *   appId-free at the call site;
  * - writes run the RFC P0-2 guarded-write stanza (guest guard BEFORE the
- *   S11 "invoke:primary" gate BEFORE the broadcast) and carry NO payment
+ *   S11 "invoke:platform-game" gate BEFORE the broadcast) and carry NO payment
  *   (entries come from prepaid engine credit);
  * - event decodes honor the appId-slot-0 shift (GameStarted gameId slot 1,
  *   Finalizing requestId slot 3, CreditWithdrawn amount slot 2);
@@ -108,8 +108,8 @@ function makeApp(
   return { app, chain };
 }
 
-const isInvokePrimaryDenial = (error: unknown) =>
-  error instanceof FrameworkPermissionError && error.permission === "invoke:primary";
+const isPlatformGameDenial = (error: unknown) =>
+  error instanceof FrameworkPermissionError && error.permission === "invoke:platform-game";
 
 describe("platformGame config validation", () => {
   it("throws a typed capability error when no platformGame config is injected", async () => {
@@ -610,24 +610,27 @@ describe("app.platformGame write guards (RFC P0-2)", () => {
     await expect(app.platformGame.freePool()).resolves.toBe(100_000_000n);
   });
 
-  it("denies every write lane when the manifest declaration omits invoke:primary", async () => {
-    const { app, chain } = makeApp({}, { launchContext: { appId: APP_ID, permissions: [] } });
-
-    await expect(app.platformGame.startGame(ADDRESS, 0)).rejects.toSatisfy(
-      isInvokePrimaryDenial,
-    );
-    await expect(app.platformGame.finalizeGame(ADDRESS, "aabb")).rejects.toSatisfy(
-      isInvokePrimaryDenial,
-    );
-    await expect(app.platformGame.expireGame("7")).rejects.toSatisfy(isInvokePrimaryDenial);
-    await expect(app.platformGame.withdraw()).rejects.toSatisfy(isInvokePrimaryDenial);
-    expect(chain.invoke).not.toHaveBeenCalled();
-  });
-
-  it("keeps the write lanes working when invoke:primary is explicitly granted", async () => {
+  it("denies every write lane when only the standalone invoke grant is present", async () => {
     const { app, chain } = makeApp(
       {},
       { launchContext: { appId: APP_ID, permissions: ["invoke:primary"] } },
+    );
+
+    await expect(app.platformGame.startGame(ADDRESS, 0)).rejects.toSatisfy(
+      isPlatformGameDenial,
+    );
+    await expect(app.platformGame.finalizeGame(ADDRESS, "aabb")).rejects.toSatisfy(
+      isPlatformGameDenial,
+    );
+    await expect(app.platformGame.expireGame("7")).rejects.toSatisfy(isPlatformGameDenial);
+    await expect(app.platformGame.withdraw()).rejects.toSatisfy(isPlatformGameDenial);
+    expect(chain.invoke).not.toHaveBeenCalled();
+  });
+
+  it("keeps the write lanes working when invoke:platform-game is explicitly granted", async () => {
+    const { app, chain } = makeApp(
+      {},
+      { launchContext: { appId: APP_ID, permissions: ["invoke:platform-game"] } },
     );
     chain.invoke.mockResolvedValue({ txid: "0xstart", success: true, event: GAME_STARTED_EVENT });
 

@@ -31,6 +31,7 @@ export {
   FrameworkPermissionError,
   FrameworkPrepaidActionError,
   FrameworkSealError,
+  PLATFORM_INVOKE_PERMISSIONS,
   revertKeyOf,
 } from "../../../framework";
 export type {
@@ -44,6 +45,7 @@ export type {
   FrameworkLifecycleSurface,
   FrameworkNotifyPolicy,
   FrameworkOracleExtensions,
+  FrameworkPlatformInvokePermission,
   FrameworkPermissionsSurface,
   FrameworkPollOptions,
   FrameworkResourcesSurface,

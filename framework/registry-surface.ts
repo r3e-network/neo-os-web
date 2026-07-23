@@ -29,7 +29,7 @@
 
 import { FrameworkCapabilityError } from "./aa";
 import { accountToHash160 } from "./chain-surface";
-import { WRITE_PRIMARY, guardedWrite } from "./internal/guards";
+import { WRITE_PLATFORM_REGISTRY, guardedWrite } from "./internal/guards";
 import type { FrameworkGuardDeps } from "./internal/guards";
 import type { Observable } from "./reactive";
 import { deriveAppAccountHash, deriveVirtualAAAccount } from "./utils/aa-account";
@@ -356,7 +356,7 @@ export function createRegistrySurface(deps: RegistrySurfaceDeps): FrameworkRegis
 
   const invoke = guardedWrite(
     deps.guards,
-    WRITE_PRIMARY,
+    WRITE_PLATFORM_REGISTRY,
     async (
       operation: string,
       buildArgs: () => FrameworkRegistryContractArg[] | Promise<FrameworkRegistryContractArg[]>,
@@ -365,7 +365,7 @@ export function createRegistrySurface(deps: RegistrySurfaceDeps): FrameworkRegis
   );
   const invokeGasTransfer = guardedWrite(
     deps.guards,
-    WRITE_PRIMARY,
+    WRITE_PLATFORM_REGISTRY,
     async (
       buildArgs: () => FrameworkRegistryContractArg[] | Promise<FrameworkRegistryContractArg[]>,
       options?: FrameworkRegistryInvokeOptions,

@@ -79,7 +79,7 @@ export function evaluatePlatformRegistryFramework({
     react_passthrough: miniAppRootSource.includes("registry?: MiniAppFrameworkOptions[\"registry\"]") &&
       miniAppRootSource.includes("registry, platformGame"),
     guarded_writes: surfaceSource.includes("guardedWrite") &&
-      surfaceSource.includes("WRITE_PRIMARY"),
+      surfaceSource.includes("WRITE_PLATFORM_REGISTRY"),
   };
   return {
     passed: missingMethods.length === 0 && extraMethods.length === 0 &&
@@ -158,7 +158,6 @@ export function renderPlatformRegistryFrameworkMarkdown(report) {
     "## Boundary",
     "",
     report.boundary,
-    "",
   ].join("\n")}\n`;
 }
 

@@ -22,6 +22,8 @@
  * and carries no app-facing surface.
  */
 
+import { PLATFORM_INVOKE_PERMISSIONS } from "../permissions";
+
 /** Declarative policy for one framework write lane. */
 export interface FrameworkWritePolicy {
   /** S11 permission required, or `null` for the deliberate ungated lanes. */
@@ -43,6 +45,30 @@ export interface FrameworkGuardDeps {
 
 /** Primary-contract broadcast lanes: guest guard + S11 "invoke:primary". */
 export const WRITE_PRIMARY: FrameworkWritePolicy = { permission: "invoke:primary" };
+/** PlatformRegistry tenant writes; does not authorize any other platform module. */
+export const WRITE_PLATFORM_REGISTRY: FrameworkWritePolicy = {
+  permission: PLATFORM_INVOKE_PERMISSIONS.registry,
+};
+/** Shared PlatformGame writes; independent from standalone primary contracts. */
+export const WRITE_PLATFORM_GAME: FrameworkWritePolicy = {
+  permission: PLATFORM_INVOKE_PERMISSIONS.game,
+};
+/** Shared PlatformSocial writes; independent from other platform modules. */
+export const WRITE_PLATFORM_SOCIAL: FrameworkWritePolicy = {
+  permission: PLATFORM_INVOKE_PERMISSIONS.social,
+};
+/** Shared PlatformAnchor writes; independent from other platform modules. */
+export const WRITE_PLATFORM_ANCHOR: FrameworkWritePolicy = {
+  permission: PLATFORM_INVOKE_PERMISSIONS.anchor,
+};
+/** Shared PlatformDeFi writes; independent from other platform modules. */
+export const WRITE_PLATFORM_DEFI: FrameworkWritePolicy = {
+  permission: PLATFORM_INVOKE_PERMISSIONS.defi,
+};
+/** Shared MiniAppFactory writes; independent from other platform modules. */
+export const WRITE_PLATFORM_FACTORY: FrameworkWritePolicy = {
+  permission: PLATFORM_INVOKE_PERMISSIONS.factory,
+};
 /** Oracle request/dispatch lanes: guest guard + S11 "oracle:request". */
 export const ORACLE_REQUEST: FrameworkWritePolicy = { permission: "oracle:request" };
 /**

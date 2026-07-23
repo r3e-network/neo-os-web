@@ -11,11 +11,25 @@
 import { describe, expect, it } from "vitest";
 import {
   FrameworkPermissionError,
+  PLATFORM_INVOKE_PERMISSIONS,
   createPermissionsSurface,
 } from "../permissions";
 import { MiniAppError, isMiniAppError } from "../utils/errors";
 
 describe("S11 app.permissions", () => {
+  it("publishes distinct grants for every shared platform module", () => {
+    expect(PLATFORM_INVOKE_PERMISSIONS).toEqual({
+      registry: "invoke:platform-registry",
+      game: "invoke:platform-game",
+      social: "invoke:platform-social",
+      anchor: "invoke:platform-anchor",
+      defi: "invoke:platform-defi",
+      factory: "invoke:platform-factory",
+    });
+    expect(new Set(Object.values(PLATFORM_INVOKE_PERMISSIONS)).size).toBe(6);
+    expect(Object.values(PLATFORM_INVOKE_PERMISSIONS)).not.toContain("invoke:primary");
+  });
+
   it("lists string-array declarations trimmed and de-duplicated, in order", () => {
     const permissions = createPermissionsSurface({
       permissions: [" invoke:primary ", "oracle:request", "invoke:primary", "", "  "],

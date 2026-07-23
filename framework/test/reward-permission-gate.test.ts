@@ -49,6 +49,7 @@ const rewardConfig = {
 function makeApp(
   launchContext?: Record<string, unknown>,
   rewardOptions?: { fetcher?: typeof fetch },
+  sharedPlatformGame = false,
 ) {
   const chain = {
     address: createObservable<string | null>(ADDRESS),
@@ -72,7 +73,12 @@ function makeApp(
     t: (key: string) => key,
     launchContext: { appId: "reward-gate-test", ...launchContext },
   } as unknown as MiniAppFrameworkContext;
-  const app = createMiniAppFramework(ctx, { appId: "reward-gate-test" });
+  const app = createMiniAppFramework(ctx, {
+    appId: "reward-gate-test",
+    ...(sharedPlatformGame
+      ? { platformGame: { gameHash: `0x${"ab".repeat(20)}` } }
+      : {}),
+  });
   return { app, chain, reward: app.game.reward(rewardConfig, rewardOptions) };
 }
 
@@ -212,6 +218,20 @@ describe("app.game.reward S11 gate — default-allow back-compat", () => {
 
     await expect(reward.expire("7")).resolves.toMatchObject({ txid: "0xinvoke" });
     expect(chain.invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the scoped PlatformGame grant for shared bindings", async () => {
+    const denied = makeApp({ permissions: ["invoke:primary"] }, undefined, true);
+    await expect(run(() => denied.reward.expire("7"))).rejects.toSatisfy(
+      (error: unknown) =>
+        error instanceof FrameworkPermissionError
+        && error.permission === "invoke:platform-game",
+    );
+    expect(denied.chain.invoke).not.toHaveBeenCalled();
+
+    const allowed = makeApp({ permissions: ["invoke:platform-game"] }, undefined, true);
+    await expect(allowed.reward.expire("7")).resolves.toMatchObject({ txid: "0xinvoke" });
+    expect(allowed.chain.invoke).toHaveBeenCalledTimes(1);
   });
 });
 

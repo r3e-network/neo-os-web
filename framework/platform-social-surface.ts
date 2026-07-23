@@ -1,6 +1,6 @@
 import { FrameworkCapabilityError } from "./aa";
 import { accountToHash160 } from "./chain-surface";
-import { WRITE_PRIMARY, guardedWrite } from "./internal/guards";
+import { WRITE_PLATFORM_SOCIAL, guardedWrite } from "./internal/guards";
 import type { FrameworkGuardDeps } from "./internal/guards";
 import type { Observable } from "./reactive";
 import { parseHash160 } from "./utils/neo";
@@ -172,7 +172,7 @@ export function createPlatformSocialSurface(
     options?: FrameworkPlatformSocialInvokeOptions,
   ) => deps.chain.invoke("transfer", args, { ...options, scriptHash: assetHash });
   const write = <A extends unknown[]>(run: (...args: A) => Promise<FrameworkPlatformSocialTx>) =>
-    guardedWrite(deps.guards, WRITE_PRIMARY, run);
+    guardedWrite(deps.guards, WRITE_PLATFORM_SOCIAL, run);
   const tenantArgs = (): Array<{ type: string; value: unknown }> => [
     { type: "String", value: appId() },
   ];

@@ -12,7 +12,7 @@ const wiring = {
 test("PlatformRegistry framework audit accepts exact tenant ABI and native credit coverage", () => {
   const result = evaluatePlatformRegistryFramework({
     manifest: { abi: { methods: [method("proposeAdmin"), method("getApp"), method("registerApp")] } },
-    surfaceSource: 'guardedWrite(WRITE_PRIMARY); read("getApp", []); invoke("registerApp", []); chain.invoke("transfer", []);',
+    surfaceSource: 'guardedWrite(WRITE_PLATFORM_REGISTRY); read("getApp", []); invoke("registerApp", []); chain.invoke("transfer", []);',
     consumers: [],
     ...wiring,
   });

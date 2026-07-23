@@ -1297,7 +1297,7 @@ export interface MiniAppFramework {
    * app.platformGame (Platform Contract Library v2 phase 2) — the shared
    * PlatformGame RewardGame engine with the host appId auto-threaded into
    * every call: startGame / finalizeGame / expireGame / withdraw (guest guard
-   * + S11 "invoke:primary") plus typed reads (freePool / poolBalance /
+   * + S11 "invoke:platform-game") plus typed reads (freePool / poolBalance /
    * reservedPool / heldForApp / creditOf / activeGameOf / statsOf / getGame,
    * ungated). Unconfigured ⇒ typed FrameworkCapabilityError.
    */

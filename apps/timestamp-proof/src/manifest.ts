@@ -17,6 +17,9 @@ export const manifest: MiniAppManifest = {
   // Hashing and storage happen entirely in the browser; a wallet is only needed
   // for the optional on-chain anchor, so it is not required by default.
   features: { walletRequired: false, chainWarning: false },
+  permissions: {
+    "invoke:platform-social": true,
+  },
 
   docs: [
     { titleKey: "title", contentKey: "docSubtitle", type: "text" },

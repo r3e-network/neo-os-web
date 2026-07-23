@@ -64,7 +64,7 @@ embeds; app entrypoints use the runtime-provided `ctx.framework`.
 | `app.game` | Reward-game SDK (`reward(config)` + lifecycle `runner(hooks)`), `rules(config)`, player/stats/leaderboard/session helpers |
 | `app.oracle` | HTTP/VRF/compute/seal envelopes + `dispatch`, dataFeed reader, seal client |
 | `app.credits` | Platform credits: on-chain buys, instant feeless spends, stale-flagged fallback reads |
-| `app.permissions` | S11 manifest gating (default-allow when undeclared; verbatim when declared) |
+| `app.permissions` | S11 manifest gating with distinct `invoke:platform-*` grants per shared module |
 | `app.aa` | Sponsorship / relay / session keys (typed capability errors when absent) |
 | `app.clipboard` / `app.share` / `app.resources` | Copy with toasts, share sheet, host-base asset resolution |
 | `app.stats` / `app.achievements` / `app.db` | Legacy OS lanes — partially deprecated, see the guide |

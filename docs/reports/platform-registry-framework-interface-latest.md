@@ -1,6 +1,6 @@
 # PlatformRegistry Framework Interface
 
-Generated: 2026-07-23T00:58:53.658Z
+Generated: 2026-07-23T09:08:09.824Z
 
 - Interface audit: **PASS**
 - Non-control-plane contract ABI: 48 methods
