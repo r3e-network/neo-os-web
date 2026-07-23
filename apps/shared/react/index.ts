@@ -36,6 +36,7 @@ export {
 export type {
   MiniAppFramework,
   FrameworkAaSurface,
+  FrameworkBadgeSurface,
   FrameworkBusSurface,
   FrameworkClipboardSurface,
   FrameworkDepositSettlement,
@@ -46,6 +47,7 @@ export type {
   FrameworkPermissionsSurface,
   FrameworkPollOptions,
   FrameworkResourcesSurface,
+  FrameworkRemoteStorageSurface,
   FrameworkShareOutcome,
   FrameworkShareSurface,
   FrameworkSuccessParams,

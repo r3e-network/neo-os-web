@@ -178,7 +178,6 @@ test/fuzz/daemon.pid
 docs/reports/fuzz/
 docs/reports/live-smoke/
 docs/reports/mainnet-frontend-ui-audit-*/
-docs/superpowers/
 
 .worktrees/
 .omx/
@@ -208,7 +207,6 @@ docs/reports/multi-user-sim/
 .gstack/
 
 # Local scratch dirs and generated/AI output (repo hygiene, 2026-07-17)
-.turbo/
 /tmp/
 /scripts_tmp/
 /scripts_local/

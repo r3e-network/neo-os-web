@@ -18,7 +18,7 @@ defineMiniApp({
   setup(ctx) {
     const flash = useFlashloanCore({
       app: ctx.framework,
-      badgeService: ctx.os.badge,
+      badgeService: ctx.framework.badge,
       t: ctx.t,
       network: readMiniAppLaunchContext("miniapp-flashloan").network,
     });
