@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defineMiniApp } from "../react/defineMiniApp";
+import {
+  defineMiniApp,
+  platformAnchorConfigFromManifest,
+  platformDeFiConfigFromManifest,
+  platformSocialConfigFromManifest,
+} from "../react/defineMiniApp";
 import { PlatformServices } from "../services";
 
 describe("defineMiniApp service ownership", () => {
@@ -87,5 +92,57 @@ describe("defineMiniApp service ownership", () => {
     root.unmount();
 
     expect(fakeServices.destroy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("platform social manifest config", () => {
+  it("derives only a shared platform-social engine binding", () => {
+    expect(platformSocialConfigFromManifest({
+      name: "Social",
+      contract: {
+        mode: "shared",
+        moduleId: "platform-social",
+        engine: `0x${"12".repeat(20)}`,
+      },
+    })).toEqual({ socialHash: `0x${"12".repeat(20)}` });
+    expect(platformSocialConfigFromManifest({
+      name: "Custom",
+      contract: { mode: "custom", hash: `0x${"34".repeat(20)}` },
+    })).toBeUndefined();
+  });
+});
+
+describe("platform anchor manifest config", () => {
+  it("accepts the canonical shared PlatformAnchor binding", () => {
+    expect(platformAnchorConfigFromManifest({
+      name: "Anchor",
+      contract: {
+        mode: "shared",
+        moduleId: "PlatformAnchor",
+        engine: `0x${"56".repeat(20)}`,
+      },
+    })).toEqual({ anchorHash: `0x${"56".repeat(20)}` });
+    expect(platformAnchorConfigFromManifest({
+      name: "Custom",
+      contract: { mode: "custom", hash: `0x${"78".repeat(20)}` },
+    })).toBeUndefined();
+  });
+});
+
+describe("platform defi manifest config", () => {
+  it("accepts canonical and kebab-case shared PlatformDeFi bindings", () => {
+    const hash = `0x${"9a".repeat(20)}`;
+    expect(platformDeFiConfigFromManifest({
+      name: "DeFi",
+      contract: { mode: "shared", moduleId: "PlatformDeFi", engine: hash },
+    })).toEqual({ defiHash: hash });
+    expect(platformDeFiConfigFromManifest({
+      name: "DeFi",
+      contract: { mode: "shared", moduleId: "platform-defi", engine: hash },
+    })).toEqual({ defiHash: hash });
+    expect(platformDeFiConfigFromManifest({
+      name: "Custom",
+      contract: { mode: "custom", hash },
+    })).toBeUndefined();
   });
 });

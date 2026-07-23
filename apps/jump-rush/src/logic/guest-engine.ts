@@ -11,7 +11,7 @@
  * never fires.
  *
  * The scene already runs the jump gameplay locally (charge/release, landing,
- * miss, undo, clear). Guest mode simply replaces the chain/TEE seal-and-bind
+ * miss, undo, clear). Guest mode simply replaces the chain/TEE session
  * (startGame) and the on-chain settlement (submitRun) with local equivalents,
  * and records the cleared-jump count off-chain instead of paying GAS.
  */

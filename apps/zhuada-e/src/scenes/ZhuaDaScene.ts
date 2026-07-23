@@ -20,6 +20,7 @@
  */
 
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
   Body,
   Box,
@@ -63,7 +64,7 @@ import {
   type PhysicsSurface,
 } from "./physics-profiles";
 import { disposeObject } from "./scene-resources";
-import { SCENE_MOTION } from "./scene-motion";
+import { SCENE_MOTION, portraitCameraBias } from "./scene-motion";
 import { duplicatePickGuardUntil } from "./pick-lock";
 import {
   initialPileEuler,
@@ -132,6 +133,8 @@ export class ZhuaDaScene {
 
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
+  /** Shared PMREM target that gives glaze, ceramic and metal real reflections. */
+  private environmentTarget: THREE.WebGLRenderTarget | null = null;
   private camera!: THREE.OrthographicCamera;
   private world!: World;
   private raycaster = new THREE.Raycaster();
@@ -271,13 +274,14 @@ export class ZhuaDaScene {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.toneMappingExposure = 0.96;
     this.renderer.setClearColor(0x000000, 0);
     host.appendChild(this.renderer.domElement);
     this.renderer.domElement.style.touchAction = "none";
 
     this.scene = new THREE.Scene();
     this.scene.background = null;
+    this.setupMaterialEnvironment();
     this.playfieldGroup = new THREE.Group();
     this.scene.add(this.playfieldGroup);
     this.containerGroup = new THREE.Group();
@@ -343,6 +347,9 @@ export class ZhuaDaScene {
     // Dispose geometry/material/textures to avoid GPU leaks across remounts
     // (traverse-based, so composed Groups and the emoji Sprite are covered).
     if (this.scene) disposeObject(this.scene);
+    this.scene.environment = null;
+    this.environmentTarget?.dispose();
+    this.environmentTarget = null;
     this.renderer?.dispose();
     if (this.renderer?.domElement.parentElement === this.host) {
       this.host?.removeChild(this.renderer.domElement);
@@ -355,10 +362,10 @@ export class ZhuaDaScene {
   // ── Setup ──────────────────────────────────────────────────────────────────
 
   private setupLights(): void {
-    const hemi = new THREE.HemisphereLight(0xfffbef, 0xd4b995, 1.22);
+    const hemi = new THREE.HemisphereLight(0xfffbef, 0xd4b995, 1.05);
     this.hemiLight = hemi;
     this.scene.add(hemi);
-    const key = new THREE.DirectionalLight(0xfff7e8, 2.15);
+    const key = new THREE.DirectionalLight(0xfff7e8, 1.72);
     this.keyLight = key;
     key.position.set(-4.5, 13, 5.5);
     key.castShadow = true;
@@ -372,12 +379,27 @@ export class ZhuaDaScene {
     key.shadow.camera.top = d;
     key.shadow.camera.bottom = -d;
     this.scene.add(key);
-    const fill = new THREE.DirectionalLight(0xd8ecff, 0.68);
+    const fill = new THREE.DirectionalLight(0xd8ecff, 0.5);
     fill.position.set(6, 7, -5);
     this.scene.add(fill);
-    const rim = new THREE.DirectionalLight(0xffd9b0, 0.5);
+    const rim = new THREE.DirectionalLight(0xffd9b0, 0.36);
     rim.position.set(0, 4, -9);
     this.scene.add(rim);
+  }
+
+  private setupMaterialEnvironment(): void {
+    const room = new RoomEnvironment();
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    // 0.035 stays inside Three's 20-sample PMREM blur budget on WebGL1/2 and
+    // avoids clipping warnings while retaining a soft illustrated highlight.
+    this.environmentTarget = pmrem.fromScene(room, 0.035);
+    this.scene.environment = this.environmentTarget.texture;
+    // Direct lights retain the bright illustrated look; this lower-intensity
+    // environment contributes only the soft rim/reflection cues that separate
+    // metal, glaze, ceramic, produce skin, paper and fabric at phone size.
+    this.scene.environmentIntensity = this.mobileQuality ? 0.52 : 0.62;
+    room.dispose();
+    pmrem.dispose();
   }
 
   private setupWorld(): void {
@@ -686,8 +708,11 @@ export class ZhuaDaScene {
     this.camera.right = horizontalHalf;
     this.camera.top = verticalHalf;
     this.camera.bottom = -verticalHalf;
-    this.camera.position.set(0, 14, 0.9);
-    this.camera.lookAt(0, Math.max(0.42, height * 0.46), 0);
+    const verticalBias = portraitCameraBias(aspect);
+    // Move the orthographic view center, not the playfield group: this keeps
+    // item-to-tray world coordinates and pan-toss physics perfectly aligned.
+    this.camera.position.set(0, 14, 0.9 - verticalBias);
+    this.camera.lookAt(0, Math.max(0.42, height * 0.46), -verticalBias);
     this.camera.updateProjectionMatrix();
     this.cameraBase.copy(this.camera.position);
   }

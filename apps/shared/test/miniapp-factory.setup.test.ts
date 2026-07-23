@@ -4,7 +4,7 @@ import { createMiniAppFramework } from "../../../framework";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 
 const FACTORY_HASH = "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49";
-const ADMIN = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
+const ADMIN = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const TXID = `0x${"42".repeat(32)}`;
 
 const chainReads = vi.hoisted(() => ({
@@ -64,7 +64,10 @@ function buildCtx(network = "testnet") {
     },
   };
   Object.assign(ctx, {
-    framework: createMiniAppFramework(ctx as never, { appId: "miniapp-miniapp-factory" }),
+    framework: createMiniAppFramework(ctx as never, {
+      appId: "miniapp-miniapp-factory",
+      platformFactory: { hashes: { "neo-n3-testnet": FACTORY_HASH } },
+    }),
   });
   return { ctx, registered, chain };
 }

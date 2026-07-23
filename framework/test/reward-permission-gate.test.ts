@@ -105,6 +105,8 @@ function makeSession(sessionToken: string): RewardGameSession {
     publicKey: "pk",
     sessionToken,
     view: {},
+    currentView: {},
+    opCount: 0,
     config: { limitMs: 1000, minSolveMs: 100, maxUndos: 0, revealPolicy: "", raw: {} },
     identity: {
       appId: "reward-gate-test",

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const FACTORY_HASH = "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49";
-const ADMIN = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
+const ADMIN = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 
 afterEach(() => {
   vi.unstubAllEnvs();

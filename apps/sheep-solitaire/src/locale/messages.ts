@@ -178,7 +178,7 @@ const appMessages = {
   statusStarted: { en: "Game started — sealing the card layout", zh: "对局已开始——正在密封牌面" },
   statusShuffling: { en: "Sealing your game…", zh: "正在密封对局…" },
   statusSealing: { en: "Sealing your game in the enclave…", zh: "正在飞地中密封对局…" },
-  statusDealt: { en: "Game sealed and bound — the clock is running", zh: "对局已密封上链——计时开始" },
+  statusDealt: { en: "Confidential session ready — the clock is running", zh: "机密会话已就绪——计时开始" },
   statusDealPending: {
     en: "Sealing is taking longer than usual — retry shortly.",
     zh: "密封比平时慢——请稍后重试。",

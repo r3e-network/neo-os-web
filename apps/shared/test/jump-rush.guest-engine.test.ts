@@ -234,7 +234,7 @@ describe("jump-rush guest engine", () => {
       history: [expect.objectContaining({
         difficulty: 0,
         jumps: ruleOf(0).targetJumps,
-        perfects: 5,
+        perfects: Math.floor(ruleOf(0).targetJumps / 2),
       })],
     });
     expect(h.myHistory.get()).toHaveLength(1);

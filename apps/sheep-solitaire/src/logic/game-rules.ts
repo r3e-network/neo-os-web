@@ -12,7 +12,6 @@ export const FUND_MEMO = "miniapp-sheep-solitaire:fund";
 export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
-export const DEAL_TTL_MS = 3_600_000;
 export const SETTLE_GRACE_MS = 600_000;
 
 export const MAX_SLOTS = 7;
@@ -37,7 +36,7 @@ const EASY_RULE: DifficultyRule = {
   entryFixed8: 2_000_000n,
   rewardFixed8: 10_000_000n,
   limitMs: 300_000,
-  minSolveMs: 60_000,
+  minSolveMs: 30_000,
 };
 
 const MEDIUM_RULE: DifficultyRule = {
@@ -47,7 +46,7 @@ const MEDIUM_RULE: DifficultyRule = {
   entryFixed8: 10_000_000n,
   rewardFixed8: 50_000_000n,
   limitMs: 480_000,
-  minSolveMs: 120_000,
+  minSolveMs: 60_000,
 };
 
 const HARD_RULE: DifficultyRule = {
@@ -57,7 +56,7 @@ const HARD_RULE: DifficultyRule = {
   entryFixed8: 20_000_000n,
   rewardFixed8: 100_000_000n,
   limitMs: 720_000,
-  minSolveMs: 180_000,
+  minSolveMs: 90_000,
 };
 
 export const DIFFICULTY_RULES: readonly DifficultyRule[] = [EASY_RULE, MEDIUM_RULE, HARD_RULE];

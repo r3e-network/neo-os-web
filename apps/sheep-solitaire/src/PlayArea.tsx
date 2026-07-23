@@ -13,7 +13,7 @@ import {
   ruleOf,
 } from "./logic/game-rules";
 import { ALL_SYMBOLS, symbolAsset, symbolLabel } from "./logic/sheep-engine";
-import type { CardView } from "./logic/tee-session";
+import type { CardView } from "./logic/session-view";
 import type { LeaderEntry, SolveRow } from "./main";
 import "./PlayArea.scss";
 

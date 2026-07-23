@@ -57,6 +57,7 @@ const SOLVED_SLOTS = {
   elapsedMs: 3,
   solvedPayout: 5,
   totalWon: 6,
+  undos: 7,
 };
 
 type TeeOp = { type: "aim"; position: number } | { type: "undo" };

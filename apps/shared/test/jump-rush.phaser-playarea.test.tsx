@@ -425,9 +425,9 @@ describe("jump-rush Phaser playarea", () => {
     expect(scene).toContain("const logicalIndex = windowStart + i");
     expect(scene.indexOf("if (!landed)")).toBeLessThan(scene.indexOf("this.currentPlatformIndex += 1"));
     expect(main).toContain("guest.recordJump(");
-    expect(main).toContain("form.perfect === true");
+    expect(main).toContain("view.perfect === true");
     expect(scene).toContain("this.minSolveRemainingMs()");
-    expect(main).toContain("undosUsed.get() >= MAX_UNDOS");
+    expect(main).toContain("undosUsed.get() >= GAMEFI_MAX_UNDOS");
     expect(styles).toContain(".jr-drawer__summary");
     expect(styles).toContain(".jr-drawer__actions");
     expect(styles).toContain(".jr-run-card");

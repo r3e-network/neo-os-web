@@ -1,0 +1,215 @@
+{
+  "generated_at_utc": "2026-07-23T01:33:00.990Z",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "rpc_user_agent": "/NEO-GO:0.121.0/",
+  "summary": {
+    "contracts": 7,
+    "live_contracts_found": 5,
+    "active_registry_artifacts": 1,
+    "current_local_artifact_matches": 2,
+    "artifact_drifts": 4,
+    "no_deployment_record": 1,
+    "admin_domains": 2
+  },
+  "admin_domains": [
+    "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "0x6d0656f6dd91469db1c90cc1e574380613f43738"
+  ],
+  "contracts": [
+    {
+      "name": "PlatformRegistry",
+      "kind": "contract",
+      "evidence": [
+        "deploy/config/platform-registry-testnet-2026-07-19.json"
+      ],
+      "hash": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+      "contract_id": 7606,
+      "update_counter": 0,
+      "on_chain_name": "PlatformRegistry",
+      "manifest_name_matches": true,
+      "admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "expected_admin_matches": true,
+      "local_nef_checksum": 2644796843,
+      "on_chain_nef_checksum": 372915605,
+      "current_local_artifact_match": false,
+      "abi": {
+        "local_count": 74,
+        "on_chain_count": 63,
+        "missing_on_chain": [
+          "abstractAccountCore",
+          "abstractAccountCoreAvailableAt",
+          "appIdOfAbstractAccount",
+          "cancelAbstractAccountCore",
+          "cancelSpendThresholdRaise",
+          "executeSpendThresholdRaise",
+          "getAppAbstractAccount",
+          "materializeAbstractAccount",
+          "pendingAbstractAccountCore",
+          "proposeAbstractAccountCore",
+          "setAbstractAccountCore"
+        ],
+        "extra_on_chain": []
+      },
+      "status": "live-artifact-drift"
+    },
+    {
+      "name": "AppAccount",
+      "kind": "registry-artifact",
+      "evidence": [
+        "deploy/config/platform-registry-testnet-2026-07-19.json"
+      ],
+      "registry_hash": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+      "artifact_version": 1,
+      "local_nef_checksum": 2055764547,
+      "on_chain_nef_checksum": 2055764547,
+      "current_local_artifact_match": true,
+      "status": "active-artifact-match"
+    },
+    {
+      "name": "MiniAppFactory",
+      "kind": "contract",
+      "evidence": [
+        "apps/asset-factory/neo-manifest.json",
+        "apps/miniapp-factory/neo-manifest.json",
+        "apps/nft-factory/neo-manifest.json"
+      ],
+      "hash": "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49",
+      "contract_id": 7511,
+      "update_counter": 0,
+      "on_chain_name": "MiniAppFactory",
+      "manifest_name_matches": true,
+      "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "expected_admin": null,
+      "expected_admin_matches": null,
+      "local_nef_checksum": 905792977,
+      "on_chain_nef_checksum": 2240313340,
+      "current_local_artifact_match": false,
+      "abi": {
+        "local_count": 20,
+        "on_chain_count": 19,
+        "missing_on_chain": [
+          "deployArtifactFromTemplate"
+        ],
+        "extra_on_chain": []
+      },
+      "status": "live-artifact-drift"
+    },
+    {
+      "name": "PlatformAnchor",
+      "kind": "contract",
+      "evidence": [
+        "contracts/build/testnet_anchor_deployment.json"
+      ],
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "contract_id": 6725,
+      "update_counter": 0,
+      "on_chain_name": "PlatformAnchor",
+      "manifest_name_matches": true,
+      "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "expected_admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "expected_admin_matches": true,
+      "local_nef_checksum": 1528462004,
+      "on_chain_nef_checksum": 1604090204,
+      "current_local_artifact_match": false,
+      "abi": {
+        "local_count": 45,
+        "on_chain_count": 47,
+        "missing_on_chain": [],
+        "extra_on_chain": [
+          "setAgentAccounts",
+          "setAgentWeight"
+        ]
+      },
+      "status": "live-artifact-drift"
+    },
+    {
+      "name": "PlatformGame",
+      "kind": "contract",
+      "evidence": [
+        "contracts/build/testnet_game_deployment.json"
+      ],
+      "hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "contract_id": 7605,
+      "update_counter": 1,
+      "on_chain_name": "PlatformGame",
+      "manifest_name_matches": true,
+      "admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "expected_admin_matches": true,
+      "local_nef_checksum": 2377918952,
+      "on_chain_nef_checksum": 2377918952,
+      "current_local_artifact_match": true,
+      "abi": {
+        "local_count": 77,
+        "on_chain_count": 77,
+        "missing_on_chain": [],
+        "extra_on_chain": []
+      },
+      "status": "live-artifact-match"
+    },
+    {
+      "name": "PlatformDeFi",
+      "kind": "contract",
+      "evidence": [
+        "contracts/build/testnet_anchor_deployment.json"
+      ],
+      "hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
+      "contract_id": 6723,
+      "update_counter": 0,
+      "on_chain_name": "PlatformDeFi",
+      "manifest_name_matches": true,
+      "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "expected_admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "expected_admin_matches": true,
+      "local_nef_checksum": 3365527823,
+      "on_chain_nef_checksum": 3687605410,
+      "current_local_artifact_match": false,
+      "abi": {
+        "local_count": 62,
+        "on_chain_count": 36,
+        "missing_on_chain": [
+          "abandonLoan",
+          "fundCapsuleYieldReserve",
+          "getCapsuleYieldReserve",
+          "getFlashProviderBalance",
+          "getFlashTotalLpDeposits",
+          "getLastPriceDropTime",
+          "getLendingLiquidity",
+          "getNeoGasPrice",
+          "getTotalAbandonedCollateral",
+          "getTotalCapsuleFees",
+          "getTotalLendingFees",
+          "getUnclaimedFlashLoanFees",
+          "isLiquidatable",
+          "lendingDeposit",
+          "liquidateLoan",
+          "migrateFlashProviderBalance",
+          "setNeoGasPrice",
+          "withdrawAbandonedCollateral",
+          "withdrawCapsuleFees",
+          "withdrawCapsulePenalties",
+          "withdrawCapsuleYieldReserve",
+          "withdrawFlashLoanFees",
+          "withdrawGasCredit",
+          "withdrawLendingFees",
+          "withdrawLendingLiquidity",
+          "withdrawNeoCredit"
+        ],
+        "extra_on_chain": []
+      },
+      "status": "live-artifact-drift"
+    },
+    {
+      "name": "PlatformSocial",
+      "kind": "undeployed",
+      "evidence": [],
+      "local_nef_checksum": 67671598,
+      "current_local_artifact_match": false,
+      "status": "no-deployment-record"
+    }
+  ],
+  "boundary": "Read-only RPC evidence proves current testnet contract identity and NEF checksum only. It does not prove funded lifecycle behavior, mainnet parity, or operational health."
+}

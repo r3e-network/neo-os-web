@@ -63,16 +63,24 @@ const appMessages = {
     zh: "认证独立 NEP-17 工件",
   },
   stepDeployReadyDetail: {
-    en: "Deployment remains locked until this app can build and verify the user-specific NEF, manifest, and artifact-bound digest required by the factory contract.",
-    zh: "只有本应用能够生成并验证 Factory 合约要求的用户专属 NEF、manifest 与工件绑定摘要后，部署才会解锁。",
+    en: "The creator-specific NEF, manifest, and artifact digest are complete; live deployment remains locked until the upgraded Factory and recovery lifecycle are certified.",
+    zh: "创作者专属 NEF、manifest 与工件摘要已经完整生成；链上部署仍需等待升级后的 Factory 与恢复生命周期完成认证。",
   },
   stepDeployUnverifiedDetail: {
-    en: "Blueprint design and signing are available; deployment requires a separately certified artifact pipeline.",
-    zh: "蓝图设计与签名已可使用；部署需要另行完成工件流水线认证。",
+    en: "The creator artifact is complete, but the live governed artifact and exact Factory ABI have not been verified.",
+    zh: "创作者工件已经完整生成，但链上受治理工件与精确 Factory ABI 尚未完成核验。",
   },
   artifactUnverified: {
-    en: "Deployment is locked: the factory contract requires a user-specific NEF, manifest, and artifact-bound digest that this build does not yet generate and verify.",
-    zh: "部署已锁定：Factory 合约要求用户专属 NEF、manifest 和工件绑定摘要，而当前版本尚不能完整生成并验证这些内容。",
+    en: "Deployment is locked: the creator-specific artifact is complete, but the live Factory ABI and transaction recovery lifecycle have not yet been certified.",
+    zh: "部署已锁定：创作者专属工件已经完整生成，但链上 Factory ABI 与交易恢复生命周期尚未完成认证。",
+  },
+  uniqueArtifactRequired: {
+    en: "The artifact package is complete, but deployment remains locked until the live Factory upgrade and end-to-end write recovery are certified.",
+    zh: "工件发行包已经完整，但在链上 Factory 升级和端到端写入恢复完成认证前，部署仍保持锁定。",
+  },
+  stepDeployUniqueArtifactRequired: {
+    en: "Blocked: all six artifact arguments are bound, but the deployed Factory ABI and transaction/event/readback lifecycle are not yet certified.",
+    zh: "已阻断：六个工件参数均已绑定，但已部署 Factory ABI 与交易、事件、回读生命周期尚未完成认证。",
   },
   // `unverified` means "no live confirmation from the chain yet" — on first
   // paint the template artifact has simply not been probed. Say that plainly
@@ -80,16 +88,16 @@ const appMessages = {
   // surface for what is a normal pre-read state.
   artifactStatusUnverified: { en: "Not checked yet", zh: "尚未核对" },
   artifactNotRegistered: {
-    en: "This template is metadata-only. It can support blueprint and registry review, but it cannot create a contract; real deployment requires the separately certified unique-artifact pipeline.",
-    zh: "当前模板仅包含元数据，可用于蓝图和注册表复核，但不能创建合约；真实部署需要另行完成独立工件流水线认证。",
+    en: "This live template is metadata-only. The creator artifact is complete locally, but a Factory admin must register the exact governed artifact before deployment.",
+    zh: "当前链上模板仅包含元数据。创作者工件已在本地完整生成，但部署前仍需 Factory 管理员注册精确的受治理工件。",
   },
   stepDeployArtifactMissing: {
-    en: "Blocked: this metadata-only template cannot create a contract. Do not record it as a deployment; use the certified unique-artifact flow when available.",
-    zh: "已阻断：仅元数据模板无法创建合约，不能把它记录为部署成功；请在独立工件流程完成认证后使用该流程。",
+    en: "Blocked: the current chain template cannot create a contract. Register the exact generated artifact and certify the upgraded Factory lifecycle first.",
+    zh: "已阻断：当前链上模板无法创建合约。请先注册精确的生成工件，并完成升级后 Factory 生命周期认证。",
   },
   deployHonesty: {
-    en: "This release never broadcasts a Factory write. The configured TestNet template is metadata-only, and deployFromTemplate would create a zero-hash registry record rather than a token. Real issuance requires the separately certified deployArtifactFromTemplate flow with a creator-unique NEF, manifest, and artifact-bound digest.",
-    zh: "当前版本不会广播任何 Factory 写操作。配置的测试网模板仅含元数据，调用 deployFromTemplate 只会创建合约地址为空的注册表记录，而不是代币。真实发行必须走另行认证的 deployArtifactFromTemplate 流程，并提供发行方独立的 NEF、manifest 与工件绑定摘要。",
+    en: "This release never broadcasts a Factory write. It now produces the complete creator-unique deployArtifactFromTemplate package, but the configured TestNet Factory still lacks the reviewed ABI and the transaction/event/readback recovery lane is not certified.",
+    zh: "当前版本不会广播任何 Factory 写操作。它已能生成完整的创作者独立 deployArtifactFromTemplate 发行包，但配置的测试网 Factory 仍缺少已审查 ABI，且交易、事件、回读恢复流程尚未完成认证。",
   },
   docWhatItIsBody: {
     en: "Asset Factory is a focused NEP-17 issuance studio. It turns product choices into a deterministic blueprint, validates the parameters, supports wallet signing, and can recover a matching factory record without sending a transaction.",
@@ -140,8 +148,8 @@ const appMessages = {
     zh: "请先锁定蓝图，再核对对应的链上记录。",
   },
   deploymentCertificationPending: {
-    en: "Deployment is unavailable until the unique-artifact pipeline passes end-to-end certification.",
-    zh: "独立工件流水线通过端到端认证前，部署功能不可用。",
+    en: "Deployment is unavailable until the live Factory ABI, governed artifacts, and transaction recovery lifecycle pass end-to-end certification.",
+    zh: "链上 Factory ABI、受治理工件与交易恢复生命周期通过端到端认证前，部署功能不可用。",
   },
   signatureWalletChanged: {
     en: "Wallet changed, so the previous signature was cleared. Sign again with the current issuer wallet.",

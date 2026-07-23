@@ -1,153 +1,70 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import { parseSheepSessionView } from "../../sheep-solitaire/src/logic/session-view";
 
-import {
-  morpheusNetworkOf,
-  teeFinalize,
-  teeMove,
-  teeStart,
-  type TeeIdentity,
-} from "../../sheep-solitaire/src/logic/tee-session";
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const main = fs.readFileSync(path.join(repoRoot, "apps/sheep-solitaire/src/main.tsx"), "utf8");
 
-const identity: TeeIdentity = {
-  appId: "miniapp-sheep-solitaire",
-  network: "testnet",
-  contractHash: "0x7541e13629eb35ec54181be2772bff34e39d3c35",
-  gameId: "12",
-  player: "0x1111111111111111111111111111111111111111",
-  difficulty: 0,
-};
-
-function response(body: Record<string, unknown>, ok = true) {
-  vi.stubGlobal("fetch", vi.fn(async () => ({
-    ok,
-    status: ok ? 200 : 500,
-    json: async () => body,
-  })));
-}
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
-describe("sheep-solitaire TEE response validation", () => {
-  it("retains stable board coordinates and an authoritative tray on start", async () => {
-    response({
-      commitment: "a".repeat(64),
-      bind_signature: "b".repeat(128),
-      public_key: "c".repeat(66),
-      session_token: "session-12",
-      view: {
-        cards: [
-          { id: 0, symbol: 2, layer: 0, col: 1, row: 2, exposed: true, picked: false },
-        ],
-        slots: [
-          { id: 8, symbol: 3, layer: 1, col: 2, row: 1, exposed: true, picked: true },
-        ],
-        shuffle_left: 0,
-        remove3_left: 1,
-      },
-    });
-
-    const started = await teeStart(identity);
-
-    expect(started.cards[0]).toMatchObject({ id: 0, col: 1, row: 2 });
-    expect(started.slots).toHaveLength(1);
-    expect(started.shuffleLeft).toBe(0);
-    expect(started.remove3Left).toBe(1);
+describe("sheep-solitaire shared kernel session", () => {
+  it("uses the reviewed generic engine through app.game.reward", () => {
+    expect(main).toContain("9faf4efb68f60a44783de900254c62da8ca3b0b724dcebec57b4707f14a364ef");
+    expect(main).toContain("app.game.reward<SheepSessionOp>");
+    expect(main).toContain("rewardGame.openSession");
+    expect(main).toContain("rewardGame.recordOp");
+    expect(main).toContain("rewardGame.replayOps");
+    expect(main).toContain("rewardGame.finalize");
+    expect(main).toContain("rewardGame.recoverActive");
   });
 
-  it("uses nested move flags and tray state without client-side guessing", async () => {
-    response({
-      ok: true,
-      view: {
-        cards: [],
-        slots: [],
-        matched: true,
-        won: true,
-        game_over: false,
-        shuffle_left: 1,
-        remove3_left: 0,
-      },
-    });
-
-    const moved = await teeMove(identity, "session-12", 2, { type: "pick", cardId: 7 });
-
-    expect(moved.matched).toBe(true);
-    expect(moved.won).toBe(true);
-    expect(moved.slots).toEqual([]);
-    expect(moved.remove3Left).toBe(0);
+  it("contains no pre-kernel bind or signature settlement path", () => {
+    expect(main).not.toContain("bindPuzzle");
+    expect(main).not.toContain("settleVerified");
+    expect(main).not.toContain("bindSignature");
+    expect(main).not.toContain("settleSignature");
+    expect(main).not.toContain("/api/morpheus/game/");
   });
 
-  it("rejects duplicate or out-of-domain cards and empty session tokens", async () => {
-    response({
-      commitment: "a".repeat(64),
-      bind_signature: "b".repeat(128),
-      session_token: "",
-      view: {
-        cards: [
-          { id: 1, symbol: 0, layer: 0, exposed: true, picked: false },
-          { id: 1, symbol: 15, layer: 3, exposed: true, picked: false },
-        ],
-      },
-    });
+  it("parses authoritative board, tray, flags, and tool counts", () => {
+    const view = parseSheepSessionView({
+      cards: [{ id: 0, symbol: 2, layer: 0, col: 1, row: 2, exposed: true, picked: false }],
+      slots: [{ id: 8, symbol: 3, layer: 1, col: 2, row: 1, exposed: false, picked: true }],
+      matched: true,
+      won: false,
+      gameOver: false,
+      shuffleLeft: 0,
+      remove3Left: 1,
+    }, { requireResultFlags: true });
 
-    await expect(teeStart(identity)).rejects.toThrow(/malformed board card|empty session token/);
+    expect(view.cards[0]).toMatchObject({ id: 0, col: 1, row: 2 });
+    expect(view.slots[0]).toMatchObject({ id: 8, picked: true });
+    expect(view.matched).toBe(true);
+    expect(view.shuffleLeft).toBe(0);
   });
 
-  it("rejects malformed settlement fields instead of assuming a verified win", async () => {
-    response({
-      problem_hash: "a".repeat(64),
-      answer_hash: "b".repeat(64),
-      elapsed_ms: 60_000,
-      undos: 4,
-      settle_signature: "c".repeat(128),
-    });
+  it("rejects malformed or incomplete authoritative views", () => {
+    expect(() => parseSheepSessionView({
+      cards: [
+        { id: 1, symbol: 0, layer: 0, exposed: true, picked: false },
+        { id: 1, symbol: 15, layer: 3, exposed: true, picked: false },
+      ],
+      slots: [],
+      shuffleLeft: 1,
+      remove3Left: 1,
+    })).toThrow(/malformed board card/);
 
-    await expect(teeFinalize(identity, "session-12")).rejects.toThrow("malformed settlement");
-  });
+    expect(() => parseSheepSessionView({
+      cards: [],
+      slots: [],
+      shuffleLeft: 1,
+      remove3Left: 1,
+    }, { requireResultFlags: true })).toThrow(/result flags/);
 
-  it("rejects a move when authoritative tray, flags, or tool counts are omitted", async () => {
-    response({
-      ok: true,
-      view: {
-        cards: [],
-        matched: false,
-        won: false,
-        game_over: false,
-      },
-    });
-
-    await expect(teeMove(identity, "session-12", 0, { type: "undo" }))
-      .rejects.toThrow(/authoritative tray|invalid shuffle count/);
-  });
-
-  it("carries the sealed op log so finalize survives enclave cache eviction", async () => {
-    response({
-      problem_hash: "a".repeat(64),
-      answer_hash: "b".repeat(64),
-      elapsed_ms: 60_000,
-      undos: 1,
-      settle_signature: "c".repeat(128),
-    });
-    const replay = [
-      { type: "pick" as const, cardId: 0 },
-      { type: "undo" as const },
-    ];
-
-    await teeFinalize(identity, "session-12", replay);
-
-    const fetchMock = vi.mocked(fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(JSON.parse(String(request.body))).toMatchObject({
-      session_token: "session-12",
-      replay,
-    });
-  });
-
-  it("fails closed when the detected network is not explicit", () => {
-    expect(morpheusNetworkOf("neo-n3-testnet")).toBe("testnet");
-    expect(morpheusNetworkOf("Neo MainNet")).toBe("mainnet");
-    expect(() => morpheusNetworkOf("unknown")).toThrow("unable to prove");
+    expect(() => parseSheepSessionView({
+      cards: [],
+      shuffleLeft: 1,
+      remove3Left: 1,
+    })).toThrow(/tray cards/);
   });
 });

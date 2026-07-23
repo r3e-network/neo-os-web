@@ -1,0 +1,27 @@
+{
+  "generated_at_utc": "2026-07-23T01:33:25.431Z",
+  "repositories": {
+    "platform": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform",
+    "abstract_account": "/Users/jinghuiliao/git/r3e/neo-abstract-account"
+  },
+  "checks": {
+    "registry_abi_exact": true,
+    "aa_abi_exact": true,
+    "registry_least_privilege_calls": true,
+    "registry_binding_domain_separated": true,
+    "registry_automatic_onboarding": true,
+    "registry_core_disable_timelocked": true,
+    "aa_registrar_calling_contract_gate": true,
+    "aa_registrar_timelocked": true,
+    "aa_owner_control_preserved": true
+  },
+  "passed": true,
+  "live_boundary": {
+    "registered_apps": 77,
+    "shared_aa_materialized": 0,
+    "legacy_shim_materialized": 0,
+    "legacy_shim_estimated_system_fee_gas": "771.29012379",
+    "legacy_shim_estimated_network_fee_gas": "23.10000000",
+    "chain_writes_performed": false
+  }
+}

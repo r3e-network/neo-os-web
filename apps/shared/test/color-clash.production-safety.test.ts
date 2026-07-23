@@ -6,9 +6,10 @@ import { manifest } from "../../color-clash/src/manifest";
 
 const repoRoot = resolve(import.meta.dirname, "../../..");
 const read = (path: string): string => readFileSync(resolve(repoRoot, path), "utf8");
-const COLOR_CLASH_TESTNET_CONTRACT = "0xb2d0f46da6981e4613ce8476eadcc1ea26f9858f";
 const COLOR_CLASH_TESTNET_CHECKSUM = 2_935_733_434;
 const COLOR_CLASH_TESTNET_ORACLE = "0x4b882e94ed766807c4fd728768f972e13008ad52";
+const PLATFORM_REGISTRY_TESTNET = "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b";
+const PLATFORM_GAME_TESTNET = "0xc75b181b4561462903bb27d8d9e0b32b637bec12";
 
 describe("color-clash production safety", () => {
   it("keeps the complete local arcade open while every paid surface is closed", () => {
@@ -38,7 +39,11 @@ describe("color-clash production safety", () => {
       confidential: false,
       oracle: false,
     });
-    expect(neo.contracts?.["neo-n3-testnet"] ?? neo.engine).toBe(COLOR_CLASH_TESTNET_CONTRACT);
+    expect(neo.contracts).toBeUndefined();
+    expect(neo.moduleId).toBe("platform-game");
+    expect(neo.mode).toBe("shared");
+    expect(neo.registry).toBe(PLATFORM_REGISTRY_TESTNET);
+    expect(neo.engine).toBe(PLATFORM_GAME_TESTNET);
     expect(neo.operation_panel.operations).toEqual([]);
     expect(neo.permissions).toEqual([]);
     expect(neo.platform.transactions).toBe(false);

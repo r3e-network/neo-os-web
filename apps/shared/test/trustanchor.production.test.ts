@@ -84,6 +84,36 @@ function harness(options: HarnessOptions = {}) {
       ensureWallet: vi.fn(async () => WALLET),
       detectNetwork: vi.fn(async () => options.detectNetwork ?? "neo-n3-testnet"),
     },
+    platformAnchor: {
+      appMode: () => readRaw("getAppMode"),
+      appPaused: () => readRaw("isAppPaused"),
+      stats: () => readRaw("getAnchorStats"),
+      userStake: () => readRaw("getUserStake"),
+      pendingRewards: () => readRaw("getPendingRewards"),
+      credit: () => readRaw("getCredit"),
+      stakeNeo: (amount: unknown, user: unknown, invokeOptions?: { onTransactionSent?: (txid: string) => void }) =>
+        invoke("transfer", [
+          arg.hash160(user),
+          arg.hash160(CONTRACT),
+          arg.integer(amount),
+          arg.string(`stake:${APP_ID}`),
+        ], invokeOptions),
+      withdraw: (amount: unknown, user: unknown, invokeOptions?: { onTransactionSent?: (txid: string) => void }) =>
+        invoke("withdraw", [arg.string(APP_ID), arg.hash160(user), arg.integer(amount)], {
+          ...invokeOptions,
+          scriptHash: CONTRACT,
+        }),
+      claimRewards: (user: unknown, invokeOptions?: { onTransactionSent?: (txid: string) => void }) =>
+        invoke("claimRewards", [arg.string(APP_ID), arg.hash160(user)], {
+          ...invokeOptions,
+          scriptHash: CONTRACT,
+        }),
+      withdrawCredit: (asset: unknown, amount: unknown, user: unknown, invokeOptions?: { onTransactionSent?: (txid: string) => void }) =>
+        invoke("withdrawCredit", [arg.hash160(user), arg.string(asset), arg.integer(amount)], {
+          ...invokeOptions,
+          scriptHash: CONTRACT,
+        }),
+    },
     // Harness mirror of the framework surfaces the runtime adopted in the RFC
     // migration (wallet.onAccountChanged identity diff over chain.address +
     // errors.messageOf Error-message extraction). Assertions are unchanged —

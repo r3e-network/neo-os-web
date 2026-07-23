@@ -61,7 +61,7 @@ const rewardGameConfig = {
 // No undos slot in this game.
 const SOLVED_SLOTS = {
   gameId: 0, player: 1, difficulty: 2, elapsedMs: 3,
-  solvedPayout: 4, totalWon: 5,
+  solvedPayout: 5, totalWon: 6, undos: 7,
 };
 
 export type { LeaderEntry, SolveRow };

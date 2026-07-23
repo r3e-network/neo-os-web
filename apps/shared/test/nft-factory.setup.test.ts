@@ -5,10 +5,11 @@ import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 
 const FACTORY_HASH = "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49";
 const OWNER = "NMUD7q5tYaFtw4w4hXk3feupGSGnv9jcrQ";
-const OTHER_WALLET = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
+const OTHER_WALLET = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 
 const chainReads = vi.hoisted(() => ({
   fetchTemplateArtifactPresence: vi.fn(),
+  fetchFactoryArtifactDeploymentSupport: vi.fn(),
   estimateFactoryFeeGas: vi.fn(),
   readFactoryRecord: vi.fn(),
   fetchFactoryDeployments: vi.fn(),
@@ -123,6 +124,9 @@ beforeEach(() => {
   chainReads.fetchTemplateArtifactPresence.mockReset().mockResolvedValue(
     "present",
   );
+  chainReads.fetchFactoryArtifactDeploymentSupport
+    .mockReset()
+    .mockResolvedValue("supported");
   chainReads.estimateFactoryFeeGas.mockReset().mockResolvedValue("12.5");
   chainReads.readFactoryRecord.mockReset().mockResolvedValue(null);
   chainReads.fetchFactoryDeployments.mockReset().mockResolvedValue({
@@ -172,14 +176,14 @@ describe("NFT Factory app-owned setup", () => {
     }>(result, "currentPlan");
     expect(plan.execution).toMatchObject({
       available: false,
-      blockedReasonKey: "nftUniqueArtifactRequired",
+      blockedReasonKey: "nftDeploymentCertificationPending",
     });
     expect(readState(result, "feeEstimateGas")).toBe("");
 
     await registered.get("executePlan")?.();
     expect(chain.invoke).not.toHaveBeenCalled();
     expect(readState(result, "lastError")).toBe(
-      "nftUniqueArtifactRequired",
+      "nftDeploymentCertificationPending",
     );
     result.cleanup?.();
   });

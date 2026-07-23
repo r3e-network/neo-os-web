@@ -50,6 +50,9 @@ Miniapps should own product logic and presentation:
 - `ctx.framework.game.reward(...)` wraps `@framework/gamefi` with current app id,
   chain adapter, OneGate/platform-compatible storage, reward credit, settlement,
   and confidential op-log helpers.
+- `ctx.framework.registry` owns all 48 current non-control-plane
+  PlatformRegistry methods plus GAS-credit prepayment. It auto-threads the host
+  app id and excludes platform-admin governance, artifacts, fees, and updates.
 
 ## Migration Priority
 
@@ -59,7 +62,24 @@ Miniapps should own product logic and presentation:
    `app.chain.arg`.
 3. Oracle consoles: route request lifecycle through `app.operations` plus
    deterministic `app.oracle` envelopes.
-4. App-specific local persistence: move small state records to `app.db` or
+4. Social apps: use `app.platformSocial` after a deployed PlatformSocial
+   binding passes registration, ABI, recovery, and live lifecycle gates. Timestamp
+   Proof is source-ready for Notary but intentionally retains its legacy anchor
+   while the shared contract has no deployment record. GAS/NEO prepayments are
+   routed by exact `appId:credit` memos into `(appId,payer)` balances; the
+   framework owns that native-transfer encoding and pause-immune recovery exits.
+5. Anchor apps: use `app.platformAnchor`; the Trust/Profit user runtime is the
+   reference migration, while admin consoles keep explicit cross-tenant calls.
+6. DeFi apps: adopt `app.platformDeFi` only through a named ABI/money-path
+   migration; current standalone SelfLoan, FlashLoan, and TimeCapsule flows
+   are not drop-in compatible with the shared engine.
+7. Factory apps: route deployment writes through `app.platformFactory`; keep
+   direct RPC only for read-only manifest/signers probes the wallet bridge
+   cannot represent.
+8. Registry-aware apps: use `app.registry` only after the deployed Registry
+   exactly matches the local ABI and reciprocal AA configuration is complete;
+   the current testnet artifact remains a zero-binding compatibility gate.
+9. App-specific local persistence: move small state records to `app.db` or
    namespaced `app.storage.hybrid`.
-5. UI feedback: bind operation observables instead of per-app bespoke loading,
+10. UI feedback: bind operation observables instead of per-app bespoke loading,
    error, and last-tx fields where it simplifies the screen.

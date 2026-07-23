@@ -35,6 +35,8 @@
 //	CONFIRM_PLATFORM_REGISTRY_DEPLOY       I_UNDERSTAND_THIS_WRITES_CHAIN
 //	PLATFORM_REGISTRY_DEPLOY_NETWORK       testnet (default) | mainnet
 //	NEO_TESTNET_WIF / FLAGSHIP_TESTNET_WIF signer WIF (mainnet: NEO_MAINNET_WIF / FLAGSHIP_MAINNET_WIF)
+//	PLATFORM_REGISTRY_VERIFY_SIGNER        public signer address/hash for verify when no WIF is configured
+//	PLATFORM_REGISTRY_DRY_RUN_SIGNER       public signer address/hash for dry-run simulation when no WIF is configured
 //	NEO_TESTNET_RPC_URL / NEO_RPC_URL      RPC endpoint (default https://testnet1.neo.coz.io:443)
 //	PLATFORM_REGISTRY_MIN_GAS              signer GAS floor (default 15 deploy / 1 execute-timelocks)
 //	PLATFORM_GAME_TESTNET_HASH             engine hash override (mainnet: PLATFORM_GAME_MAINNET_HASH)
@@ -71,9 +73,11 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/core/state"
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
+	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
 	"github.com/nspcc-dev/neo-go/pkg/neorpc/result"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient/actor"
+	"github.com/nspcc-dev/neo-go/pkg/rpcclient/invoker"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient/management"
 	"github.com/nspcc-dev/neo-go/pkg/smartcontract/manifest"
 	"github.com/nspcc-dev/neo-go/pkg/smartcontract/nef"
@@ -132,6 +136,10 @@ const (
 )
 
 var prAppIDPattern = regexp.MustCompile(`^[a-z0-9\-_.]{1,64}$`)
+
+type prCaller interface {
+	Call(util.Uint160, string, ...any) (*result.Invoke, error)
+}
 
 type prReport struct {
 	Action           string                 `json:"action"`
@@ -219,9 +227,6 @@ func prRun() error {
 	if err != nil {
 		return err
 	}
-	if wif == "" {
-		return fmt.Errorf("%s signer WIF is not configured (set NEO_%s_WIF)", network, strings.ToUpper(network))
-	}
 
 	ctx := context.Background()
 	client, err := rpcclient.New(ctx, rpcURL, rpcclient.Options{DialTimeout: 20 * time.Second, RequestTimeout: 20 * time.Second})
@@ -237,18 +242,64 @@ func prRun() error {
 		return fmt.Errorf("RPC network magic mismatch: got %d, expected %d for %s", actualMagic, expectedMagic, network)
 	}
 
-	priv, err := keys.NewPrivateKeyFromWIF(wif)
-	if err != nil {
-		return fmt.Errorf("invalid %s signer WIF", network)
-	}
-	acc := wallet.NewAccountFromPrivateKey(priv)
-	signerHash := priv.GetScriptHash()
-	act, err := actor.New(client, []actor.SignerAccount{{
-		Signer:  transaction.Signer{Account: acc.Contract.ScriptHash(), Scopes: transaction.Global},
-		Account: acc,
-	}})
-	if err != nil {
-		return fmt.Errorf("create actor: %w", err)
+	var (
+		act           *actor.Actor
+		caller        prCaller
+		signerHash    util.Uint160
+		signerAddress string
+		signerInput   string
+	)
+	if wif != "" {
+		priv, err := keys.NewPrivateKeyFromWIF(wif)
+		if err != nil {
+			return fmt.Errorf("invalid %s signer WIF", network)
+		}
+		acc := wallet.NewAccountFromPrivateKey(priv)
+		signerHash = priv.GetScriptHash()
+		signerAddress = acc.Address
+		signerInput = "private-key"
+		act, err = actor.New(client, []actor.SignerAccount{{
+			Signer:  transaction.Signer{Account: acc.Contract.ScriptHash(), Scopes: transaction.Global},
+			Account: acc,
+		}})
+		if err != nil {
+			return fmt.Errorf("create actor: %w", err)
+		}
+		caller = act
+	} else if action == "verify" {
+		signerHash, err = prParseSignerIdentity(os.Getenv("PLATFORM_REGISTRY_VERIFY_SIGNER"))
+		if err != nil {
+			return err
+		}
+		signerAddress = address.Uint160ToString(signerHash)
+		signerInput = "public-identity"
+		caller = invoker.New(client, nil)
+	} else if dryRun {
+		signerHash, err = prParseSignerIdentity(prFirstNonEmpty(
+			os.Getenv("PLATFORM_REGISTRY_DRY_RUN_SIGNER"),
+			os.Getenv("PLATFORM_REGISTRY_VERIFY_SIGNER"),
+		))
+		if err != nil {
+			return fmt.Errorf("dry-run signer: %w", err)
+		}
+		signerAddress = address.Uint160ToString(signerHash)
+		signerInput = "public-identity"
+		watchOnly := &wallet.Account{
+			Address: signerAddress,
+			Contract: &wallet.Contract{
+				Deployed: true,
+			},
+		}
+		act, err = actor.New(client, []actor.SignerAccount{{
+			Signer:  transaction.Signer{Account: signerHash, Scopes: transaction.Global},
+			Account: watchOnly,
+		}})
+		if err != nil {
+			return fmt.Errorf("create watch-only dry-run actor: %w", err)
+		}
+		caller = act
+	} else {
+		return fmt.Errorf("%s signer WIF is not configured (set NEO_%s_WIF)", network, strings.ToUpper(network))
 	}
 
 	neoBalance, gasBalance, err := prSignerBalances(client, signerHash)
@@ -256,11 +307,13 @@ func prRun() error {
 		return fmt.Errorf("read signer balances: %w", err)
 	}
 	mode := "write"
-	if dryRun {
+	if action == "verify" {
+		mode = "read-only"
+	} else if dryRun {
 		mode = "dry-run"
 	}
 	fmt.Printf("Action: %s\n", action)
-	fmt.Printf("Signer: %s\n", acc.Address)
+	fmt.Printf("Signer: %s\n", signerAddress)
 	fmt.Printf("Network: %s (magic %d)\n", networkID, actualMagic)
 	fmt.Printf("Mode: %s\n", mode)
 	fmt.Printf("Balances: %d NEO, %s GAS\n\n", neoBalance, prFormatGas(gasBalance))
@@ -270,7 +323,7 @@ func prRun() error {
 		message := fmt.Sprintf("insufficient GAS: signer %s holds %s GAS, action %q requires at least %.8g GAS "+
 			"(deploy system fee + propose txs + smoke-test credit; tune with PLATFORM_REGISTRY_MIN_GAS). "+
 			"To continue, %s.",
-			acc.Address, prFormatGas(gasBalance), action, minGas, prTestnetFaucetInstruction)
+			signerAddress, prFormatGas(gasBalance), action, minGas, prTestnetFaucetInstruction)
 		if !dryRun {
 			return fmt.Errorf("%s", message)
 		}
@@ -282,7 +335,7 @@ func prRun() error {
 		Network:          networkID,
 		RPCURL:           rpcURL,
 		NetworkMagic:     actualMagic,
-		Signer:           acc.Address,
+		Signer:           signerAddress,
 		SignerHash:       "0x" + signerHash.StringLE(),
 		DryRun:           dryRun,
 		Balances:         map[string]string{"neo": strconv.FormatInt(neoBalance, 10), "gas": prFormatGas(gasBalance)},
@@ -292,6 +345,7 @@ func prRun() error {
 		NextSteps:        []string{},
 		GeneratedAtUTC:   time.Now().UTC().Format(time.RFC3339),
 	}
+	report.Validation["signer_input"] = signerInput
 
 	var registryHash util.Uint160
 	switch action {
@@ -315,7 +369,7 @@ func prRun() error {
 	case "verify":
 		registryHash, err = prResolveRegistryHash(client, network, signerHash)
 		if err == nil {
-			err = prActionVerify(act, registryHash, signerHash, &report)
+			err = prActionVerify(caller, registryHash, signerHash, &report)
 		}
 	}
 	if err != nil {
@@ -891,8 +945,8 @@ func prExecuteEngineTimelock(ctx context.Context, client *rpcclient.Client, act 
 // Action: verify
 // ---------------------------------------------------------------------
 
-func prActionVerify(act *actor.Actor, registry util.Uint160, signerHash util.Uint160, report *prReport) error {
-	admin, err := prCallUint160(act, registry, "admin")
+func prActionVerify(caller prCaller, registry util.Uint160, signerHash util.Uint160, report *prReport) error {
+	admin, err := prCallUint160(caller, registry, "admin")
 	if err != nil {
 		return fmt.Errorf("read admin: %w", err)
 	}
@@ -900,14 +954,14 @@ func prActionVerify(act *actor.Actor, registry util.Uint160, signerHash util.Uin
 	report.Validation["admin_matches_signer"] = admin == signerHash
 	fmt.Printf("admin: 0x%s (signer match: %t)\n", admin.StringLE(), admin == signerHash)
 
-	version, err := prCallInteger(act, registry, "artifactVersion")
+	version, err := prCallInteger(caller, registry, "artifactVersion")
 	if err != nil {
 		return fmt.Errorf("read artifactVersion: %w", err)
 	}
 	report.Validation["artifact_version"] = version.String()
 	fmt.Printf("artifact version: %s\n", version.String())
 	if version.Sign() > 0 {
-		checksum, err := prCallInteger(act, registry, "artifactChecksum")
+		checksum, err := prCallInteger(caller, registry, "artifactChecksum")
 		if err != nil {
 			return fmt.Errorf("read artifactChecksum: %w", err)
 		}
@@ -918,7 +972,7 @@ func prActionVerify(act *actor.Actor, registry util.Uint160, signerHash util.Uin
 		}
 	}
 
-	if inv, err := act.Call(registry, "getEngine", prFirstNonEmpty(os.Getenv("PLATFORM_REGISTRY_ENGINE_ID"), prDefaultEngineID)); err == nil && inv.State == "HALT" {
+	if inv, err := caller.Call(registry, "getEngine", prFirstNonEmpty(os.Getenv("PLATFORM_REGISTRY_ENGINE_ID"), prDefaultEngineID)); err == nil && inv.State == "HALT" {
 		row := prStackValues(inv)
 		report.Validation["engine_row"] = row
 		fmt.Printf("engine row: %v\n", row)
@@ -927,19 +981,19 @@ func prActionVerify(act *actor.Actor, registry util.Uint160, signerHash util.Uin
 		fmt.Println("engine row: not registered")
 	}
 
-	pause, err := prCallHALT(act, registry, "getGlobalPause")
+	pause, err := prCallHALT(caller, registry, "getGlobalPause")
 	if err != nil {
 		return fmt.Errorf("read getGlobalPause: %w", err)
 	}
 	report.Validation["global_pause"] = prStackValues(pause)
 	fmt.Printf("global pause: %v\n", prStackValues(pause))
 
-	fees, err := prCallInteger(act, registry, "accruedFees")
+	fees, err := prCallInteger(caller, registry, "accruedFees")
 	if err != nil {
 		return fmt.Errorf("read accruedFees: %w", err)
 	}
 	report.Validation["accrued_fees_gas"] = prFormatBigGas(fees)
-	liability, err := prCallInteger(act, registry, "totalCreditLiability")
+	liability, err := prCallInteger(caller, registry, "totalCreditLiability")
 	if err != nil {
 		return fmt.Errorf("read totalCreditLiability: %w", err)
 	}
@@ -947,7 +1001,7 @@ func prActionVerify(act *actor.Actor, registry util.Uint160, signerHash util.Uin
 	fmt.Printf("accrued fees: %s GAS, total credit liability: %s GAS\n", prFormatBigGas(fees), prFormatBigGas(liability))
 
 	if appID := strings.TrimSpace(os.Getenv("PLATFORM_REGISTRY_SMOKE_APP_ID")); appID != "" {
-		if row, err := prCallAppRow(act, registry, appID); err == nil {
+		if row, err := prCallAppRow(caller, registry, appID); err == nil {
 			report.Validation["smoke_app_row"] = row
 			fmt.Printf("app %q: %v\n", appID, row)
 		} else {
@@ -1065,6 +1119,15 @@ type prFullLoopStep struct {
 	Note   string `json:"note,omitempty"`
 }
 
+func prFullLoopStepHasStatus(record *prFullLoopRecord, name string, status string) bool {
+	for i := len(record.Steps) - 1; i >= 0; i-- {
+		if record.Steps[i].Name == name {
+			return record.Steps[i].Status == status
+		}
+	}
+	return false
+}
+
 func prActionFullLoop(ctx context.Context, client *rpcclient.Client, act *actor.Actor, network string, registry util.Uint160, signerHash util.Uint160, dryRun bool, report *prReport) error {
 	record := &prFullLoopRecord{Steps: []prFullLoopStep{}}
 	report.FullLoop = record
@@ -1122,10 +1185,14 @@ func prActionFullLoop(ctx context.Context, client *rpcclient.Client, act *actor.
 	} else if err := prFullLoopRegister(ctx, client, act, registry, engineID, engineHash, signerHash, dryRun, report, record); err != nil {
 		return err
 	}
+	registrationSimulated := dryRun && prFullLoopStepHasStatus(record, "register-on-engine", "simulated")
+	dependentDryRunNote := "planned after simulated engine registration; independent RPC dry-runs do not persist state"
 
 	// (e) Descriptor lane through the registry into the engine.
 	if record.FullLoopAppID == "" {
 		record.Steps = append(record.Steps, prFullLoopStep{Name: "descriptor", Status: "skipped", Note: "no engine-backed app available"})
+	} else if registrationSimulated {
+		record.Steps = append(record.Steps, prFullLoopStep{Name: "descriptor", Status: "skipped", Note: dependentDryRunNote})
 	} else if err := prFullLoopDescriptor(ctx, client, act, registry, engineID, record.FullLoopAppID, dryRun, report, record); err != nil {
 		return err
 	}
@@ -1133,6 +1200,8 @@ func prActionFullLoop(ctx context.Context, client *rpcclient.Client, act *actor.
 	// (f) Fund the app's RewardGame pool on the engine.
 	if record.FullLoopAppID == "" {
 		record.Steps = append(record.Steps, prFullLoopStep{Name: "fund-pool", Status: "skipped", Note: "no engine-backed app available"})
+	} else if registrationSimulated {
+		record.Steps = append(record.Steps, prFullLoopStep{Name: "fund-pool", Status: "skipped", Note: dependentDryRunNote})
 	} else if err := prFullLoopFund(ctx, client, act, engineHash, record.FullLoopAppID, signerHash, dryRun, report, record); err != nil {
 		return err
 	}
@@ -1204,37 +1273,46 @@ func prFullLoopMint(ctx context.Context, client *rpcclient.Client, act *actor.Ac
 		return nil
 	}
 
-	target, err := prGasFractionsEnv("PLATFORM_REGISTRY_FULLLOOP_MINT_CREDIT_GAS", prFullLoopMintCreditGas)
+	admin, err := prCallUint160(act, registry, "admin")
 	if err != nil {
-		return err
+		return fmt.Errorf("read registry admin: %w", err)
 	}
-	credit, err := prCallInteger(act, registry, "creditOf", appID, signerHash)
-	if err != nil {
-		return fmt.Errorf("read creditOf(%s): %w", appID, err)
-	}
-	gasHash, err := prParseHash(prGasHashLE)
-	if err != nil {
-		return err
-	}
-	deficit := new(big.Int).Sub(big.NewInt(target), credit)
-	if deficit.Sign() > 0 {
-		memo := appID + ":credit"
-		if err := prDepositCredit(ctx, client, act, gasHash, registry, signerHash, deficit.Int64(), memo, dryRun, report, "Mint credit top-up ("+memo+")"); err != nil {
+	platformAdmin := admin == signerHash
+	if platformAdmin {
+		record.Steps = append(record.Steps, prFullLoopStep{Name: "mint-credit", Status: "skipped", Note: "platform-admin mint lane is exempt from the 10 GAS registry fee"})
+	} else {
+		target, err := prGasFractionsEnv("PLATFORM_REGISTRY_FULLLOOP_MINT_CREDIT_GAS", prFullLoopMintCreditGas)
+		if err != nil {
 			return err
 		}
-		record.Steps = append(record.Steps, prFullLoopStep{Name: "mint-credit", Status: prStepStatus(dryRun), Note: fmt.Sprintf("topped up %s GAS to the %s GAS floor (memo %q)", prFormatBigGas(deficit), prFormatGas(target), memo)})
-		if !dryRun {
-			record.MintCreditTxID = report.Transactions[len(report.Transactions)-1].TxID
-			credit, err = prCallInteger(act, registry, "creditOf", appID, signerHash)
-			if err != nil {
-				return fmt.Errorf("read creditOf(%s) after top-up: %w", appID, err)
-			}
-			if credit.Cmp(big.NewInt(target)) < 0 {
-				return fmt.Errorf("credit %s below the %s GAS mint floor after top-up", prFormatBigGas(credit), prFormatGas(target))
-			}
+		credit, err := prCallInteger(act, registry, "creditOf", appID, signerHash)
+		if err != nil {
+			return fmt.Errorf("read creditOf(%s): %w", appID, err)
 		}
-	} else {
-		record.Steps = append(record.Steps, prFullLoopStep{Name: "mint-credit", Status: "skipped", Note: "credit floor already met"})
+		gasHash, err := prParseHash(prGasHashLE)
+		if err != nil {
+			return err
+		}
+		deficit := new(big.Int).Sub(big.NewInt(target), credit)
+		if deficit.Sign() > 0 {
+			memo := appID + ":credit"
+			if err := prDepositCredit(ctx, client, act, gasHash, registry, signerHash, deficit.Int64(), memo, dryRun, report, "Mint credit top-up ("+memo+")"); err != nil {
+				return err
+			}
+			record.Steps = append(record.Steps, prFullLoopStep{Name: "mint-credit", Status: prStepStatus(dryRun), Note: fmt.Sprintf("topped up %s GAS to the %s GAS floor (memo %q)", prFormatBigGas(deficit), prFormatGas(target), memo)})
+			if !dryRun {
+				record.MintCreditTxID = report.Transactions[len(report.Transactions)-1].TxID
+				credit, err = prCallInteger(act, registry, "creditOf", appID, signerHash)
+				if err != nil {
+					return fmt.Errorf("read creditOf(%s) after top-up: %w", appID, err)
+				}
+				if credit.Cmp(big.NewInt(target)) < 0 {
+					return fmt.Errorf("credit %s below the %s GAS mint floor after top-up", prFormatBigGas(credit), prFormatGas(target))
+				}
+			}
+		} else {
+			record.Steps = append(record.Steps, prFullLoopStep{Name: "mint-credit", Status: "skipped", Note: "credit floor already met"})
+		}
 	}
 
 	feesBefore, err := prCallInteger(act, registry, "accruedFees")
@@ -1836,8 +1914,8 @@ func prWaitForTx(ctx context.Context, client *rpcclient.Client, txid util.Uint25
 	}
 }
 
-func prCallHALT(act *actor.Actor, contract util.Uint160, method string, params ...any) (*result.Invoke, error) {
-	inv, err := act.Call(contract, method, params...)
+func prCallHALT(caller prCaller, contract util.Uint160, method string, params ...any) (*result.Invoke, error) {
+	inv, err := caller.Call(contract, method, params...)
 	if err != nil {
 		return nil, fmt.Errorf("%s call: %w", method, err)
 	}
@@ -1847,8 +1925,8 @@ func prCallHALT(act *actor.Actor, contract util.Uint160, method string, params .
 	return inv, nil
 }
 
-func prCallInteger(act *actor.Actor, contract util.Uint160, method string, params ...any) (*big.Int, error) {
-	inv, err := prCallHALT(act, contract, method, params...)
+func prCallInteger(caller prCaller, contract util.Uint160, method string, params ...any) (*big.Int, error) {
+	inv, err := prCallHALT(caller, contract, method, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -1858,8 +1936,8 @@ func prCallInteger(act *actor.Actor, contract util.Uint160, method string, param
 	return inv.Stack[0].TryInteger()
 }
 
-func prCallUint160(act *actor.Actor, contract util.Uint160, method string, params ...any) (util.Uint160, error) {
-	inv, err := prCallHALT(act, contract, method, params...)
+func prCallUint160(caller prCaller, contract util.Uint160, method string, params ...any) (util.Uint160, error) {
+	inv, err := prCallHALT(caller, contract, method, params...)
 	if err != nil {
 		return util.Uint160{}, err
 	}
@@ -1875,8 +1953,8 @@ func prCallUint160(act *actor.Actor, contract util.Uint160, method string, param
 
 // prCallAppRow decodes getApp: [engineId, engineHash, appAdmin, accountHash,
 // materialized, active].
-func prCallAppRow(act *actor.Actor, contract util.Uint160, appID string) ([]interface{}, error) {
-	inv, err := prCallHALT(act, contract, "getApp", appID)
+func prCallAppRow(caller prCaller, contract util.Uint160, appID string) ([]interface{}, error) {
+	inv, err := prCallHALT(caller, contract, "getApp", appID)
 	if err != nil {
 		return nil, err
 	}
@@ -1998,6 +2076,25 @@ func prLoadManifest(path string) (*manifest.Manifest, error) {
 func prParseHash(raw string) (util.Uint160, error) {
 	trimmed := strings.TrimPrefix(strings.TrimSpace(raw), "0x")
 	return util.Uint160DecodeStringLE(trimmed)
+}
+
+func prParseSignerIdentity(raw string) (util.Uint160, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return util.Uint160{}, fmt.Errorf("public signer identity is required as a Neo address or script hash")
+	}
+	if strings.HasPrefix(trimmed, "0x") || len(trimmed) == 40 {
+		hash, err := prParseHash(trimmed)
+		if err != nil {
+			return util.Uint160{}, fmt.Errorf("invalid PLATFORM_REGISTRY_VERIFY_SIGNER script hash")
+		}
+		return hash, nil
+	}
+	hash, err := address.StringToUint160(trimmed)
+	if err != nil {
+		return util.Uint160{}, fmt.Errorf("invalid PLATFORM_REGISTRY_VERIFY_SIGNER Neo address")
+	}
+	return hash, nil
 }
 
 func prMinGasThreshold(action string) float64 {

@@ -37,6 +37,32 @@ describe("live pile support dynamics", () => {
     expect(upper.position.y).toBeLessThan(beforeY - 0.2);
   });
 
+  it("keeps distant settled clusters asleep when an unrelated support is removed", () => {
+    const world = new World({ gravity: new Vec3(0, -10, 0) });
+    const support = new Body({ mass: 1, shape: new Box(new Vec3(0.5, 0.5, 0.5)) });
+    support.position.set(0, 0.5, 0);
+    const nearby = new Body({ mass: 1, shape: new Box(new Vec3(0.35, 0.35, 0.35)) });
+    nearby.position.set(0.2, 1.35, 0.1);
+    const distant = new Body({ mass: 1, shape: new Box(new Vec3(0.35, 0.35, 0.35)) });
+    distant.position.set(4.5, 1.35, 4.5);
+    world.addBody(support);
+    world.addBody(nearby);
+    world.addBody(distant);
+    nearby.sleep();
+    distant.sleep();
+    world.removeBody(support);
+
+    const profile = physicsProfileOf("fresh-market", 0);
+    const result = resettlePileAfterSupportRemoval([
+      { body: nearby, profile, seed: 3 },
+      { body: distant, profile, seed: 4 },
+    ], support);
+
+    expect(result.woken).toBe(1);
+    expect(nearby.sleepState).toBe(Body.AWAKE);
+    expect(distant.sleepState).toBe(Body.SLEEPING);
+  });
+
   it("starts elongated colliders side-on and tips only implausibly upright ones", () => {
     const tall = physicsProfileOf("night-market", 2);
     const round = physicsProfileOf("fresh-market", 0);

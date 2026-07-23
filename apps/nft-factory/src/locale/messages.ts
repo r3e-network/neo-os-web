@@ -168,13 +168,13 @@ const appMessages = {
   // an engineering status note wearing a failure label. The requirement detail
   // stays in `stepDeployUniqueArtifactRequired` below, which only surfaces in
   // the release-readiness drawer.
-  nftUniqueArtifactRequired: {
+  nftDeploymentCertificationPending: {
     en: "Contract creation is not part of this release. Design, verify, lock, and sign the collection package here — the signed package is the deliverable.",
     zh: "合约创建不在当前版本范围内。你可以在这里设计、校验、锁定并签名藏品发行包——签名后的发行包即为交付物。",
   },
   stepDeployUniqueArtifactRequired: {
-    en: "Out of scope for this release: contract creation needs an upgraded Factory ABI, a creator-unique NEF/manifest bound to this package, then transaction persistence, event confirmation, and deployment-record readback.",
-    zh: "不在当前版本范围内：合约创建需要升级 Factory ABI、构建与本发行包绑定的创作者独立 NEF/manifest，再补齐交易持久化、事件确认与部署记录回读。",
+    en: "Out of scope for this release: the creator-unique NEF/manifest is already bound, but contract creation still needs the upgraded live Factory ABI, transaction persistence, event confirmation, and deployment-record readback.",
+    zh: "不在当前版本范围内：创作者独立 NEF/manifest 已与发行包绑定，但合约创建仍需升级链上 Factory ABI，并补齐交易持久化、事件确认与部署记录回读。",
   },
   artifactStatusMetadataOnly: {
     en: "Template read · no NEP-11 artifact",
@@ -198,8 +198,8 @@ const appMessages = {
   },
   docSafetyModel: { en: "Verification model", zh: "核验模型" },
   docSafetyModelBody: {
-    en: "The package uses a deterministic SHA-256 commitment and only the matching owner wallet can sign it. The signed message also binds the exact testnet, Factory contract, template and canonical payload shown in the export, and a completed commitment is not signed twice. Token #1 is checked for current availability and basic NFT JSON shape; that read does not upload, pin, or make remote metadata immutable. Deployment stays locked until the Factory ABI and creator-artifact pipeline exist with durable transaction recovery, exact event confirmation and deployment-record readback.",
-    zh: "发行包使用确定性的 SHA-256 承诺，并只允许匹配的 Owner 钱包签名。签名消息还会绑定导出中展示的精确测试网、Factory 合约、模板与规范化载荷，已完成的承诺不会重复签名。Token #1 只核验当前可用性与基础 NFT JSON 结构；该读取不会上传、固定或使远程元数据不可变。只有 Factory ABI 与创作者工件流程齐备，并支持交易持久恢复、精确事件确认与部署记录回读后，才会开放部署。",
+    en: "The package uses a deterministic SHA-256 commitment and only the matching owner wallet can sign it. The signed message binds the exact testnet, Factory contract, template, creator-specific NEF, manifest, artifact digest, and canonical payload shown in the export. Token #1 is checked for current availability and basic NFT JSON shape; that read does not upload, pin, or make remote metadata immutable. Deployment stays locked until the exact live Factory ABI, governed artifacts, durable transaction recovery, event confirmation, and deployment-record readback are certified.",
+    zh: "发行包使用确定性的 SHA-256 承诺，并只允许匹配的 Owner 钱包签名。签名消息会绑定导出中展示的精确测试网、Factory 合约、模板、创作者专属 NEF、manifest、工件摘要与规范化载荷。Token #1 只核验当前可用性与基础 NFT JSON 结构；该读取不会上传、固定或使远程元数据不可变。只有精确链上 Factory ABI、受治理工件、交易持久恢复、事件确认与部署记录回读完成认证后，才会开放部署。",
   },
   walletNetworkUnknown: {
     en: "The wallet network could not be detected. Keep Neo N3 testnet selected and try again.",

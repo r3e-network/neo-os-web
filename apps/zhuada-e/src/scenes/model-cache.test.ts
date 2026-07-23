@@ -1,8 +1,12 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import * as THREE from "three";
 import { GAME_THEMES, themeItem } from "../logic/themes";
 import { buildThemeModelMesh } from "./models";
 import { disposeObject } from "./scene-resources";
+
+const sceneSource = readFileSync(fileURLToPath(new URL("./ZhuaDaScene.ts", import.meta.url)), "utf8");
 
 function meshesOf(root: THREE.Object3D): THREE.Mesh[] {
   const meshes: THREE.Mesh[] = [];
@@ -30,6 +34,13 @@ function materialSignature(material: THREE.Material): string {
 }
 
 describe("production model geometry cache", () => {
+  it("lights physical finishes with a disposable PMREM room environment", () => {
+    expect(sceneSource).toContain("RoomEnvironment");
+    expect(sceneSource).toContain("pmrem.fromScene(room, 0.035)");
+    expect(sceneSource).toContain("this.scene.environment = this.environmentTarget.texture");
+    expect(sceneSource).toContain("this.environmentTarget?.dispose()");
+  });
+
   it("shares immutable geometry but keeps every instance material isolated", () => {
     const item = themeItem("fresh-market", 0);
     const first = buildThemeModelMesh("fresh-market", 0, item.color);

@@ -4,11 +4,12 @@ import { createMiniAppFramework } from "../../../framework";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 
 const FACTORY_HASH = "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49";
-const OWNER = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
-const OTHER_WALLET = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const OTHER_WALLET = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
 
 const chainReads = vi.hoisted(() => ({
   fetchTemplateArtifactPresence: vi.fn(),
+  fetchFactoryArtifactDeploymentSupport: vi.fn(),
   estimateFactoryFeeGas: vi.fn(),
   inspectFactoryRecord: vi.fn(),
   readFactoryRecord: vi.fn(),
@@ -102,6 +103,9 @@ beforeEach(() => {
   chainReads.fetchTemplateArtifactPresence
     .mockReset()
     .mockResolvedValue("present");
+  chainReads.fetchFactoryArtifactDeploymentSupport
+    .mockReset()
+    .mockResolvedValue("supported");
   chainReads.estimateFactoryFeeGas.mockReset().mockResolvedValue("12.5");
   chainReads.inspectFactoryRecord.mockReset().mockResolvedValue({
     status: "not-found",

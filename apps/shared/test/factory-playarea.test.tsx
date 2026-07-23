@@ -245,6 +245,7 @@ describe("FactoryPlayArea", () => {
     const plan = buildFactoryPlan("nep17", NEP17_INPUT, {
       appId: "miniapp-asset-factory",
       artifactPresence: "missing",
+      artifactDeploymentSupport: "supported",
     });
     expect(plan.publishable).toBe(true);
     const state = buildState({ currentPlan: plan });
@@ -260,38 +261,32 @@ describe("FactoryPlayArea", () => {
     expect(screen.getAllByText("Metadata only").length).toBeGreaterThan(0);
   });
 
-  it("enables execute for artifact-backed plans and shows the GAS fee estimate row", async () => {
+  it("keeps execute blocked when only a legacy template artifact is present", async () => {
     const { FactoryPlayArea, buildFactoryPlan } = await loadFactoryModules();
     const plan = buildFactoryPlan("nep17", NEP17_INPUT, {
       appId: "miniapp-asset-factory",
       artifactPresence: "present",
+      artifactDeploymentSupport: "missing",
     });
-    const state = buildState({ currentPlan: plan, feeEstimateGas: "10.1235" });
+    const state = buildState({ currentPlan: plan });
     const dispatch = renderPlayArea(FactoryPlayArea as never, "nep17", state);
 
     const execute = screen.getByRole("button", {
       name: "Deploy via factory",
     }) as HTMLButtonElement;
-    expect(execute.disabled).toBe(false);
+    expect(execute.disabled).toBe(true);
     expect(document.querySelector(".domain-factory")?.className).toContain(
       "domain-factory--stage-ready",
     );
-    const activeStudioSteps = Array.from(
-      document.querySelectorAll(".domain-factory-studio-flow__step--active"),
-    ).map((step) => step.textContent ?? "");
     expect(
-      activeStudioSteps.some((text) => text.includes("Deploy via factory")),
-    ).toBe(true);
-    expect(screen.getAllByText("Estimated network fee").length).toBeGreaterThan(
-      0,
-    );
-    expect(screen.getAllByText("≈ 10.1235 GAS").length).toBeGreaterThan(0);
+      screen.getByText(/does not expose the exact six-argument artifact deployment ABI/),
+    ).toBeTruthy();
     expect(screen.getAllByText("Preloaded on-chain").length).toBeGreaterThan(0);
 
     act(() => {
       execute.click();
     });
-    expect(dispatch).toHaveBeenCalledWith("executePlan");
+    expect(dispatch).not.toHaveBeenCalledWith("executePlan");
   });
 
   it("lists on-chain creations with mine-tagging, record-only labels, and deployed hashes", async () => {
@@ -490,7 +485,7 @@ describe("FactoryPlayArea", () => {
     };
     expect(parsed.walletSignature).toEqual(signatureInfo);
     expect(parsed.execution).toMatchObject({
-      available: true,
+      available: false,
       outcome: "contract-deployment",
     });
     expect(screen.getByRole("button", { name: "Copy signature" })).toBeTruthy();

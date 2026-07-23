@@ -375,32 +375,51 @@ test.describe("MiniApp Detail", () => {
     });
 
     await page.goto("/miniapps/miniapp-neo-pay-shared-example?network=testnet");
-    const actionPanel = page.getByTestId("miniapp-actions");
-    await expect(actionPanel.getByText(/Target: Neo N3 Testnet/i)).toBeVisible();
+    const isMobile = (page.viewportSize()?.width ?? 1280) < 1280;
 
-    await expect(
-      actionPanel.getByRole("heading", { name: "Shared Runtime", exact: true }),
-    ).toBeVisible();
-    await expect(
-      actionPanel.getByText("recipe.payment_streams.v1@1.0.0"),
-    ).toBeVisible();
-    await expect(
-      actionPanel.getByText("module.stream_vesting@1.0.0"),
-    ).toBeVisible();
+    await page.getByRole("button", { name: /log in \/ sign up/i }).click();
+    await page.getByRole("button", { name: "NeoLine" }).click();
+    await expect(page.getByText(/123.45 GAS/i)).toBeVisible();
+
+    const actionPanel = isMobile
+      ? page.getByTestId("mobile-action-sheet")
+      : page.getByTestId("miniapp-actions");
+    if (isMobile) {
+      await page.getByTestId("mobile-action-open").click();
+      await expect(actionPanel).toBeVisible();
+      await expect(
+        actionPanel.getByTestId("mobile-primary-action-guide"),
+      ).toBeVisible();
+    } else {
+      await expect(
+        actionPanel.getByText(/Target: Neo N3 Testnet/i),
+      ).toBeVisible();
+      await expect(
+        actionPanel.getByRole("heading", {
+          name: "Shared Runtime",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        actionPanel.getByText("recipe.payment_streams.v1@1.0.0"),
+      ).toBeVisible();
+      await expect(
+        actionPanel.getByText("module.stream_vesting@1.0.0"),
+      ).toBeVisible();
+    }
 
     // The host-side operation form is an advanced fallback and lives behind
     // the collapsed "Host transaction console" disclosure; expand it before
     // filling the shared-runtime fields. `:scope > summary` targets the
     // console's own header (the panel inside has nested disclosures).
     await actionPanel
-      .getByTestId("advanced-operation-console")
+      .getByTestId(
+        isMobile
+          ? "mobile-advanced-operation-console"
+          : "advanced-operation-console",
+      )
       .locator(":scope > summary")
       .click();
-
-    await page.getByRole("button", { name: /log in \/ sign up/i }).click();
-    await page.getByRole("button", { name: "NeoLine" }).click();
-
-    await expect(page.getByText(/123.45 GAS/i)).toBeVisible();
 
     await actionPanel
       .getByLabel("Beneficiary Address")

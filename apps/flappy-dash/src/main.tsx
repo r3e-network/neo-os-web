@@ -51,7 +51,7 @@ interface FlappyRow extends SolveRow {
 // Flappy Solved event: gameId(0) player(1) difficulty(2) elapsedMs(3) pipes(4) payout(5) totalWon(6)
 const SOLVED_SLOTS = {
   gameId: 0, player: 1, difficulty: 2, elapsedMs: 3,
-  solvedPayout: 5, totalWon: 6,
+  solvedPayout: 5, totalWon: 6, undos: 7,
 };
 
 export type { LeaderEntry };

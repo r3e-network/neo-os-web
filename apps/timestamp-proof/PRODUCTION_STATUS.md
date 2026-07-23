@@ -1,6 +1,6 @@
 # Timestamp Proof production status
 
-Last reviewed: 2026-07-12
+Last reviewed: 2026-07-23
 
 ## Product flow
 
@@ -16,6 +16,13 @@ The current flow supports:
 6. recovering pending receipts without replaying the write;
 7. promoting to `anchored` only after the application log is `HALT`, the GAS `Transfer` is an exact zero-value self-transfer, the raw transaction script contains the matching `timestamp-proof:<sha256>` marker, and an on-chain block time is available;
 8. preserving `FAULT`, binding mismatch, pending, RPC-unavailable, corrupt-journal, and storage-unavailable states as distinct outcomes.
+
+The source also contains a PlatformSocial Notary path with the same durable
+pre-submit and pending-receipt journal. It is enabled only by an explicit
+`platform-social` shared-engine manifest binding. The current production
+manifest has no such binding and the retained platform ledger has no
+PlatformSocial deployment record, so production behavior remains the zero-GAS
+self-transfer path.
 
 Native GAS `Hash160` arguments use the canonical script hash derived from the
 wallet address. The raw-address ABI-compatibility lane is not used for this
@@ -43,10 +50,11 @@ The scoped suite covers local proof creation, storage readback failures, malform
 
 Verification evidence:
 
-- Focused Timestamp Proof suites plus locale parity: `132/132` tests passed across seven files.
-- App TypeScript, scoped ESLint, and scoped `git diff --check` passed.
+- The retained focused Timestamp Proof baseline was `132/132` across seven files; those historical focused files are not present in this checkout and were not represented as a fresh rerun.
+- Current Notary wallet-binding tests passed `2/2`, app TypeScript passed, and the production Vite build completed after the dual-path migration.
+- Repository regressions passed: contracts `588/588`, framework `591/591`, deploy scripts `255/255`, and miniapp suites `24/24`.
 - Global miniapp dApp support gate: `77/77`, zero failures.
-- Production build: Vite `7.3.2`, `3,574` modules transformed; app entry `218.46 kB` (`65.57 kB` gzip), app stylesheet `110.66 kB` (`19.72 kB` gzip).
+- Production build: Vite `7.3.6`, `3,604` modules transformed; app entry `281.44 kB` (`83.84 kB` gzip), app stylesheet `111.84 kB` (`19.93 kB` gzip).
 - Static HTTP smoke: all `17/17` emitted files returned non-empty HTTP 200 responses.
 - The proof-desk scene, logo, and legacy banner were opened locally. The active scene is bright and product-relevant; the legacy banner carrying a TestNet-only label remains unselected.
 - The reviewed `dist` was copied to the host and remained byte-identical. Catalog verification reports 77 entries, 77 unique app IDs, and exactly one Timestamp Proof row at version `1.1.0` using `proof-desk.webp` as its banner.

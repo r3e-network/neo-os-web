@@ -32,6 +32,10 @@ import { createCreditsSurface } from "./credits";
 import type { FrameworkCreditsConfig } from "./credits";
 import { createRegistrySurface } from "./registry-surface";
 import { createPlatformGameSurface } from "./platform-game-surface";
+import { createPlatformSocialSurface } from "./platform-social-surface";
+import { createPlatformAnchorSurface } from "./platform-anchor-surface";
+import { createPlatformDeFiSurface } from "./platform-defi-surface";
+import { createPlatformFactorySurface } from "./platform-factory-surface";
 import { createChainPendingSurface } from "./chain-pending";
 import { createBusSurface, createEventsSurface } from "./events";
 import type { FrameworkBusChannel } from "./events";
@@ -255,19 +259,30 @@ export function createMiniAppFramework(
     }),
   );
   /**
-   * app.registry (Platform Contract Library v2 phase 2) — typed reads of the
-   * PlatformRegistry directory (getApp / appAccountOf / appIdOfAccount /
-   * engineOf / pause state) plus the advisory AppAccount hash derivation.
-   * Reads only; config comes from `options.registry` (platform config
-   * pattern); absent ⇒ typed FrameworkCapabilityError. Ungated like every
-   * other read lane — no guest guard, no S11 permission.
+   * app.registry (Platform Contract Library v2 phase 2) — typed tenant reads
+   * and writes for registration, shared-AA materialization, descriptors,
+   * app governance, credits, and role-bound treasury exits. Platform-admin
+   * control methods remain excluded. Writes use the same guest →
+   * invoke:primary policy as app.chain.invoke; reads stay ungated.
    */
   const getRegistry = lazyModule(() =>
     createRegistrySurface({
       appId,
       chain: {
+        address: chain.address,
+        ensureWallet: () => chain.ensureWallet(),
         read: (operation, args, readOptions) =>
           chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+        invoke: (operation, args, invokeOptions) =>
+          chain.invoke(
+            operation,
+            args as FrameworkContractArg[],
+            invokeOptions,
+          ),
+      },
+      guards: {
+        assertNotGuest: () => assertNotGuest(),
+        requirePermission: (name) => getPermissions().require(name),
       },
       config: options.registry,
     }),
@@ -294,6 +309,63 @@ export function createMiniAppFramework(
       },
       guards: guardDeps,
       config: options.platformGame,
+    }),
+  );
+  const getPlatformSocial = lazyModule(() =>
+    createPlatformSocialSurface({
+      appId,
+      chain: {
+        address: chain.address,
+        ensureWallet: () => chain.ensureWallet(),
+        read: (operation, args, readOptions) =>
+          chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+        invoke: (operation, args, invokeOptions) =>
+          chain.invoke(operation, args as FrameworkContractArg[], invokeOptions),
+      },
+      guards: guardDeps,
+      config: options.platformSocial,
+    }),
+  );
+  const getPlatformAnchor = lazyModule(() =>
+    createPlatformAnchorSurface({
+      appId,
+      chain: {
+        address: chain.address,
+        ensureWallet: () => chain.ensureWallet(),
+        read: (operation, args, readOptions) =>
+          chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+        invoke: (operation, args, invokeOptions) =>
+          chain.invoke(operation, args as FrameworkContractArg[], invokeOptions),
+      },
+      guards: guardDeps,
+      config: options.platformAnchor,
+    }),
+  );
+  const getPlatformDeFi = lazyModule(() =>
+    createPlatformDeFiSurface({
+      appId,
+      chain: {
+        address: chain.address,
+        ensureWallet: () => chain.ensureWallet(),
+        read: (operation, args, readOptions) =>
+          chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+        invoke: (operation, args, invokeOptions) =>
+          chain.invoke(operation, args as FrameworkContractArg[], invokeOptions),
+      },
+      guards: guardDeps,
+      config: options.platformDeFi,
+    }),
+  );
+  const getPlatformFactory = lazyModule(() =>
+    createPlatformFactorySurface({
+      chain: {
+        read: (operation, args, readOptions) =>
+          chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+        invoke: (operation, args, invokeOptions) =>
+          chain.invoke(operation, args as FrameworkContractArg[], invokeOptions),
+      },
+      guards: guardDeps,
+      config: options.platformFactory,
     }),
   );
 
@@ -459,8 +531,8 @@ export function createMiniAppFramework(
       return getCredits();
     },
     /**
-     * app.registry (Platform v2 phase 2) — typed PlatformRegistry directory
-     * reads + advisory AppAccount hash derivation. Reads only.
+     * app.registry (Platform v2 phase 2) — complete non-control-plane
+     * PlatformRegistry tenant surface plus advisory AppAccount hash derivation.
      */
     get registry() {
       return getRegistry();
@@ -471,6 +543,18 @@ export function createMiniAppFramework(
      */
     get platformGame() {
       return getPlatformGame();
+    },
+    get platformSocial() {
+      return getPlatformSocial();
+    },
+    get platformAnchor() {
+      return getPlatformAnchor();
+    },
+    get platformDeFi() {
+      return getPlatformDeFi();
+    },
+    get platformFactory() {
+      return getPlatformFactory();
     },
 
     /** app.oracle — extracted module (RFC P0-1 §2 step 8). */
@@ -492,6 +576,8 @@ export function createMiniAppFramework(
       guards: guardDeps,
       fallbackNetwork: () => String(ctx.launchContext?.network ?? "testnet"),
       onAccountChanged: (handler) => framework.wallet.onAccountChanged(handler),
+      platformGame: () => getPlatformGame(),
+      platformGameHash: options.platformGame?.gameHash,
     }),
   };
 
@@ -675,13 +761,24 @@ export type {
 } from "./credits";
 
 // Platform v2 app.registry
-export { createRegistrySurface, deriveAppAccountHash } from "./registry-surface";
+export {
+  createRegistrySurface,
+  deriveAppAccountHash,
+  deriveVirtualAAAccount,
+} from "./registry-surface";
 export type {
   AppAccountHashInput,
+  VirtualAAAccount,
+  FrameworkRegistryAbstractAccount,
   FrameworkRegistryApp,
   FrameworkRegistryConfig,
+  FrameworkRegistryContractArg,
+  FrameworkRegistryDescriptor,
+  FrameworkRegistryDescriptorValue,
   FrameworkRegistryGlobalPause,
+  FrameworkRegistryInvokeOptions,
   FrameworkRegistrySurface,
+  FrameworkRegistryTx,
   RegistrySurfaceChain,
   RegistrySurfaceDeps,
 } from "./registry-surface";
@@ -700,6 +797,49 @@ export type {
   PlatformGameSurfaceChain,
   PlatformGameSurfaceDeps,
 } from "./platform-game-surface";
+
+export { createPlatformSocialSurface } from "./platform-social-surface";
+export type {
+  FrameworkPlatformSocialConfig,
+  FrameworkPlatformSocialInvokeOptions,
+  FrameworkPlatformSocialNotarization,
+  FrameworkPlatformSocialSurface,
+  FrameworkPlatformSocialTx,
+  PlatformSocialSurfaceChain,
+  PlatformSocialSurfaceDeps,
+} from "./platform-social-surface";
+
+export { createPlatformAnchorSurface } from "./platform-anchor-surface";
+export type {
+  FrameworkPlatformAnchorConfig,
+  FrameworkPlatformAnchorInvokeOptions,
+  FrameworkPlatformAnchorSurface,
+  FrameworkPlatformAnchorTx,
+  PlatformAnchorSurfaceChain,
+  PlatformAnchorSurfaceDeps,
+} from "./platform-anchor-surface";
+
+export { createPlatformDeFiSurface } from "./platform-defi-surface";
+export type {
+  FrameworkPlatformDeFiConfig,
+  FrameworkPlatformDeFiInvokeOptions,
+  FrameworkPlatformDeFiSurface,
+  FrameworkPlatformDeFiTx,
+  PlatformDeFiSurfaceChain,
+  PlatformDeFiSurfaceDeps,
+} from "./platform-defi-surface";
+
+export { createPlatformFactorySurface } from "./platform-factory-surface";
+export type {
+  FrameworkPlatformFactoryCall,
+  FrameworkPlatformFactoryConfig,
+  FrameworkPlatformFactoryInvokeOptions,
+  FrameworkPlatformFactoryNetwork,
+  FrameworkPlatformFactorySurface,
+  FrameworkPlatformFactoryTx,
+  PlatformFactorySurfaceChain,
+  PlatformFactorySurfaceDeps,
+} from "./platform-factory-surface";
 
 // RFC P1-4 pending-tx durability lane + canonical tx-outcome reader
 export { createChainPendingSurface } from "./chain-pending";

@@ -21,6 +21,7 @@ const RECOVERY_BATCH_SIZE = 3;
 const ANCHOR_PREFIX = "timestamp-proof:";
 
 export type TimestampProofAnchorStatus = "local" | "preparing" | "pending" | "anchored" | "fault";
+export type TimestampProofAnchorMethod = "legacy-transfer" | "platform-notary";
 export type TimestampProofVerificationSource =
   | "none"
   | "local"
@@ -61,6 +62,17 @@ function isExplicitWalletRejection(error: unknown): boolean {
   return code === 4001 || /user (?:rejected|denied|cancelled)|request (?:rejected|denied|cancelled)|wallet rejected/.test(message);
 }
 
+export function isValidPlatformNotarization(
+  anchorAddress: string,
+  submitter: string,
+  timestampMs: bigint,
+): boolean {
+  const blockTime = Number(timestampMs);
+  return Number.isSafeInteger(blockTime) &&
+    blockTime > 0 &&
+    ownerMatchesAddress(submitter, anchorAddress);
+}
+
 export interface TimestampProof {
   id: number;
   content: string;
@@ -69,6 +81,7 @@ export interface TimestampProof {
   creator: string;
   anchorTxid: string;
   anchorStatus: TimestampProofAnchorStatus;
+  anchorMethod: TimestampProofAnchorMethod;
   anchorNetwork: TimestampProofNetwork | "";
   anchorAddress: string;
   anchorBroadcastAt: number;
@@ -86,6 +99,7 @@ interface ParsedTimestampProofReference {
   timestamp: number;
   creator: string;
   txid: string;
+  method: TimestampProofAnchorMethod;
   network: TimestampProofNetwork | "";
   address: string;
 }
@@ -103,6 +117,9 @@ function sanitizeProof(item: LegacyTimestampProof): TimestampProof {
   const anchorNetwork = normalizeTimestampProofNetwork(item.anchorNetwork)
     ?? (isLegacyMainnetReceipt ? "neo-n3-mainnet" : "");
   const explicitStatus = String(item.anchorStatus ?? "");
+  const anchorMethod: TimestampProofAnchorMethod = item.anchorMethod === "platform-notary"
+    ? "platform-notary"
+    : "legacy-transfer";
   let anchorStatus: TimestampProofAnchorStatus = "local";
   if (explicitStatus === "fault") anchorStatus = "fault";
   else if (explicitStatus === "anchored" && anchorTxid && anchorNetwork) anchorStatus = "anchored";
@@ -129,6 +146,7 @@ function sanitizeProof(item: LegacyTimestampProof): TimestampProof {
     creator: String(item.creator || "local"),
     anchorTxid,
     anchorStatus,
+    anchorMethod,
     anchorNetwork,
     anchorAddress: String(item.anchorAddress || ""),
     anchorBroadcastAt: Number(item.anchorBroadcastAt || 0),
@@ -179,6 +197,7 @@ function journalSignature(items: TimestampProof[]): string {
     creator: item.creator,
     anchorTxid: item.anchorTxid,
     anchorStatus: item.anchorStatus,
+    anchorMethod: item.anchorMethod,
     anchorNetwork: item.anchorNetwork,
     anchorAddress: item.anchorAddress,
     anchorBroadcastAt: item.anchorBroadcastAt,
@@ -355,6 +374,34 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
   const receiptFor = async (proof: TimestampProof): Promise<TimestampProofReceipt> => {
     if (!proof.anchorNetwork || !proof.anchorTxid) {
       return { status: "mismatch", digest: "", blockTime: 0, reason: "missing-network-or-txid" };
+    }
+    if (proof.anchorMethod === "platform-notary") {
+      try {
+        let notarization = await app.platformSocial.getNotarization(proof.contentHash);
+        if (!notarization) {
+          const event = await app.events.waitFor(proof.anchorTxid, "Notarized", 1_500).catch(() => null);
+          if (event) notarization = await app.platformSocial.getNotarization(proof.contentHash);
+        }
+        if (!notarization) {
+          return { status: "pending", digest: proof.contentHash, blockTime: 0, reason: "notarization-not-indexed" };
+        }
+        const blockTime = Number(notarization.timestampMs);
+        if (!isValidPlatformNotarization(
+          proof.anchorAddress,
+          notarization.submitter,
+          notarization.timestampMs,
+        )) {
+          return { status: "mismatch", digest: proof.contentHash, blockTime: 0, reason: "notarization-mismatch" };
+        }
+        return { status: "confirmed", digest: proof.contentHash, blockTime, reason: "" };
+      } catch (error) {
+        return {
+          status: "unreachable",
+          digest: proof.contentHash,
+          blockTime: 0,
+          reason: formatErrorMessage(error, "notarization-read-failed"),
+        };
+      }
     }
     const first = await inspectAnchor({
       network: proof.anchorNetwork,
@@ -539,6 +586,7 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
         creator: String(address.get() || "local"),
         anchorTxid: "",
         anchorStatus: "local",
+        anchorMethod: "legacy-transfer",
         anchorNetwork: "",
         anchorAddress: "",
         anchorBroadcastAt: 0,
@@ -610,6 +658,9 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
       const self = String(await app.chain.ensureWallet() || address.get() || "");
       if (!self) throw new Error(t("connectWalletToAnchor"));
       const selfHash = app.chain.arg.hash160(self);
+      const anchorMethod: TimestampProofAnchorMethod = app.platformSocial.available
+        ? "platform-notary"
+        : "legacy-transfer";
       const anchorNetwork = await detectExactNetwork();
       if (!anchorNetwork) throw new Error(t("unsupportedAnchorNetwork"));
       const observedAddress = String(address.get() || "");
@@ -621,6 +672,7 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
         ...item,
         anchorTxid: "",
         anchorStatus: "preparing",
+        anchorMethod,
         anchorNetwork,
         anchorAddress: self,
         anchorBroadcastAt: 0,
@@ -659,21 +711,27 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
         }
       };
 
-      const result = await app.chain.invoke(
-        "transfer",
-        [
-          selfHash,
-          selfHash,
-          app.chain.arg.integer(0),
-          app.chain.arg.string(`${ANCHOR_PREFIX}${proof.contentHash}`),
-        ],
-        {
-          scriptHash: GAS_HASH,
-          waitForEvent: "Transfer",
+      const result = anchorMethod === "platform-notary"
+        ? await app.platformSocial.notarize(proof.contentHash, self, {
+          waitForEvent: "Notarized",
           waitTimeoutMs: 15_000,
           onTransactionSent: rememberBroadcast,
-        },
-      );
+        })
+        : await app.chain.invoke(
+          "transfer",
+          [
+            selfHash,
+            selfHash,
+            app.chain.arg.integer(0),
+            app.chain.arg.string(`${ANCHOR_PREFIX}${proof.contentHash}`),
+          ],
+          {
+            scriptHash: GAS_HASH,
+            waitForEvent: "Transfer",
+            waitTimeoutMs: 15_000,
+            onTransactionSent: rememberBroadcast,
+          },
+        );
       const returnedTxid = normalizeTimestampProofTxid(result.txid);
       if (!broadcastTxid && returnedTxid) rememberBroadcast(returnedTxid);
       if (!broadcastTxid) {
@@ -774,6 +832,7 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
       ...item,
       anchorTxid: "",
       anchorStatus: "local",
+      anchorMethod: "legacy-transfer",
       anchorNetwork: "",
       anchorAddress: "",
       anchorBroadcastAt: 0,
@@ -811,6 +870,9 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
       const rawTxid = String(parsed.anchorTxid ?? "").trim();
       const rawNetwork = String(parsed.anchorNetwork ?? parsed.network ?? "").trim();
       const rawStatus = String(parsed.anchorStatus ?? "").trim().toLowerCase();
+      const method: TimestampProofAnchorMethod = parsed.anchorMethod === "platform-notary"
+        ? "platform-notary"
+        : "legacy-transfer";
       const timestamp = Number(parsed.timestamp || 0);
       const id = Number(parsed.id || 0);
       if (!isSha256Digest(digest)) return null;
@@ -828,6 +890,7 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
         timestamp,
         creator: String(parsed.creator || "on-chain"),
         txid,
+        method,
         network: anchorNetwork,
         address: String(parsed.anchorAddress || ""),
       };
@@ -852,6 +915,7 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
     creator: reference?.creator ?? "on-chain",
     anchorTxid: txid,
     anchorStatus: status,
+    anchorMethod: reference?.method ?? "legacy-transfer",
     anchorNetwork: verificationNetwork,
     anchorAddress: reference?.address ?? "",
     anchorBroadcastAt: 0,
@@ -914,6 +978,7 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
           creator: reference.creator,
           anchorTxid: "",
           anchorStatus: "local",
+          anchorMethod: reference.method,
           anchorNetwork: "",
           anchorAddress: "",
           anchorBroadcastAt: 0,
@@ -939,7 +1004,9 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
         setMessage("verificationNetworkRequired");
         return;
       }
-      const receipt = await inspectAnchor({
+      const receipt = reference?.method === "platform-notary"
+        ? await receiptFor(externalProof(reference, txid, verificationNetwork, "pending"))
+        : await inspectAnchor({
           network: verificationNetwork,
           txid,
           expectedDigest: reference?.digest || undefined,
@@ -1001,6 +1068,7 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
     creator: proof.creator,
     proofSource: proof.anchorStatus === "anchored" ? "neo-n3" : "device-local",
     anchorStatus: proof.anchorStatus,
+    anchorMethod: proof.anchorMethod,
     anchored: proof.anchorStatus === "anchored",
     ...(proof.anchorNetwork ? { anchorNetwork: proof.anchorNetwork } : {}),
     ...(proof.anchorAddress ? { anchorAddress: proof.anchorAddress } : {}),

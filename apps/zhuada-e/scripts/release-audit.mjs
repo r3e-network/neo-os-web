@@ -134,6 +134,7 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "src/logic/guest-engine.test.ts", "keeps a 210-item level behind a 48-body window and refills from below");
   includes(read, "src/logic/guest-engine.test.ts", "drains every L%s reserve wave and wins only with box, reserve, tray and shelf empty");
   includes(read, "src/logic/guest-engine.test.ts", "survives twenty consecutive late-level redeals without exceeding the live-body ceiling");
+  includes(read, "src/main.tsx", "if (!isPlaying.get()) guest.enter()");
   includes(read, "src/logic/guest-engine.test.ts", "keeps reserve packets private across shuffle and consumes bottom spawn commands once");
   includes(read, "src/logic/engine-zhuada.test.ts", "clears cross-zone with SHELF copies first (2 shelf + 1 landing)");
   includes(read, "src/logic/engine-zhuada.test.ts", "parks the first 3 occupied tray slots in order");
@@ -169,6 +170,9 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "src/logic/motion-quality.test.ts", "keeps 3D tray flight on the same smooth handoff contract as the tray");
   includes(read, "src/AnimatedTray.test.tsx", "queues a second receipt until the first tray choreography settles");
   includes(read, "src/scenes/pick-lock.test.ts", "allows rapid different-item picks while the tray choreography queues receipts");
+  includes(read, "src/scenes/physics-profiles.test.ts", "visible size ratio");
+  includes(read, "src/scenes/physics-profiles.test.ts", "collider size ratio");
+  includes(read, "src/logic/motion-quality.test.ts", "moves a tall-phone pile down into the reference composition without shifting desktop");
   includes(read, "src/scenes/ZhuaDaScene.ts", "globally lock the pile");
   includes(read, "scripts/run-tests.mjs", "src/scenes/pick-lock.test.ts");
   includes(read, "src/logic/motion-quality.test.ts", "Math.pow(1 - e, SCENE_MOTION.panDampingPower)");

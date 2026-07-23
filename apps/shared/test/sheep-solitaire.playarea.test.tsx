@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../sheep-solitaire/src/PlayArea";
-import type { CardView } from "../../sheep-solitaire/src/logic/tee-session";
+import type { CardView } from "../../sheep-solitaire/src/logic/session-view";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 

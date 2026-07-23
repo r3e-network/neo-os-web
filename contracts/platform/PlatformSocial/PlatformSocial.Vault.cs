@@ -34,13 +34,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(difficulty >= 1 && difficulty <= 3, "invalid difficulty");
 
             // Read the creator's GAS credit as the bounty
-            StorageMap gasCredits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
-            ByteString creditKey = (ByteString)(byte[])creator;
-            ByteString existing = gasCredits.Get(creditKey);
-            BigInteger bounty = existing == null ? 0 : (BigInteger)existing;
+            BigInteger bounty = GetGasCreditBalance(appId, creator);
             ExecutionEngine.Assert(bounty >= MIN_BOUNTY, "min 1 GAS bounty");
 
-            ConsumeGasCredit(creator, bounty);
+            ConsumeGasCredit(appId, creator, bounty);
 
             // Increment vault counter for this app
             ByteString idKey = AppKey(appId, PREFIX_VAULT_ID);
@@ -94,7 +91,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             // Commit fee is the same as the prior attempt fee so abusers can't spam
             // commits cheaply.
             BigInteger attemptFee = GetAttemptFee(vault.Difficulty);
-            ConsumeGasCredit(attacker, attemptFee);
+            ConsumeGasCredit(appId, attacker, attemptFee);
             vault.Bounty += attemptFee;
             StoreVault(appId, vaultId, vault);
 
@@ -204,7 +201,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             // Owner signature fix: require direct witness from vault creator
             ExecutionEngine.Assert(Runtime.CheckWitness(vault.Creator), "only vault creator");
 
-            ConsumeGasCredit(vault.Creator, amount);
+            ConsumeGasCredit(appId, vault.Creator, amount);
 
             vault.Bounty += amount;
             StoreVault(appId, vaultId, vault);

@@ -11,7 +11,8 @@
 - lets the user re-open local proofs by id, digest, or original content
 - inspects portable JSON references and independently verifies anchored references or transaction ids against the selected Neo N3 network
 - optionally anchors a saved digest on Neo N3 with a real 0-GAS self-transfer when a connected wallet is available
-- persists a broadcast receipt as `pending`; only an exact HALT execution, matching zero-GAS self-transfer, and raw-script digest marker promotes it to `anchored`
+- supports a tenant-scoped PlatformSocial Notary path when the app manifest explicitly supplies a deployed shared-engine binding; the current production manifest supplies none, so the 0-GAS path remains active
+- persists a broadcast receipt as `pending`; the active anchor method must independently resolve to the exact digest, wallet, and public chain time before it promotes to `anchored`
 - keeps an interrupted wallet submission behind a durable retry lock so a reload cannot blindly replay it
 - revalidates stored anchored claims on reload and keeps pending/interrupted rows undeletable until their receipt state is resolved
 
@@ -20,10 +21,10 @@
 - source content stays on the user's device
 - local proofs are private and free
 - the local timestamp comes from the device clock and is not independently trusted outside that browser profile
-- anchoring publishes only `timestamp-proof:<digest>` in a public Neo transaction data field
+- the current anchor publishes only `timestamp-proof:<digest>` in a public Neo transaction data field; a future bound Notary publishes the digest and submitter in tenant-scoped contract state/event data
 - a transaction id is only a broadcast receipt, not proof of confirmation
 - an unanchored portable JSON reference is a structured local claim, not independently trusted timestamp evidence
-- anchored proofs are verified from the application log and raw transaction script; the confirmed block time is the public proof time
+- legacy anchors are verified from the application log and raw transaction script; configured Notary anchors are verified from immutable tenant-scoped contract state; the confirmed chain time is the public proof time
 - the native GAS transfer uses canonical wallet script hashes and rejects malformed or mismatched wallet/event bindings
 - local proofs are only available in the browser profile that created them
 
@@ -50,7 +51,7 @@ If the journal is unavailable, restore browser storage access and retry; the app
 - Type: frontend tool with optional wallet transaction
 - Hash function: `SHA-256`
 - Local storage: browser local storage
-- Anchor pattern: 0-GAS self-transfer embedding `timestamp-proof:<digest>`
+- Anchor pattern: current 0-GAS self-transfer embedding `timestamp-proof:<digest>`; guarded PlatformSocial Notary path after an explicit deployed binding
 - Supported networks: Neo N3 Mainnet and Testnet
 - Receipt states: `local → preparing → pending → anchored | fault`
 
@@ -58,4 +59,4 @@ See [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md), [NETWORK_STATUS.md](./NETWOR
 
 ## Next Upgrade Path
 
-If Timestamp Proof needs a dedicated contract later, add the contract first and switch the frontend + manifest together in the same change. Do not reintroduce synthetic transaction ids or pseudo-contract calls without a deployed source of truth.
+PlatformSocial Notary now exists in source and the frontend has a durable dual-path adapter, but the production manifest remains unbound because no deployment record exists. Deploy, register the Timestamp Proof tenant, verify exact artifact/ABI compatibility and recovery, then add the shared binding in a separately approved change. Do not use synthetic transaction ids or pseudo-contract calls without a deployed source of truth.

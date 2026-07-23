@@ -17,7 +17,7 @@ function sheepContractMethods(): string[] {
 }
 
 describe("sheep-solitaire contract compatibility", () => {
-  it("keeps the frontend settlement flow aligned with the deployed Sheep contract ABI", () => {
+  it("routes the frontend through PlatformGame instead of the legacy Sheep ABI", () => {
     const methods = sheepContractMethods();
     const main = read("apps/sheep-solitaire/src/main.tsx");
 
@@ -25,15 +25,13 @@ describe("sheep-solitaire contract compatibility", () => {
     expect(methods).toContain("settleVerified");
     expect(methods).not.toContain("finalizeGame");
 
-    expect(main).toContain(`from "./logic/tee-session"`);
-    expect(main).toContain("teeStart");
-    expect(main).toContain("teeMove");
-    expect(main).toContain("teeFinalize");
-    expect(main).toContain("started.bindSignature");
-    expect(main).toContain(`"settleVerified"`);
-    expect(main).toContain("settlement.settleSignature");
-    expect(main).not.toContain(`from "@framework/logic/tee-session"`);
-    expect(main).not.toContain("teeSessionSealOpLog");
-    expect(main).not.toContain(`"finalizeGame"`);
+    expect(main).toContain("app.game.reward<SheepSessionOp>");
+    expect(main).toContain("rewardGame.openSession");
+    expect(main).toContain("rewardGame.finalize");
+    expect(main).toContain("app.platformGame.getGame");
+    expect(main).not.toContain("bindPuzzle");
+    expect(main).not.toContain("settleVerified");
+    expect(main).not.toContain("app.chain.invoke(");
+    expect(main).not.toContain("app.chain.invokeWithPayment(");
   });
 });
