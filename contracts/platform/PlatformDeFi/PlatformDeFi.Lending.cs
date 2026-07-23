@@ -47,18 +47,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ValidateAddress(borrower);
             ExecutionEngine.Assert(collateralAmount >= MIN_COLLATERAL, "min 1 NEO collateral");
 
-            // Read the borrower's prepaid NEO credit and consume only the requested
-            // collateralAmount, refunding the remainder back to the credit ledger.
-            StorageMap neoCredits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
-            ByteString creditKey = (ByteString)(byte[])borrower;
-            ByteString creditData = neoCredits.Get(creditKey);
-            BigInteger availableCredit = creditData == null ? 0 : (BigInteger)creditData;
-            ExecutionEngine.Assert(availableCredit >= collateralAmount, "insufficient NEO credit");
-
             BigInteger neoAmount = collateralAmount;
-            BigInteger remainingCredit = availableCredit - collateralAmount;
-            if (remainingCredit == 0) neoCredits.Delete(creditKey);
-            else neoCredits.Put(creditKey, remainingCredit);
+            ConsumeNeoCredit(appId, borrower, collateralAmount);
 
             // Increment loan ID
             ByteString idKey = AppKey(appId, PREFIX_LOAN_ID);
@@ -176,22 +166,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             AccrueLoanYield(appId, loanId, loan);
             loan = GetLoan(appId, loanId);
 
-            // Consume all prepaid GAS credit for repayment
-            StorageMap gasCredits = new StorageMap(Storage.CurrentContext, PREFIX_GAS_CREDIT);
-            ByteString creditKey = (ByteString)(byte[])loan.Borrower;
-            ByteString creditData = gasCredits.Get(creditKey);
-            BigInteger amount = creditData == null ? 0 : (BigInteger)creditData;
-            ExecutionEngine.Assert(amount > 0, "no GAS credit to repay with");
-            gasCredits.Delete(creditKey);
-
-            BigInteger repayAmount = amount > loan.Debt ? loan.Debt : amount;
-
-            // Refund excess
-            if (amount > loan.Debt)
-            {
-                BigInteger excess = amount - loan.Debt;
-                gasCredits.Put(creditKey, excess);
-            }
+            BigInteger availableCredit = GetGasCreditBalance(appId, loan.Borrower);
+            ExecutionEngine.Assert(availableCredit > 0, "no GAS credit to repay with");
+            BigInteger repayAmount = availableCredit > loan.Debt ? loan.Debt : availableCredit;
+            ConsumeGasCredit(appId, loan.Borrower, repayAmount);
 
             loan.Debt -= repayAmount;
             loan.TotalRepaid += repayAmount;
@@ -230,16 +208,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             AccrueLoanYield(appId, loanId, loan);
             loan = GetLoan(appId, loanId);
 
-            StorageMap neoCredits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
-            ByteString creditKey = (ByteString)(byte[])loan.Borrower;
-            ByteString creditData = neoCredits.Get(creditKey);
-            BigInteger availableCredit = creditData == null ? 0 : (BigInteger)creditData;
-            ExecutionEngine.Assert(availableCredit >= collateralAmount, "insufficient NEO credit");
-
             BigInteger neoAmount = collateralAmount;
-            BigInteger remainingCredit = availableCredit - collateralAmount;
-            if (remainingCredit == 0) neoCredits.Delete(creditKey);
-            else neoCredits.Put(creditKey, remainingCredit);
+            ConsumeNeoCredit(appId, loan.Borrower, collateralAmount);
 
             loan.Collateral += neoAmount;
             StoreLoan(appId, loanId, loan);

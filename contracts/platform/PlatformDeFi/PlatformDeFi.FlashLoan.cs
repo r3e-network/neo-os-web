@@ -155,6 +155,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 StdLib.Serialize(new object[] { loanId, borrower, amount, fee })
             );
             ExecutionEngine.Assert(funded, "loan transfer failed");
+            EnsureGasCreditSolvent();
 
             // Audit fix M-1: previously invoked with CallFlags.All, giving the
             // borrower-controlled callback full storage / call / witness rights under
@@ -200,7 +201,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(Runtime.CheckWitness(depositor), "unauthorized");
             ExecutionEngine.Assert(amount > 0, "amount required");
 
-            ConsumeGasCredit(depositor, amount);
+            ConsumeGasCredit(appId, depositor, amount);
 
             ByteString poolKey = AppKey(appId, PREFIX_POOL_BALANCE);
             Put(poolKey, GetBigInteger(poolKey) + amount);
@@ -250,6 +251,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
             bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, provider, amount, null);
             ExecutionEngine.Assert(transferred, "withdraw transfer failed");
+            EnsureGasCreditSolvent();
 
             OnFlashLiquidityWithdrawn(appId, provider, amount);
         }

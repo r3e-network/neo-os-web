@@ -86,7 +86,7 @@ describe("app.platformDeFi", () => {
       { type: "Hash160", value: ACCOUNT },
       { type: "Hash160", value: DEFI_HASH },
       { type: "Integer", value: "3" },
-      { type: "Any", value: null },
+      { type: "String", value: `${APP_ID}:credit` },
     ], { scriptHash: NEO_HASH });
 
     await app.platformDeFi.depositGas(100_000_000);
@@ -104,6 +104,12 @@ describe("app.platformDeFi", () => {
     await app.platformDeFi.getCapsule(1);
     await app.platformDeFi.getCapsuleStats();
     await app.platformDeFi.getCapsuleDetails(1);
+    await app.platformDeFi.neoCreditOf();
+    await app.platformDeFi.gasCreditOf();
+    await app.platformDeFi.neoCreditLiability();
+    await app.platformDeFi.gasCreditLiability();
+    await app.platformDeFi.totalNeoCreditLiability();
+    await app.platformDeFi.totalGasCreditLiability();
     await app.platformDeFi.withdrawNeoCredit(1);
     await app.platformDeFi.withdrawGasCredit(1);
     await app.platformDeFi.withdrawLendingFees();
