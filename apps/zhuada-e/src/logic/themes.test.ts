@@ -12,6 +12,10 @@ import {
 } from "./themes";
 
 describe("player-selectable themes", () => {
+  it("continues the farm-kitchen cover art into the first playable theme", () => {
+    expect(DEFAULT_THEME_ID).toBe("farm-kitchen");
+  });
+
   it("ships exactly three complete, unique theme contracts", () => {
     expect(GAME_THEMES.map((theme) => theme.id)).toEqual([
       "fresh-market",
@@ -29,7 +33,7 @@ describe("player-selectable themes", () => {
 
   it("falls back safely for malformed ids and kinds", () => {
     expect(themeOf("missing").id).toBe(DEFAULT_THEME_ID);
-    expect(themeItem("missing", 99)).toEqual(GAME_THEMES[0]!.items[0]);
+    expect(themeItem("missing", 99)).toEqual(themeOf(DEFAULT_THEME_ID).items[0]);
     expect(isGameThemeId("night-market")).toBe(true);
     expect(isGameThemeId("night")).toBe(false);
   });

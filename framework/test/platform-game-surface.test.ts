@@ -92,6 +92,7 @@ function makeApp(
         success: true,
       }),
     ),
+    listEvents: vi.fn(async (): Promise<unknown[]> => []),
   };
   const ctx = {
     services: { chain },
@@ -523,6 +524,72 @@ describe("app.platformGame reads", () => {
     chain.read.mockResolvedValue(null);
 
     await expect(app.platformGame.getGame("99")).resolves.toBeNull();
+  });
+});
+
+describe("shared app.game reads", () => {
+  it("routes stats through the appId-first PlatformGame surface", async () => {
+    const { app, chain } = makeApp();
+    chain.read.mockResolvedValue({ played: "3", solved: "2", totalWon: "450000000" });
+
+    await expect(app.game.stats.load()).resolves.toEqual({ solves: 2, totalWon: 4.5 });
+    expect(chain.read).toHaveBeenCalledWith(
+      "statsOf",
+      [
+        { type: "String", value: APP_ID },
+        { type: "Hash160", value: PLAYER_HASH },
+      ],
+      { scriptHash: GAME_HASH },
+    );
+  });
+
+  it("filters tenant events and uses the shared score/payout slots", async () => {
+    const { app, chain } = makeApp();
+    chain.listEvents.mockResolvedValue([
+      {
+        state: [
+          { value: APP_ID },
+          { value: "7" },
+          { value: PLAYER_HASH },
+          { value: "1" },
+          { value: "900" },
+          { value: "12" },
+          { value: "200000000" },
+          { value: "450000000" },
+        ],
+      },
+      {
+        state: [
+          { value: "other-app" },
+          { value: "8" },
+          { value: OTHER_PLAYER_HASH },
+          { value: "0" },
+          { value: "800" },
+          { value: "99" },
+          { value: "900000000" },
+          { value: "900000000" },
+        ],
+      },
+    ]);
+
+    const result = await app.game.leaderboard.load(
+      "Solved",
+      { solvedPayout: 5, totalWon: 6, undos: 7 },
+      20,
+    );
+    expect(result.ranked).toHaveLength(1);
+    expect(result.ranked[0]).toMatchObject({ totalWon: 4.5, solves: 1, isUser: true });
+    expect(result.mine[0]).toMatchObject({ gameId: "7", payout: "2.00 GAS", undos: 0 });
+  });
+
+  it("fails closed instead of falling back when shared config is invalid", () => {
+    const { app } = makeApp({ platformGame: { gameHash: "invalid" } });
+
+    expect(() => app.game.reward({
+      engineHash: "reviewed-engine",
+      entryMemo: `${APP_ID}:entry`,
+      modes: [{ id: 0, entryFixed8: 1n, rewardFixed8: 1n }],
+    })).toThrow(/shared PlatformGame backend is unavailable/);
   });
 });
 

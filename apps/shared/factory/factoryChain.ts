@@ -27,7 +27,12 @@ import {
 } from "@shared/utils/fetch-timeout";
 import { retryAsync } from "@shared/utils/async-utils";
 import { addressToScriptHash, parseStackItem } from "@shared/utils/neo";
-import type { FactoryContractArg, FactoryKind, FactoryNetwork } from "./factoryPlan";
+import type {
+  FactoryArtifactDeploymentSupport,
+  FactoryContractArg,
+  FactoryKind,
+  FactoryNetwork,
+} from "./factoryPlan";
 
 const RPC_TIMEOUT_MS = 10_000;
 /** Bounded retry for transient factory-registry read blips. */
@@ -66,44 +71,35 @@ interface RpcSigner {
   scopes: string;
 }
 
-async function rpcInvokeFunction(
+async function rpcRequest<TResult>(
   network: FactoryNetwork,
-  scriptHash: string,
-  operation: string,
-  args: FactoryContractArg[],
-  signers?: RpcSigner[],
-): Promise<RpcInvokeResult> {
+  method: string,
+  params: unknown[],
+): Promise<TResult> {
   const rpcUrl = getRpcUrl(resolveNeoNetwork(network));
-  const params: unknown[] = [scriptHash, operation, args];
-  if (signers?.length) params.push(signers);
-
-  // Read-only `invokefunction` test-invocation — idempotent, so a transient RPC
-  // node blip (timeout, network drop, 429/5xx) retries with bounded backoff
-  // before surfacing to the callers (which already degrade to "unknown"/null).
-  // A JSON-RPC-level error is deterministic and rethrown without retry.
-  return retryAsync<RpcInvokeResult>(
+  return retryAsync<TResult>(
     async () => {
       const response = await fetchWithTimeout(rpcUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "invokefunction", params }),
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
         timeoutMs: RPC_TIMEOUT_MS,
       });
       if (!response.ok) {
         throw new HttpResponseError(
-          `invokefunction failed: rpc HTTP ${response.status}`,
+          `${method} failed: rpc HTTP ${response.status}`,
           response.status,
         );
       }
       const payload = (await response.json()) as {
-        result?: RpcInvokeResult;
+        result?: TResult;
         error?: { message?: string };
       };
       if (payload.error) {
-        throw new Error(payload.error.message || "invokefunction failed");
+        throw new Error(payload.error.message || `${method} failed`);
       }
-      if (!payload.result) {
-        throw new Error("invokefunction returned an empty result");
+      if (payload.result === undefined || payload.result === null) {
+        throw new Error(`${method} returned an empty result`);
       }
       return payload.result;
     },
@@ -114,6 +110,66 @@ async function rpcInvokeFunction(
       shouldRetry: isTransientFetchError,
     },
   );
+}
+
+async function rpcInvokeFunction(
+  network: FactoryNetwork,
+  scriptHash: string,
+  operation: string,
+  args: FactoryContractArg[],
+  signers?: RpcSigner[],
+): Promise<RpcInvokeResult> {
+  const params: unknown[] = [scriptHash, operation, args];
+  if (signers?.length) params.push(signers);
+  return rpcRequest<RpcInvokeResult>(network, "invokefunction", params);
+}
+
+const ARTIFACT_DEPLOYMENT_PARAMETER_TYPES = [
+  "String",
+  "String",
+  "String",
+  "String",
+  "ByteArray",
+  "String",
+];
+
+/** Verify the exact six-argument artifact deployment ABI on the live contract. */
+export async function fetchFactoryArtifactDeploymentSupport(
+  network: FactoryNetwork,
+  scriptHash: string,
+): Promise<FactoryArtifactDeploymentSupport> {
+  if (!scriptHash) return "unknown";
+  try {
+    const state = await rpcRequest<{
+      manifest?: {
+        abi?: {
+          methods?: Array<{
+            name?: unknown;
+            parameters?: Array<{ type?: unknown }>;
+            returntype?: unknown;
+            safe?: unknown;
+          }>;
+        };
+      };
+    }>(network, "getcontractstate", [scriptHash]);
+    const methods = state.manifest?.abi?.methods;
+    if (!Array.isArray(methods)) return "unknown";
+    const supported = methods.some((method) => {
+      const parameterTypes = Array.isArray(method.parameters)
+        ? method.parameters.map((parameter) => String(parameter.type ?? ""))
+        : [];
+      return method.name === "deployArtifactFromTemplate" &&
+        parameterTypes.length === ARTIFACT_DEPLOYMENT_PARAMETER_TYPES.length &&
+        parameterTypes.every(
+          (type, index) => type === ARTIFACT_DEPLOYMENT_PARAMETER_TYPES[index],
+        ) &&
+        method.returntype === "Hash160" &&
+        method.safe === false;
+    });
+    return supported ? "supported" : "missing";
+  } catch {
+    return "unknown";
+  }
 }
 
 function asString(value: unknown): string {
@@ -128,10 +184,10 @@ function asEpochMs(value: unknown): number {
 /**
  * Live HasArtifact check for a registered template.
  *
- * - "present"        → registerTemplateArtifact has run; deployFromTemplate
- *                      performs a real ContractManagement.Deploy.
- * - "missing"        → template metadata exists but no artifact; a deploy
- *                      call would only store a DeploymentRecord.
+ * - "present"        → the legacy template artifact is registered. This is
+ *                      metadata only for the creator-unique deployment lane;
+ *                      it does not provide the caller-bound NEF and manifest.
+ * - "missing"        → template metadata exists but no legacy artifact.
  * - "not-registered" → the template id is unknown to the factory contract.
  * - "unknown"        → the chain could not be read (network/RPC failure).
  */

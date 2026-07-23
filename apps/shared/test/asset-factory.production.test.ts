@@ -20,8 +20,8 @@ import {
   type Nep17Draft,
 } from "../factory/factoryPlan";
 
-const OWNER = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
-const OTHER_OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const OTHER_OWNER = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
 
 function executablePlan(): FactoryPlan {
   return {
@@ -40,9 +40,10 @@ function executablePlan(): FactoryPlan {
     operation: "prepareNEP17",
     deploymentCall: {
       scriptHash: "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49",
-      operation: "deployFromTemplate",
+      operation: "deployArtifactFromTemplate",
       args: [],
     },
+    artifactDigest: "Y2VydGlmaWVkLWFydGlmYWN0LWRpZ2VzdA==",
     execution: {
       outcome: "contract-deployment",
       available: true,
@@ -117,10 +118,10 @@ describe("Asset Factory production safety", () => {
     expect(safe.publishable).toBe(true);
     expect(safe.digest).toBe(original.digest);
     expect(safe.execution.available).toBe(false);
-    expect(safe.execution.blockedReasonKey).toBe("artifactUnverified");
+    expect(safe.execution.blockedReasonKey).toBe("deploymentCertificationPending");
     expect(safe.steps.find((step) => step.key === "deploy")).toMatchObject({
       status: "blocked",
-      detailKey: "artifactUnverified",
+      detailKey: "stepDeployFactoryUpgradeRequired",
     });
   });
 

@@ -64,8 +64,9 @@ const SOLVED_SLOTS = {
   player: 1,
   difficulty: 2,
   elapsedMs: 3,
-  solvedPayout: 4,
-  totalWon: 5,
+  solvedPayout: 5,
+  totalWon: 6,
+  undos: 7,
 };
 
 export type { LeaderEntry, SolveRow };

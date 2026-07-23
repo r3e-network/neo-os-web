@@ -9,6 +9,9 @@ import {
   statusOf,
 } from "../../curve-arrow/src/logic/game-rules";
 
+const PLATFORM_REGISTRY_TESTNET = "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b";
+const PLATFORM_GAME_TESTNET = "0xc75b181b4561462903bb27d8d9e0b32b637bec12";
+
 function appFile(relativePath: string): string {
   const sharedRoot = process.cwd().endsWith("/apps/shared")
     ? process.cwd()
@@ -32,13 +35,21 @@ describe("curve-arrow production safety", () => {
     });
 
     const neo = JSON.parse(appFile("neo-manifest.json")) as {
-      contracts: Record<string, string>;
+      contracts?: Record<string, string>;
+      moduleId?: string;
+      mode?: string;
+      registry?: string;
+      engine?: string;
       operation_panel: { operations: unknown[] };
       permissions: unknown[];
       platform: { transactions: boolean };
       technologies: { oracle: { enabled: boolean }; tee: { enabled: boolean } };
     };
-    expect(neo.contracts).toEqual({});
+    expect(neo.contracts).toBeUndefined();
+    expect(neo.moduleId).toBe("platform-game");
+    expect(neo.mode).toBe("shared");
+    expect(neo.registry).toBe(PLATFORM_REGISTRY_TESTNET);
+    expect(neo.engine).toBe(PLATFORM_GAME_TESTNET);
     expect(neo.operation_panel.operations).toEqual([]);
     expect(neo.permissions).toEqual([]);
     expect(neo.platform.transactions).toBe(false);

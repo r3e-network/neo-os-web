@@ -9,6 +9,10 @@ import {
   type FactorySignatureInfo,
 } from "@shared/factory/runtime";
 import type { FactoryPlan } from "@shared/factory/factoryPlan";
+import {
+  buildFactoryArtifactCall,
+  factoryTemplateArtifactHashes,
+} from "@shared/factory/factoryArtifact";
 import { sha256 } from "@shared/shims/noble-hashes-sha256.js";
 import { normalizeScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
@@ -24,7 +28,7 @@ export const NFT_FACTORY_TEMPLATE_ID = "tpl.nep11.collection.v1";
 export const NFT_FACTORY_TESTNET_CONTRACT =
   "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49";
 export const NFT_FACTORY_EXECUTION_BLOCK_REASON =
-  "nftUniqueArtifactRequired";
+  "nftDeploymentCertificationPending";
 export const NFT_FACTORY_SUPPORTED_NETWORKS = ["neo-n3-testnet"] as const;
 
 const METADATA_ERROR = "metadata_sample_unverified";
@@ -79,8 +83,9 @@ function observableFrom<T>(
  * The deployed testnet MiniAppFactory does not expose the newer
  * deployArtifactFromTemplate ABI, and the registered NEP-11 template currently
  * has no artifact. A production creator-unique deployment therefore requires
- * both a Factory upgrade and an app-side artifact builder. The shared planner
- * models the legacy route, so this release keeps the write lane closed.
+ * a Factory upgrade plus transaction persistence, event confirmation, and
+ * deployment-record readback certification. The shared planner already builds
+ * the complete six-argument artifact call; this release still keeps writes closed.
  */
 export function enforceNftFactoryExecutionGate(plan: FactoryPlan): FactoryPlan {
   if (plan.kind !== "nep11") return plan;
@@ -90,17 +95,14 @@ export function enforceNftFactoryExecutionGate(plan: FactoryPlan): FactoryPlan {
     execution: {
       ...plan.execution,
       available: false,
-      // App-local reason key. The shared planner's union predates the live
-      // contract's creator-unique artifact requirement.
-      blockedReasonKey:
-        NFT_FACTORY_EXECUTION_BLOCK_REASON as FactoryPlan["execution"]["blockedReasonKey"],
+      blockedReasonKey: NFT_FACTORY_EXECUTION_BLOCK_REASON,
     },
     steps: plan.steps.map((step) =>
       step.key === "deploy"
         ? {
             ...step,
             status: "blocked" as const,
-            detailKey: "stepDeployUniqueArtifactRequired",
+            detailKey: "stepDeployFactoryUpgradeRequired",
           }
         : step,
     ),
@@ -149,40 +151,43 @@ function committedDigest(plan: FactoryPlan): string {
 
 /**
  * NFT Factory only signs the one release identity documented in its manifest.
- * The check also proves that the inspectable contract call carries the exact
- * template, package id, digest and init params shown in the package preview.
+ * The check also proves that the plan selects the creator-artifact ABI and that
+ * all six package-bound values exactly match the generated governed artifact.
  */
 export function isCanonicalNftFactoryPlan(plan: FactoryPlan): boolean {
-  const [templateArg, packageArg, digestArg, initParamsArg] =
-    plan.deploymentCall.args;
-  const initParams = plan.payload.initParams;
   const expectedPackageId = `${NFT_FACTORY_TEMPLATE_ID.replace(/\./g, "-")}-${plan.digest.slice(-10)}`;
-
-  return (
-    plan.kind === "nep11" &&
-    plan.network === "neo-n3-testnet" &&
-    plan.templateId === NFT_FACTORY_TEMPLATE_ID &&
-    plan.templateVersion === "1.0.0" &&
-    plan.templateRef === NFT_FACTORY_TEMPLATE_ID &&
-    plan.operation === "prepareNEP11" &&
-    plan.payload.standard === "NEP-11" &&
-    plan.payload.templateId === plan.templateId &&
-    plan.payload.templateVersion === plan.templateVersion &&
-    /^0x[0-9a-f]{64}$/.test(plan.digest) &&
-    plan.digest === committedDigest(plan) &&
-    plan.packageId === expectedPackageId &&
-    normalizeScriptHash(plan.deploymentCall.scriptHash) ===
-      NFT_FACTORY_TESTNET_CONTRACT &&
-    plan.deploymentCall.operation === "deployFromTemplate" &&
-    templateArg?.type === "String" &&
-    templateArg.value === plan.templateId &&
-    packageArg?.type === "String" &&
-    packageArg.value === plan.packageId &&
-    digestArg?.type === "String" &&
-    digestArg.value === plan.digest &&
-    initParamsArg?.type === "String" &&
-    initParamsArg.value === JSON.stringify(initParams)
-  );
+  try {
+    const expectedArtifact = buildFactoryArtifactCall(
+      "nep11",
+      plan.templateId,
+      plan.packageId,
+      plan.payload.initParams as Record<string, unknown>,
+    );
+    const expectedHashes = factoryTemplateArtifactHashes("nep11");
+    return (
+      plan.kind === "nep11" &&
+      plan.network === "neo-n3-testnet" &&
+      plan.templateId === NFT_FACTORY_TEMPLATE_ID &&
+      plan.templateVersion === "1.0.0" &&
+      plan.templateRef === NFT_FACTORY_TEMPLATE_ID &&
+      plan.operation === "prepareNEP11" &&
+      plan.payload.standard === "NEP-11" &&
+      plan.payload.templateId === plan.templateId &&
+      plan.payload.templateVersion === plan.templateVersion &&
+      plan.templateArtifact.nefHash === expectedHashes.nefHash &&
+      plan.templateArtifact.manifestHash === expectedHashes.manifestHash &&
+      /^0x[0-9a-f]{64}$/.test(plan.digest) &&
+      plan.digest === committedDigest(plan) &&
+      plan.packageId === expectedPackageId &&
+      normalizeScriptHash(plan.deploymentCall.scriptHash) ===
+        NFT_FACTORY_TESTNET_CONTRACT &&
+      plan.deploymentCall.operation === "deployArtifactFromTemplate" &&
+      plan.artifactDigest === expectedArtifact.artifactDigest &&
+      canonicalJson(plan.deploymentCall.args) === canonicalJson(expectedArtifact.args)
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -198,6 +203,7 @@ export function buildNftFactorySignatureMessage(plan: FactoryPlan): string {
     `template=${plan.templateId}@${plan.templateVersion}`,
     `package=${plan.packageId}`,
     `digest=${plan.digest}`,
+    `artifact=${plan.artifactDigest}`,
     `payload=${canonicalJson(plan.payload)}`,
   ].join("\n");
 }

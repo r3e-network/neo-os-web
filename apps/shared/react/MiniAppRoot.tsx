@@ -113,7 +113,7 @@ interface MiniAppRootProps {
   /**
    * app.registry config (Platform Contract Library v2 phase 2): the
    * network's deployed PlatformRegistry contract hash. Absent ⇒
-   * `app.registry.available` is false (typed capability errors on use), so
+   * `app.registry.available` is false (typed capability errors on chain use), so
    * registry-aware UI degrades away on hosts without the directory.
    */
   registry?: MiniAppFrameworkOptions["registry"];
@@ -124,6 +124,10 @@ interface MiniAppRootProps {
    * so engine-aware UI degrades away on hosts without the engine.
    */
   platformGame?: MiniAppFrameworkOptions["platformGame"];
+  platformSocial?: MiniAppFrameworkOptions["platformSocial"];
+  platformAnchor?: MiniAppFrameworkOptions["platformAnchor"];
+  platformDeFi?: MiniAppFrameworkOptions["platformDeFi"];
+  platformFactory?: MiniAppFrameworkOptions["platformFactory"];
 }
 
 /** Context passed to the miniapp's setup function (React version) */
@@ -313,6 +317,10 @@ export function MiniAppRoot({
   credits,
   registry,
   platformGame,
+  platformSocial,
+  platformAnchor,
+  platformDeFi,
+  platformFactory,
 }: MiniAppRootProps) {
   // --------------------------------------------------------------------------
   // i18n
@@ -447,7 +455,7 @@ export function MiniAppRoot({
       setError,
       launchContext: frameworkLaunchContext,
       registerAction,
-    }, { appId, storagePrefix, oracle, credits, registry, platformGame });
+    }, { appId, storagePrefix, oracle, credits, registry, platformGame, platformSocial, platformAnchor, platformDeFi, platformFactory });
     if (launchGameMode !== null) {
       frameworkRef.current.mode.set(launchGameMode);
     }

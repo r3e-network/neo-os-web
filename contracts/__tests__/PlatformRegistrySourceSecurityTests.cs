@@ -209,7 +209,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.DoesNotContain("ContractPermission(\"*\", \"*\")", core);
             Assert.Contains("[ContractPermission(\"0xd2a4cff31913016155e38e474a2c06d08be276cf\", \"transfer\")]", core);
             Assert.Contains("[ContractPermission(\"0xfffdc93764dbaddd97c48f252a53ea4643faa3fd\", \"deploy\", \"getContract\", \"update\")]", core);
-            Assert.Contains("[ContractPermission(\"*\", \"activateApp\", \"validateAndApplyDescriptor\", \"bindRegistry\", \"onAdminRotated\", \"executeTransfer\", \"setPaused\", \"update\")]", core);
+            Assert.Contains("[ContractPermission(\"*\", \"activateApp\", \"validateAndApplyDescriptor\", \"bindRegistry\", \"onAdminRotated\", \"executeTransfer\", \"setPaused\", \"update\", \"computePlatformAccountId\", \"registerPlatformAccount\")]", core);
         }
 
         [Fact]

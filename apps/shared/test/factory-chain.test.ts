@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   estimateFactoryFeeGas,
+  fetchFactoryArtifactDeploymentSupport,
   fetchFactoryDeployments,
   fetchTemplateArtifactPresence,
   inspectFactoryRecord,
@@ -80,6 +81,43 @@ afterEach(() => {
 });
 
 describe("factoryChain", () => {
+  it("verifies the exact six-argument artifact deployment ABI", async () => {
+    const method = {
+      name: "deployArtifactFromTemplate",
+      parameters: ["String", "String", "String", "String", "ByteArray", "String"].map(
+        (type) => ({ type }),
+      ),
+      returntype: "Hash160",
+      safe: false,
+    };
+    mockRpc((body) => {
+      expect(body.method).toBe("getcontractstate");
+      expect(body.params).toEqual([FACTORY_HASH]);
+      return { manifest: { abi: { methods: [method] } } };
+    });
+    await expect(
+      fetchFactoryArtifactDeploymentSupport("neo-n3-testnet", FACTORY_HASH),
+    ).resolves.toBe("supported");
+
+    mockRpc(() => ({
+      manifest: {
+        abi: { methods: [{ ...method, parameters: method.parameters.slice(0, 5) }] },
+      },
+    }));
+    await expect(
+      fetchFactoryArtifactDeploymentSupport("neo-n3-testnet", FACTORY_HASH),
+    ).resolves.toBe("missing");
+  });
+
+  it("reports unknown artifact ABI support when contract state is unavailable", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("offline");
+    }));
+    await expect(
+      fetchFactoryArtifactDeploymentSupport("neo-n3-testnet", FACTORY_HASH),
+    ).resolves.toBe("unknown");
+  });
+
   it("maps getTemplate HasArtifact to live presence states", async () => {
     mockRpc(() => templateStack(false));
     expect(

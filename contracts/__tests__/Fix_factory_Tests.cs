@@ -3,6 +3,7 @@ using System.IO;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
 using Neo;
 using Neo.SmartContract;
 using Neo.SmartContract.Manifest;
@@ -63,6 +64,13 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             return Convert.ToBase64String(SHA256.HashData(preimage));
         }
 
+        private static string InstanceManifest(string baseManifest, string packageId)
+        {
+            JsonObject manifest = JsonNode.Parse(baseManifest)!.AsObject();
+            manifest["name"] = packageId;
+            return manifest.ToJsonString();
+        }
+
         private static FactoryContract DeployFactory(TestEngine engine, out UInt160 adminAccount)
         {
             // The deployer (current signer) becomes admin via _deploy.
@@ -72,11 +80,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             return engine.Deploy<FactoryContract>(nef, manifest);
         }
 
-        // A11 HIGH: two different users each deploy their OWN unique NEF from the
-        // same shared artifact-backed template. The deterministic deploy hash is a
-        // function of the NEF, so distinct NEFs must yield distinct, non-colliding
-        // hashes and BOTH deployments must succeed (the original code deployed one
-        // fixed stored NEF, so only the first caller could ever succeed).
+        // A11 HIGH: two packages deploy the SAME governed NEF with otherwise
+        // identical manifests whose names equal their package ids. Manifest name
+        // participates in Neo's deterministic contract hash, so both deployments
+        // are unique without permitting caller-supplied executable code.
         [Fact]
         public void Factory_ArtifactDeploysAreUniquePerUser_NoHashCollision()
         {
@@ -85,14 +92,13 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             engine.SetTransactionSigners(admin);
             factory.registerTemplate("tpl-token", "NEP-17", "1.0.0", "", "", "");
-            // Flip HasArtifact = true (the artifact bytes themselves are unused by
-            // the per-user deploy path, but the template must be artifact-backed).
             var (seedNef, seedManifest) = RawArtifact("MiniAppTarot");
             factory.registerTemplateArtifact("tpl-token", seedNef, seedManifest);
 
-            // User A deploys their own NEF; User B deploys a DIFFERENT NEF.
-            var (nefA, manA) = RawArtifact("MiniAppTarot");
-            var (nefB, manB) = RawArtifact("MiniAppCoinFlip");
+            byte[] nefA = seedNef;
+            byte[] nefB = seedNef;
+            string manA = InstanceManifest(seedManifest, "pkg-A");
+            string manB = InstanceManifest(seedManifest, "pkg-B");
             string paramsA = "{\"name\":\"AAA\"}";
             string paramsB = "{\"name\":\"BBB\"}";
             string digestA = ExpectedDigest(nefA, manA, paramsA);
@@ -122,8 +128,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             engine.SetTransactionSigners(admin);
             factory.registerTemplate("tpl-token", "NEP-17", "1.0.0", "", "", "");
-            var (nef, manifest) = RawArtifact("MiniAppTarot");
-            factory.registerTemplateArtifact("tpl-token", nef, manifest);
+            var (nef, baseManifest) = RawArtifact("MiniAppTarot");
+            factory.registerTemplateArtifact("tpl-token", nef, baseManifest);
+            string manifest = InstanceManifest(baseManifest, "pkg-X");
 
             string wrongDigest = "not-the-real-digest";
             var ex = Assert.ThrowsAny<Exception>(() =>
@@ -142,8 +149,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             engine.SetTransactionSigners(admin);
             factory.registerTemplate("tpl-token", "NEP-17", "1.0.0", "", "", "");
-            var (nef, manifest) = RawArtifact("MiniAppTarot");
-            factory.registerTemplateArtifact("tpl-token", nef, manifest);
+            var (nef, baseManifest) = RawArtifact("MiniAppTarot");
+            factory.registerTemplateArtifact("tpl-token", nef, baseManifest);
+            string manifest = InstanceManifest(baseManifest, "pkg-T");
 
             string committedParams = "{\"supply\":\"100\"}";
             string digest = ExpectedDigest(nef, manifest, committedParams);
@@ -151,6 +159,70 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var ex = Assert.ThrowsAny<Exception>(() =>
                 factory.deployArtifactFromTemplate("tpl-token", "pkg-T", digest, "{\"supply\":\"999\"}", nef, manifest));
             Assert.Equal("ABORTMSG is executed. Reason: digest mismatch", ex.Message);
+        }
+
+        [Fact]
+        public void Factory_ArtifactDeployRejectsCodeOutsideGovernedTemplate()
+        {
+            var engine = new TestEngine(true);
+            var factory = DeployFactory(engine, out UInt160 admin);
+
+            engine.SetTransactionSigners(admin);
+            var (governedNef, governedManifest) = RawArtifact("MiniAppTarot");
+            factory.registerTemplate("tpl-token", "NEP-17", "1.0.0", "", "", "");
+            factory.registerTemplateArtifact("tpl-token", governedNef, governedManifest);
+
+            var (foreignNef, _) = RawArtifact("MiniAppCoinFlip");
+            string candidateManifest = InstanceManifest(governedManifest, "pkg-foreign");
+            string digest = ExpectedDigest(foreignNef, candidateManifest, "{}");
+            var ex = Assert.ThrowsAny<Exception>(() =>
+                factory.deployArtifactFromTemplate(
+                    "tpl-token", "pkg-foreign", digest, "{}", foreignNef, candidateManifest));
+            Assert.Equal("ABORTMSG is executed. Reason: nef does not match template", ex.Message);
+            Assert.Equal(BigInteger.Zero, factory.deploymentCount());
+        }
+
+        [Fact]
+        public void Factory_ArtifactDeployRejectsManifestChangesBeyondPackageName()
+        {
+            var engine = new TestEngine(true);
+            var factory = DeployFactory(engine, out UInt160 admin);
+
+            engine.SetTransactionSigners(admin);
+            var (nef, governedManifest) = RawArtifact("MiniAppTarot");
+            factory.registerTemplate("tpl-token", "NEP-17", "1.0.0", "", "", "");
+            factory.registerTemplateArtifact("tpl-token", nef, governedManifest);
+
+            JsonObject changed = JsonNode.Parse(
+                InstanceManifest(governedManifest, "pkg-mutated"))!.AsObject();
+            changed["permissions"] = new JsonArray();
+            string candidateManifest = changed.ToJsonString();
+            string digest = ExpectedDigest(nef, candidateManifest, "{}");
+            var ex = Assert.ThrowsAny<Exception>(() =>
+                factory.deployArtifactFromTemplate(
+                    "tpl-token", "pkg-mutated", digest, "{}", nef, candidateManifest));
+            Assert.Equal("ABORTMSG is executed. Reason: manifest does not match template", ex.Message);
+            Assert.Equal(BigInteger.Zero, factory.deploymentCount());
+        }
+
+        [Fact]
+        public void Factory_ArtifactDeployRequiresManifestNameToEqualPackageId()
+        {
+            var engine = new TestEngine(true);
+            var factory = DeployFactory(engine, out UInt160 admin);
+
+            engine.SetTransactionSigners(admin);
+            var (nef, governedManifest) = RawArtifact("MiniAppTarot");
+            factory.registerTemplate("tpl-token", "NEP-17", "1.0.0", "", "", "");
+            factory.registerTemplateArtifact("tpl-token", nef, governedManifest);
+
+            string candidateManifest = InstanceManifest(governedManifest, "different-name");
+            string digest = ExpectedDigest(nef, candidateManifest, "{}");
+            var ex = Assert.ThrowsAny<Exception>(() =>
+                factory.deployArtifactFromTemplate(
+                    "tpl-token", "pkg-name", digest, "{}", nef, candidateManifest));
+            Assert.Equal("ABORTMSG is executed. Reason: manifest name must equal package id", ex.Message);
+            Assert.Equal(BigInteger.Zero, factory.deploymentCount());
         }
 
         // The legacy fixed-NEF path must no longer be reachable for artifact

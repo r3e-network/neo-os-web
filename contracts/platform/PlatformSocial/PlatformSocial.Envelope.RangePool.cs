@@ -34,7 +34,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(totalAmount >= minClaimAmount * maxClaims, "pool below minimum claims");
             ExecutionEngine.Assert(totalAmount <= maxClaimAmount * maxClaims, "pool exceeds maximum claims");
 
-            ConsumeGasCredit(creator, totalAmount);
+            ConsumeGasCredit(appId, creator, totalAmount);
 
             ByteString idKey = AppKey(appId, PREFIX_RANGE_POOL_ID);
             BigInteger poolId = GetBigInteger(idKey) + 1;
@@ -138,7 +138,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger maxRemainingCapacity = remainingClaims * pool.MaxClaimAmount;
             ExecutionEngine.Assert(pool.RemainingAmount + amount <= maxRemainingCapacity, "pool exceeds maximum claims");
 
-            ConsumeGasCredit(creator, amount);
+            ConsumeGasCredit(appId, creator, amount);
 
             pool.TotalAmount += amount;
             pool.RemainingAmount += amount;

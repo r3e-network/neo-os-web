@@ -11,11 +11,10 @@ export const ENTRY_MEMO = "miniapp-jump-rush:entry";
 export const FUND_MEMO = "miniapp-jump-rush:fund";
 
 export const MAX_UNDOS = 3;
+export const GAMEFI_MAX_UNDOS = 0;
 export const UNDO_PENALTY_PCT = 30;
 /** Mirrors MiniAppJumpRush.SETTLE_GRACE_MS; expiry is not callable at deadline. */
 export const SETTLE_GRACE_MS = 600_000;
-/** Mirrors MiniAppJumpRush.DEAL_TTL_MS for a game that never reached deal. */
-export const DEAL_TTL_MS = 3_600_000;
 
 export interface DifficultyRule {
   difficulty: number;
@@ -32,9 +31,9 @@ const EASY_RULE: DifficultyRule = {
   key: "easy",
   entryFixed8: 2_000_000n,
   rewardFixed8: 10_000_000n,
-  limitMs: 60_000,
-  minSolveMs: 15_000,
-  targetJumps: 10,
+  limitMs: 180_000,
+  minSolveMs: 20_000,
+  targetJumps: 15,
 };
 
 const MEDIUM_RULE: DifficultyRule = {
@@ -42,9 +41,9 @@ const MEDIUM_RULE: DifficultyRule = {
   key: "medium",
   entryFixed8: 10_000_000n,
   rewardFixed8: 50_000_000n,
-  limitMs: 90_000,
-  minSolveMs: 30_000,
-  targetJumps: 20,
+  limitMs: 300_000,
+  minSolveMs: 40_000,
+  targetJumps: 25,
 };
 
 const HARD_RULE: DifficultyRule = {
@@ -52,9 +51,9 @@ const HARD_RULE: DifficultyRule = {
   key: "hard",
   entryFixed8: 20_000_000n,
   rewardFixed8: 100_000_000n,
-  limitMs: 120_000,
-  minSolveMs: 45_000,
-  targetJumps: 30,
+  limitMs: 480_000,
+  minSolveMs: 60_000,
+  targetJumps: 35,
 };
 
 export const DIFFICULTY_RULES: readonly DifficultyRule[] = [EASY_RULE, MEDIUM_RULE, HARD_RULE];

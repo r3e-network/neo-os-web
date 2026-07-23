@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "vitest run --config vite.config.ts src/composables/useTimestampProof.notary.test.ts"
   },
   "dependencies": {},
   "devDependencies": {

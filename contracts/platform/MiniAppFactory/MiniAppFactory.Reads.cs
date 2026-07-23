@@ -124,9 +124,24 @@ namespace NeoMiniAppPlatform.Contracts
         private static void ValidateDeploymentInputs(string templateId, string packageId, string digest, string initParamsJson)
         {
             ValidateId(templateId, "invalid template id");
-            ValidateId(packageId, "invalid package id");
+            ValidatePackageId(packageId);
             ExecutionEngine.Assert(digest != null && digest.Length > 0 && digest.Length <= MAX_HASH_LENGTH, "invalid digest");
             ExecutionEngine.Assert(initParamsJson != null && initParamsJson.Length <= MAX_JSON_LENGTH, "invalid init params");
+        }
+
+        private static void ValidatePackageId(string packageId)
+        {
+            ValidateId(packageId, "invalid package id");
+            for (int i = 0; i < packageId.Length; i++)
+            {
+                char value = packageId[i];
+                bool allowed =
+                    value >= 'a' && value <= 'z' ||
+                    value >= 'A' && value <= 'Z' ||
+                    value >= '0' && value <= '9' ||
+                    value == '-' || value == '_' || value == '.';
+                ExecutionEngine.Assert(allowed, "invalid package id");
+            }
         }
     }
 }

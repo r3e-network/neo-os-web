@@ -313,6 +313,10 @@ export interface ContractBinding {
   recipeId?: string;
   /** Binding mode — determines how the contract is resolved */
   mode?: ContractMode;
+  /** PlatformRegistry hash supplying the shared binding. */
+  registry?: string;
+  /** Shared engine hash resolved for this app. */
+  engine?: string;
 }
 
 // ============================================================================

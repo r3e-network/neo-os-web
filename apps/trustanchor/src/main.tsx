@@ -3,6 +3,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { createAnchorRuntime } from "./anchor-runtime";
+import { getMiniAppContractHash } from "@shared/constants/rpc";
 
 const APP_ID = "miniapp-trustanchor";
 
@@ -11,6 +12,7 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  platformAnchor: { anchorHash: getMiniAppContractHash(APP_ID) },
   setup(ctx) {
     const runtime = createAnchorRuntime(ctx.framework, ctx.t, {
       appId: APP_ID,

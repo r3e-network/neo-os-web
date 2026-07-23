@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { deriveAppAccountHash } from "../utils/aa-account";
+import { deriveAppAccountHash, deriveVirtualAAAccount } from "../utils/aa-account";
 import { scriptHashToAddress } from "../utils/neo";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -114,5 +114,22 @@ describe("deriveAppAccountHash (shared CreateContractHash vectors)", () => {
         manifestName: "x".repeat(65),
       }),
     ).toThrow(/manifest name/i);
+  });
+});
+
+describe("deriveVirtualAAAccount (cross-repository canonical vector)", () => {
+  it("matches the abstract-account SDK and frontend byte-for-byte", () => {
+    expect(
+      deriveVirtualAAAccount(
+        "0x0123456789abcdef0123456789abcdef01234567",
+        "0x89abcdef0123456789abcdef0123456789abcdef",
+      ),
+    ).toEqual({
+      coreHash: "0x0123456789abcdef0123456789abcdef01234567",
+      accountId: "0x89abcdef0123456789abcdef0123456789abcdef",
+      verifyScript: "0c14efcdab8967452301efcdab8967452301efcdab8911c01f0c067665726966790c1467452301efcdab8967452301efcdab896745230141627d5b52",
+      scriptHash: "0xf2afddbbdae6b710f0c2cdebb8b734e40d4d4fda",
+      address: "NfpHVWDgSaedTHuk183urAp9FDBS4i4VYB",
+    });
   });
 });

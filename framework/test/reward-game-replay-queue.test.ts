@@ -18,6 +18,8 @@ function makeSession(gameId: string, token: string): RewardGameSession {
     publicKey: "pk",
     sessionToken: token,
     view: {},
+    currentView: {},
+    opCount: 0,
     config: { limitMs: 0, minSolveMs: 0, maxUndos: 0, revealPolicy: "", raw: {} },
     identity: {
       appId: "replay-queue-test",

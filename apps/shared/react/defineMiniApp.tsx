@@ -113,7 +113,7 @@ export interface MiniAppDefinition {
   /**
    * app.registry config (Platform Contract Library v2 phase 2). Hosts on a
    * network with a deployed PlatformRegistry inject its contract hash here;
-   * absent ⇒ `app.registry.available` is false and every app.registry read
+   * absent ⇒ `app.registry.available` is false and every app.registry chain call
    * throws a typed capability error, so registry-aware UI degrades away
    * cleanly on hosts without the directory.
    */
@@ -127,6 +127,49 @@ export interface MiniAppDefinition {
    * engine-aware UI degrades away cleanly on hosts without the engine.
    */
   platformGame?: MiniAppFrameworkOptions["platformGame"];
+  platformSocial?: MiniAppFrameworkOptions["platformSocial"];
+  platformAnchor?: MiniAppFrameworkOptions["platformAnchor"];
+  platformDeFi?: MiniAppFrameworkOptions["platformDeFi"];
+  platformFactory?: MiniAppFrameworkOptions["platformFactory"];
+}
+
+export function platformGameConfigFromManifest(
+  manifest: MiniAppManifest,
+): MiniAppFrameworkOptions["platformGame"] | undefined {
+  const binding = manifest.contract;
+  if (binding?.mode !== "shared" || binding.moduleId !== "platform-game") return undefined;
+  const gameHash = String(binding.engine ?? "").trim();
+  return gameHash ? { gameHash } : undefined;
+}
+
+export function platformSocialConfigFromManifest(
+  manifest: MiniAppManifest,
+): MiniAppFrameworkOptions["platformSocial"] | undefined {
+  const binding = manifest.contract;
+  if (binding?.mode !== "shared" || binding.moduleId !== "platform-social") return undefined;
+  const socialHash = String(binding.engine ?? "").trim();
+  return socialHash ? { socialHash } : undefined;
+}
+
+export function platformAnchorConfigFromManifest(
+  manifest: MiniAppManifest,
+): MiniAppFrameworkOptions["platformAnchor"] | undefined {
+  const binding = manifest.contract;
+  if (binding?.mode !== "shared" || String(binding.moduleId ?? "").toLowerCase() !== "platformanchor") return undefined;
+  const anchorHash = String(binding.engine ?? "").trim();
+  return anchorHash ? { anchorHash } : undefined;
+}
+
+export function platformDeFiConfigFromManifest(
+  manifest: MiniAppManifest,
+): MiniAppFrameworkOptions["platformDeFi"] | undefined {
+  const binding = manifest.contract;
+  const moduleId = String(binding?.moduleId ?? "").toLowerCase();
+  if (binding?.mode !== "shared" || (moduleId !== "platformdefi" && moduleId !== "platform-defi")) {
+    return undefined;
+  }
+  const defiHash = String(binding.engine ?? "").trim();
+  return defiHash ? { defiHash } : undefined;
 }
 
 /**
@@ -152,7 +195,15 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
     credits,
     registry,
     platformGame,
+    platformSocial,
+    platformAnchor,
+    platformDeFi,
+    platformFactory,
   } = definition;
+  const resolvedPlatformGame = platformGame ?? platformGameConfigFromManifest(manifest);
+  const resolvedPlatformSocial = platformSocial ?? platformSocialConfigFromManifest(manifest);
+  const resolvedPlatformAnchor = platformAnchor ?? platformAnchorConfigFromManifest(manifest);
+  const resolvedPlatformDeFi = platformDeFi ?? platformDeFiConfigFromManifest(manifest);
 
   const container = document.querySelector(mountTo);
   if (!container) {
@@ -176,7 +227,11 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
         oracle={oracle}
         credits={credits}
         registry={registry}
-        platformGame={platformGame}
+        platformGame={resolvedPlatformGame}
+        platformSocial={resolvedPlatformSocial}
+        platformAnchor={resolvedPlatformAnchor}
+        platformDeFi={resolvedPlatformDeFi}
+        platformFactory={platformFactory}
       />
     </React.StrictMode>,
   );

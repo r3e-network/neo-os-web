@@ -17,6 +17,22 @@ import type {
   FrameworkPlatformGameSurface,
 } from "./platform-game-surface";
 import type {
+  FrameworkPlatformSocialConfig,
+  FrameworkPlatformSocialSurface,
+} from "./platform-social-surface";
+import type {
+  FrameworkPlatformAnchorConfig,
+  FrameworkPlatformAnchorSurface,
+} from "./platform-anchor-surface";
+import type {
+  FrameworkPlatformDeFiConfig,
+  FrameworkPlatformDeFiSurface,
+} from "./platform-defi-surface";
+import type {
+  FrameworkPlatformFactoryConfig,
+  FrameworkPlatformFactorySurface,
+} from "./platform-factory-surface";
+import type {
   FrameworkBusChannel,
   FrameworkBusSurface,
   FrameworkEventsSurface,
@@ -317,8 +333,8 @@ export interface MiniAppFrameworkOptions {
    * app.registry config (Platform Contract Library v2 phase 2): the network's
    * deployed PlatformRegistry contract hash (network-specific, so the app
    * layer injects it — same pattern as `credits`). Absent ⇒ every
-   * app.registry read throws a typed FrameworkCapabilityError; the advisory
-   * `deriveAccountHash` helper stays available (pure offline math).
+   * app.registry chain method throws a typed FrameworkCapabilityError; the
+   * advisory `deriveAccountHash` helper stays available (pure offline math).
    */
   registry?: FrameworkRegistryConfig;
   /**
@@ -329,6 +345,14 @@ export interface MiniAppFrameworkOptions {
    * typed FrameworkCapabilityError.
    */
   platformGame?: FrameworkPlatformGameConfig;
+  /** PlatformSocial shared engine config; unconfigured surfaces fail closed. */
+  platformSocial?: FrameworkPlatformSocialConfig;
+  /** PlatformAnchor shared engine config; unconfigured surfaces fail closed. */
+  platformAnchor?: FrameworkPlatformAnchorConfig;
+  /** PlatformDeFi shared engine config; unconfigured surfaces fail closed. */
+  platformDeFi?: FrameworkPlatformDeFiConfig;
+  /** MiniAppFactory network hash map; unconfigured surfaces fail closed. */
+  platformFactory?: FrameworkPlatformFactoryConfig;
   /**
    * RFC P1-4 chain.pending / chain.readTxOutcome: resolve the JSON-RPC
    * endpoint for a network label (network-specific, so the app layer injects
@@ -1190,7 +1214,8 @@ export interface FrameworkGameSurface {
  *
  * Structural note: the lazily-constructed surfaces (`events`, `bus`,
  * `wallet`, `lifecycle`, `clipboard`, `share`, `permissions`, `resources`,
- * `aa`, `credits`, `registry`, `platformGame`) are getters at runtime —
+ * `aa`, `credits`, `registry`, `platformGame`, `platformSocial`,
+ * `platformAnchor`, `platformDeFi`, `platformFactory`) are getters at runtime —
  * constructed on first access and cached, so hosts that never touch one pay
  * nothing.
  */
@@ -1241,10 +1266,11 @@ export interface MiniAppFramework {
    */
   readonly credits: FrameworkCreditsSurface;
   /**
-   * app.registry (Platform Contract Library v2 phase 2) — typed reads of the
-   * PlatformRegistry directory (getApp / appAccountOf / appIdOfAccount /
-   * engineOf / pause state) plus the advisory `deriveAccountHash` AppAccount
-   * prediction. Reads only; unconfigured ⇒ typed FrameworkCapabilityError.
+   * app.registry (Platform Contract Library v2 phase 2) — complete
+   * non-control-plane PlatformRegistry reads and tenant-owned writes:
+   * registration, shared-AA materialization, descriptors, app governance,
+   * credits, and role-bound treasury exits. Admin control methods stay
+   * excluded; unconfigured chain calls fail with FrameworkCapabilityError.
    */
   readonly registry: FrameworkRegistrySurface;
   /**
@@ -1256,6 +1282,14 @@ export interface MiniAppFramework {
    * ungated). Unconfigured ⇒ typed FrameworkCapabilityError.
    */
   readonly platformGame: FrameworkPlatformGameSurface;
+  /** Shared social primitives with appId auto-threading and guarded writes. */
+  readonly platformSocial: FrameworkPlatformSocialSurface;
+  /** Shared anchor staking primitives with appId auto-threading and guarded writes. */
+  readonly platformAnchor: FrameworkPlatformAnchorSurface;
+  /** Shared lending, flash-loan and capsule primitives with guarded writes. */
+  readonly platformDeFi: FrameworkPlatformDeFiSurface;
+  /** Governed template registry and deployment primitives with guarded writes. */
+  readonly platformFactory: FrameworkPlatformFactorySurface;
   /** app.oracle — envelope builders + dispatch + S13 dataFeed/seal client. */
   oracle: FrameworkOracleSurface;
   /** app.stats — OS-board stats + shared leaderboard. */

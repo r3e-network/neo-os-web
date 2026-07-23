@@ -79,6 +79,10 @@ export interface TeeStartResult {
   sessionToken: string;
   /** The start view, disclosing only what the engine's revealPolicy permits. */
   view: Record<string, unknown>;
+  /** Latest accepted live view when the worker still has this session cached. */
+  currentView: Record<string, unknown>;
+  /** Number of accepted operations represented by currentView. */
+  opCount: number;
   config: TeeSessionConfig;
 }
 
@@ -203,8 +207,9 @@ function parseConfig(raw: unknown): TeeSessionConfig {
 /**
  * Open (or idempotently re-open) a confidential session. `start` is a pure
  * function of the enclave problem secret, so repeated calls for the same
- * identity return the same commitment / start view — reloads never lose the
- * puzzle. NO on-chain effect.
+ * identity return the same commitment / start view. The host also returns the
+ * latest cached live view and accepted-op count so reload recovery can verify
+ * it against the locally persisted proof log. NO on-chain effect.
  */
 export async function teeSessionStart(
   identity: TeeIdentity,
@@ -219,11 +224,21 @@ export async function teeSessionStart(
   if (!sessionToken) {
     throw new TeeSessionError("start", 200, "session start returned no session token");
   }
+  const opCount = Number(raw.op_count ?? 0);
+  if (!Number.isSafeInteger(opCount) || opCount < 0) {
+    throw new TeeSessionError("start", 200, "session start returned an invalid operation count");
+  }
   return {
     commitment,
     publicKey: String(raw.public_key ?? ""),
     sessionToken,
     view: (raw.view && typeof raw.view === "object" ? raw.view : {}) as Record<string, unknown>,
+    currentView: (raw.current_view && typeof raw.current_view === "object"
+      ? raw.current_view
+      : raw.view && typeof raw.view === "object"
+        ? raw.view
+        : {}) as Record<string, unknown>,
+    opCount,
     config: parseConfig(raw.config),
   };
 }

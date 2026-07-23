@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { manifest } from "../../jump-rush/src/manifest";
-import { DEAL_TTL_MS, SETTLE_GRACE_MS } from "../../jump-rush/src/logic/game-rules";
+import { SETTLE_GRACE_MS } from "../../jump-rush/src/logic/game-rules";
 
 function appsRoot(): string {
   return process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
@@ -51,11 +51,10 @@ describe("jump-rush production trust boundary", () => {
 
   it("keeps the scene, client, and latent TEE operation on normalized charge level", () => {
     const main = source("src/main.tsx");
-    const tee = source("src/logic/tee-session.ts");
     const scene = source("src/scenes/JumpRushScene.ts");
 
-    expect(tee).toContain('{ type: "jump"; chargeLevel: number }');
-    expect(tee).not.toContain('{ type: "jump"; chargeMs: number }');
+    expect(main).toContain('{ type: "jump"; chargeLevel: number }');
+    expect(main).not.toContain('{ type: "jump"; chargeMs: number }');
     expect(main).toContain('await sendOp({ type: "jump", chargeLevel })');
     expect(main).toContain("inputSyncFailed.set(true)");
     expect(scene).toContain("evaluateJumpLevel(chargeLevel, to.gap, to.width)");
@@ -64,34 +63,33 @@ describe("jump-rush production trust boundary", () => {
   });
 
   it("renders authoritative platform objects instead of inventing widths from gap numbers", () => {
+    const main = source("src/main.tsx");
     const scene = source("src/scenes/JumpRushScene.ts");
-    const tee = source("src/logic/tee-session.ts");
 
-    expect(tee).toContain("view: { platforms: Platform[] }");
-    expect(tee).toContain("parsePlatforms(view.platforms)");
+    expect(main).toContain("started.view.platforms");
+    expect(main).toContain("platformsView.set(platforms)");
     expect(scene).toContain('this.val<Platform[]>("platformsView")');
     expect(scene).toContain("Number(raw.width)");
     expect(scene).not.toContain("widthSeed");
   });
 
-  it("decodes only fields that the deployed seven-slot Solved event actually publishes", () => {
+  it("uses the shared PlatformGame Solved slots without inventing undo data", () => {
     const main = source("src/main.tsx");
 
-    expect(main).toContain("jumps: ruleOf(solvedDifficulty).targetJumps");
+    expect(main).toContain("jumps: ruleOf(difficulty).targetJumps");
     expect(main).toContain("perfects: null");
-    expect(main).not.toContain("eventStateValue(ev, 7)");
-    expect(main).not.toContain("eventStateValue(ev, 8)");
+    expect(main).toContain("{ solvedPayout: 5, totalWon: 6, undos: 7 }");
+    expect(main).not.toContain("app.chain.events(\"Solved\"");
   });
 
   it("mirrors contract recovery windows and blocks premature expiry", () => {
     expect(SETTLE_GRACE_MS).toBe(600_000);
-    expect(DEAL_TTL_MS).toBe(3_600_000);
     const main = source("src/main.tsx");
     const wrapper = source("src/PhaserPlayArea.tsx");
     const scene = source("src/scenes/JumpRushScene.ts");
 
     expect(main).toContain("deadline.get() + SETTLE_GRACE_MS");
-    expect(main).toContain("startedAt.get() + DEAL_TTL_MS");
+    expect(main).not.toContain("DEAL_TTL_MS");
     expect(wrapper).toContain("deadline + SETTLE_GRACE_MS");
     expect(scene).toContain('this.bool("canReleaseRun")');
   });

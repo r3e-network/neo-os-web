@@ -1,0 +1,570 @@
+{
+  "generated_at_utc": "2026-07-22T22:21:22.150Z",
+  "engine_id": "platform-game",
+  "engine_hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+  "evidence": {
+    "absorption_manifest": "deploy/config/rewardgame-absorption-manifest.json",
+    "attachment_report": "deploy/config/engine-attach-testnet-2026-07-19.json",
+    "framework_adapter": "framework/gamefi/platform-game-reward-adapter.ts",
+    "framework_adapter_regression": "framework/test/platform-game-reward-adapter.test.ts"
+  },
+  "framework_adapter": {
+    "implemented": true,
+    "regression_present": true
+  },
+  "summary": {
+    "attached_apps": 11,
+    "attached_with_shared_binding": 11,
+    "attached_using_platform_surface": 0,
+    "attached_routed_via_framework_adapter": 11,
+    "attached_routed_to_platform_game": 11,
+    "attached_using_legacy_runtime": 0,
+    "runtime_migration_complete": 0,
+    "zero_drain_candidates": 5,
+    "candidate_runtime_ready": 0
+  },
+  "attached_apps": [
+    {
+      "app_id": "miniapp-aim-master",
+      "slug": "aim-master",
+      "source_manifest": "apps/aim-master/src/manifest.ts",
+      "public_manifest": "apps/aim-master/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 9,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": true,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-color-clash",
+      "slug": "color-clash",
+      "source_manifest": "apps/color-clash/src/manifest.ts",
+      "public_manifest": "apps/color-clash/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 9,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": true,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-curve-arrow",
+      "slug": "curve-arrow",
+      "source_manifest": "apps/curve-arrow/src/manifest.ts",
+      "public_manifest": "apps/curve-arrow/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 9,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": true,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-flappy-dash",
+      "slug": "flappy-dash",
+      "source_manifest": "apps/flappy-dash/src/manifest.ts",
+      "public_manifest": "apps/flappy-dash/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 9,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": true,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-game-2048",
+      "slug": "game-2048",
+      "source_manifest": "apps/game-2048/src/manifest.ts",
+      "public_manifest": "apps/game-2048/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 9,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": true,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-jump-rush",
+      "slug": "jump-rush",
+      "source_manifest": "apps/jump-rush/src/manifest.ts",
+      "public_manifest": "apps/jump-rush/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 0,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": false,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "testnet_descriptor_values_match_local",
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-merge-kingdom",
+      "slug": "merge-kingdom",
+      "source_manifest": "apps/merge-kingdom/src/manifest.ts",
+      "public_manifest": "apps/merge-kingdom/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 9,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": true,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-pet-potion",
+      "slug": "pet-potion",
+      "source_manifest": "apps/pet-potion/src/manifest.ts",
+      "public_manifest": "apps/pet-potion/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 9,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": true,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-sheep-solitaire",
+      "slug": "sheep-solitaire",
+      "source_manifest": "apps/sheep-solitaire/src/manifest.ts",
+      "public_manifest": "apps/sheep-solitaire/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 3,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": false,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "testnet_descriptor_values_match_local",
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-snake-bounty",
+      "slug": "snake-bounty",
+      "source_manifest": "apps/snake-bounty/src/manifest.ts",
+      "public_manifest": "apps/snake-bounty/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 9,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": true,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-sudoku",
+      "slug": "sudoku",
+      "source_manifest": "apps/sudoku/src/manifest.ts",
+      "public_manifest": "apps/sudoku/neo-manifest.json",
+      "binding": {
+        "mode": "shared",
+        "module_id": "platform-game"
+      },
+      "runtime_adapter": "framework-platform-game-adapter",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": "kernel-lane",
+      "attachment_status": "attached",
+      "descriptor_count": 9,
+      "live_descriptor_count": 9,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": true,
+        "absorption_descriptor_present": true,
+        "testnet_engine_attachment_present": true,
+        "testnet_descriptor_values_match_local": true,
+        "platform_game_runtime_routed": true,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "funded_testnet_lifecycle_proven"
+      ]
+    }
+  ],
+  "zero_drain_candidates": [
+    {
+      "app_id": "miniapp-arrow-escape",
+      "slug": "arrow-escape",
+      "source_manifest": "apps/arrow-escape/src/manifest.ts",
+      "public_manifest": "apps/arrow-escape/neo-manifest.json",
+      "binding": {
+        "mode": "custom",
+        "module_id": null
+      },
+      "runtime_adapter": "none",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": null,
+      "attachment_status": "not-attached",
+      "descriptor_count": 0,
+      "live_descriptor_count": 0,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": false,
+        "absorption_descriptor_present": false,
+        "testnet_engine_attachment_present": false,
+        "testnet_descriptor_values_match_local": false,
+        "platform_game_runtime_routed": false,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "shared_platform_game_binding",
+        "absorption_descriptor_present",
+        "testnet_engine_attachment_present",
+        "testnet_descriptor_values_match_local",
+        "platform_game_runtime_routed",
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-bead-workshop",
+      "slug": "bead-workshop",
+      "source_manifest": "apps/bead-workshop/src/manifest.ts",
+      "public_manifest": "apps/bead-workshop/neo-manifest.json",
+      "binding": {
+        "mode": "custom",
+        "module_id": null
+      },
+      "runtime_adapter": "none",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": null,
+      "attachment_status": "not-attached",
+      "descriptor_count": 0,
+      "live_descriptor_count": 0,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": false,
+        "absorption_descriptor_present": false,
+        "testnet_engine_attachment_present": false,
+        "testnet_descriptor_values_match_local": false,
+        "platform_game_runtime_routed": false,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "shared_platform_game_binding",
+        "absorption_descriptor_present",
+        "testnet_engine_attachment_present",
+        "testnet_descriptor_values_match_local",
+        "platform_game_runtime_routed",
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-fruit-funnel",
+      "slug": "fruit-funnel",
+      "source_manifest": "apps/fruit-funnel/src/manifest.ts",
+      "public_manifest": "apps/fruit-funnel/neo-manifest.json",
+      "binding": {
+        "mode": "custom",
+        "module_id": null
+      },
+      "runtime_adapter": "none",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": null,
+      "attachment_status": "not-attached",
+      "descriptor_count": 0,
+      "live_descriptor_count": 0,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": false,
+        "absorption_descriptor_present": false,
+        "testnet_engine_attachment_present": false,
+        "testnet_descriptor_values_match_local": false,
+        "platform_game_runtime_routed": false,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "shared_platform_game_binding",
+        "absorption_descriptor_present",
+        "testnet_engine_attachment_present",
+        "testnet_descriptor_values_match_local",
+        "platform_game_runtime_routed",
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-screw-sort",
+      "slug": "screw-sort",
+      "source_manifest": "apps/screw-sort/src/manifest.ts",
+      "public_manifest": "apps/screw-sort/neo-manifest.json",
+      "binding": {
+        "mode": "custom",
+        "module_id": null
+      },
+      "runtime_adapter": "none",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": null,
+      "attachment_status": "not-attached",
+      "descriptor_count": 0,
+      "live_descriptor_count": 0,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": false,
+        "absorption_descriptor_present": false,
+        "testnet_engine_attachment_present": false,
+        "testnet_descriptor_values_match_local": false,
+        "platform_game_runtime_routed": false,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "shared_platform_game_binding",
+        "absorption_descriptor_present",
+        "testnet_engine_attachment_present",
+        "testnet_descriptor_values_match_local",
+        "platform_game_runtime_routed",
+        "funded_testnet_lifecycle_proven"
+      ]
+    },
+    {
+      "app_id": "miniapp-zhuada-e",
+      "slug": "zhuada-e",
+      "source_manifest": "apps/zhuada-e/src/manifest.ts",
+      "public_manifest": "apps/zhuada-e/neo-manifest.json",
+      "binding": {
+        "mode": "none",
+        "module_id": null
+      },
+      "runtime_adapter": "none",
+      "transactions_declared": false,
+      "standalone_contract_bindings": 0,
+      "absorption_generation": null,
+      "attachment_status": "not-attached",
+      "descriptor_count": 0,
+      "live_descriptor_count": 0,
+      "checks": {
+        "no_standalone_contract_binding": true,
+        "shared_platform_game_binding": false,
+        "absorption_descriptor_present": false,
+        "testnet_engine_attachment_present": false,
+        "testnet_descriptor_values_match_local": false,
+        "platform_game_runtime_routed": false,
+        "legacy_direct_reward_calls_absent": true,
+        "adapter_regression_present": true,
+        "funded_testnet_lifecycle_proven": false
+      },
+      "migration_complete": false,
+      "blockers": [
+        "shared_platform_game_binding",
+        "absorption_descriptor_present",
+        "testnet_engine_attachment_present",
+        "testnet_descriptor_values_match_local",
+        "platform_game_runtime_routed",
+        "funded_testnet_lifecycle_proven"
+      ]
+    }
+  ],
+  "boundary": "An engine attachment, shared manifest binding, and framework route do not prove funded runtime completion. Completion additionally requires removal of direct clone-shaped calls plus a funded start/finalize/settle/recovery/withdraw testnet lifecycle."
+}

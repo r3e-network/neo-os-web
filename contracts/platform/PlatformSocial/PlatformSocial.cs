@@ -23,8 +23,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void RangeGasPoolCompletedHandler(string appId, BigInteger poolId, UInt160 bestLuckWinner, BigInteger bestLuckAmount);
     public delegate void RangeGasPoolFundedHandler(string appId, BigInteger poolId, UInt160 creator, BigInteger amount, BigInteger totalAmount, BigInteger remainingAmount);
     public delegate void RangeGasPoolRefundedHandler(string appId, BigInteger poolId, UInt160 creator, BigInteger refundAmount);
-    public delegate void GasCreditWithdrawnHandler(UInt160 user, BigInteger amount);
-    public delegate void NeoCreditWithdrawnHandler(UInt160 user, BigInteger amount);
+    public delegate void GasCreditedHandler(string appId, UInt160 payer, BigInteger amount);
+    public delegate void NeoCreditedHandler(string appId, UInt160 payer, BigInteger amount);
+    public delegate void GasCreditWithdrawnHandler(string appId, UInt160 user, BigInteger amount);
+    public delegate void NeoCreditWithdrawnHandler(string appId, UInt160 user, BigInteger amount);
     public delegate void TrustCreatedHandler(string appId, BigInteger trustId, UInt160 owner, UInt160 heir, BigInteger principal);
     public delegate void HeartbeatRecordedHandler(string appId, BigInteger trustId, BigInteger newDeadline);
     public delegate void TrustExecutedHandler(string appId, BigInteger trustId, UInt160 heir, BigInteger principal);
@@ -34,6 +36,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void VaultBrokenHandler(string appId, BigInteger vaultId, UInt160 winner, BigInteger reward);
     public delegate void BountyIncreasedHandler(string appId, BigInteger vaultId, BigInteger amount, BigInteger newTotal);
     public delegate void VaultRefundedHandler(string appId, BigInteger vaultId, UInt160 creator, BigInteger refund);
+    public delegate void NotarizedHandler(string appId, ByteString digest, UInt160 submitter, BigInteger timestamp, BigInteger blockIndex);
 
     /// <summary>
     /// PlatformSocial - Multi-tenant social engine consolidating RedEnvelope,
@@ -44,8 +47,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     /// </summary>
     [DisplayName("PlatformSocial")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Multi-tenant social engine: RedEnvelope, HeritageTrust, UnbreakableVault.")]
+    [ManifestExtra("Version", "1.2.0")]
+    [ManifestExtra("Description", "Multi-tenant social engine for envelopes, trusts, vaults, and immutable notarizations.")]
     // Audit fix H-11: wildcard `*:*` permission replaced with the actual call surface
     // (NEO + GAS native methods only). PlatformSocial never invokes user-controlled
     // contracts, so an explicit allowlist is strictly tighter than the previous
@@ -60,6 +63,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private const int APP_TYPE_ENVELOPE = 1;
         private const int APP_TYPE_TRUST    = 2;
         private const int APP_TYPE_VAULT    = 3;
+        private const int APP_TYPE_NOTARY   = 4;
 
         // -----------------------------------------------------------------------
         // Global storage prefixes (0x01-0x0F reserved for platform)
@@ -70,6 +74,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_APP_ADMIN      = new byte[] { 0x04 };
         private static readonly byte[] PREFIX_APP_CONFIG     = new byte[] { 0x05 };
         private static readonly byte[] PREFIX_APP_PAUSED     = new byte[] { 0x06 };
+        private static readonly byte[] PREFIX_TOTAL_GAS_CREDIT_LIABILITY = new byte[] { 0x07 };
+        private static readonly byte[] PREFIX_TOTAL_NEO_CREDIT_LIABILITY = new byte[] { 0x08 };
 
         // -----------------------------------------------------------------------
         // Envelope storage prefixes (0x10-0x1F)
@@ -109,11 +115,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         // Each entry holds {commitBlock, ...}. The reveal must arrive after VAULT_REVEAL_DELAY_BLOCKS.
         private static readonly byte[] PREFIX_VAULT_COMMIT    = new byte[] { 0x32 };
 
+        private static readonly byte[] PREFIX_NOTARY_PROOF    = new byte[] { 0x40 };
+        private static readonly byte[] PREFIX_NOTARY_COUNT    = new byte[] { 0x41 };
+
         // -----------------------------------------------------------------------
         // Direct credit prefixes (0x70+)
         // -----------------------------------------------------------------------
         private static readonly byte[] PREFIX_DIRECT_GAS_CREDIT   = new byte[] { 0x70 };
         private static readonly byte[] PREFIX_DIRECT_ASSET_CREDIT = new byte[] { 0x71 };
+        private static readonly byte[] PREFIX_APP_GAS_CREDIT_LIABILITY = new byte[] { 0x72 };
+        private static readonly byte[] PREFIX_APP_NEO_CREDIT_LIABILITY = new byte[] { 0x73 };
 
         // -----------------------------------------------------------------------
         // Constants (from original contracts)
@@ -185,6 +196,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [DisplayName("RangeGasPoolRefunded")]
         public static event RangeGasPoolRefundedHandler OnRangeGasPoolRefunded;
 
+        [DisplayName("GasCredited")]
+        public static event GasCreditedHandler OnGasCredited;
+        [DisplayName("NeoCredited")]
+        public static event NeoCreditedHandler OnNeoCredited;
         [DisplayName("GasCreditWithdrawn")]
         public static event GasCreditWithdrawnHandler OnGasCreditWithdrawn;
         [DisplayName("NeoCreditWithdrawn")]
@@ -216,6 +231,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         [DisplayName("VaultRefunded")]
         public static event VaultRefundedHandler OnVaultRefunded;
+
+        [DisplayName("Notarized")]
+        public static event NotarizedHandler OnNotarized;
 
         // -----------------------------------------------------------------------
         // Data Structures

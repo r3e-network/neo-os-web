@@ -6,6 +6,7 @@ import {
   buildFactoryPlan,
   createFactoryDraftFromLaunchContext,
   factoryContractFor,
+  type FactoryArtifactDeploymentSupport,
   type FactoryArtifactPresence,
   type FactoryKind,
   type FactoryNetwork,
@@ -13,6 +14,7 @@ import {
 } from "./factoryPlan";
 import {
   estimateFactoryFeeGas,
+  fetchFactoryArtifactDeploymentSupport,
   fetchFactoryDeployments,
   fetchTemplateArtifactPresence,
   readFactoryRecord,
@@ -101,6 +103,10 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
     const deploymentsState = deploymentsCell.status;
 
     const presenceCache = new Map<string, { presence: FactoryArtifactPresence; at: number }>();
+    const deploymentSupportCache = new Map<
+      string,
+      { support: FactoryArtifactDeploymentSupport; at: number }
+    >();
     let feeEstimateToken = 0;
 
     function presenceKey(network: FactoryNetwork, templateId: string): string {
@@ -127,6 +133,24 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
       }
       artifactPresence.set({ ...artifactPresence.get(), [key]: presence });
       return presence;
+    }
+
+    async function resolveArtifactDeploymentSupport(
+      network: FactoryNetwork,
+      scriptHash: string,
+    ): Promise<FactoryArtifactDeploymentSupport> {
+      const key = `${network}|${scriptHash}`;
+      const cached = deploymentSupportCache.get(key);
+      if (cached && Date.now() - cached.at < ARTIFACT_CACHE_TTL_MS) {
+        return cached.support;
+      }
+      const support = scriptHash
+        ? await fetchFactoryArtifactDeploymentSupport(network, scriptHash)
+        : "unknown";
+      if (support !== "unknown") {
+        deploymentSupportCache.set(key, { support, at: Date.now() });
+      }
+      return support;
     }
 
     function refreshFeeEstimate(plan: FactoryPlan): void {
@@ -188,12 +212,24 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
         // digest is independent of the live status, so both passes commit to
         // the same package id.
         const preliminary = buildFactoryPlan(kind, form, { appId });
-        const presence = await resolveArtifactPresence(
-          preliminary.network,
-          preliminary.templateId,
-          preliminary.deploymentCall.scriptHash,
-        );
-        const plan = buildFactoryPlan(kind, form, { appId, artifactPresence: presence });
+        const [presence, deploymentSupport] = await Promise.all([
+          resolveArtifactPresence(
+            preliminary.network,
+            preliminary.templateId,
+            preliminary.deploymentCall.scriptHash,
+          ),
+          kind === "miniapp"
+            ? Promise.resolve<FactoryArtifactDeploymentSupport>("supported")
+            : resolveArtifactDeploymentSupport(
+                preliminary.network,
+                preliminary.deploymentCall.scriptHash,
+              ),
+        ]);
+        const plan = buildFactoryPlan(kind, form, {
+          appId,
+          artifactPresence: presence,
+          artifactDeploymentSupport: deploymentSupport,
+        });
         applyPlan(plan);
         refreshFeeEstimate(plan);
         ctx.setStatus(
@@ -234,7 +270,7 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
       isSigning.set(true);
       lastError.set("");
       try {
-        const message = `${templateLabel(kind)} Factory template plan\n${plan.digest}\n${plan.packageId}`;
+        const message = `${templateLabel(kind)} Factory template plan\n${plan.digest}\n${plan.packageId}\n${plan.artifactDigest}`;
         const signed = await ctx.services.chain.signMessage(message);
         const signature =
           typeof signed === "string"
@@ -276,13 +312,10 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
       isExecuting.set(true);
       lastError.set("");
       try {
-        const result = await ctx.services.chain.invoke(
-          plan.deploymentCall.operation,
-          plan.deploymentCall.args,
-          {
-            scriptHash: plan.deploymentCall.scriptHash,
-            waitForEvent: plan.execution.confirmingEvent,
-          },
+        const result = await ctx.framework.platformFactory.executeDeploymentCall(
+          plan.network,
+          plan.deploymentCall,
+          { waitForEvent: plan.execution.confirmingEvent },
         );
         if (!result.txid) throw new Error(ctx.t("executeFailed"));
         lastTxid.set(result.txid);

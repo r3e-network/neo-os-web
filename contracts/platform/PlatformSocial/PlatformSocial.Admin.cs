@@ -104,13 +104,13 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         /// <summary>
         /// Register a social app under a unique appId.
-        /// appType: 1=Envelope, 2=Trust, 3=Vault
+        /// appType: 1=Envelope, 2=Trust, 3=Vault, 4=Notary
         /// </summary>
         public static void RegisterApp(string appId, BigInteger appType, UInt160 appAdmin, string config)
         {
             ValidateAdmin();
             ExecutionEngine.Assert(appId.Length > 0 && appId.Length <= 64, "invalid appId");
-            ExecutionEngine.Assert(appType >= APP_TYPE_ENVELOPE && appType <= APP_TYPE_VAULT, "invalid appType");
+            ExecutionEngine.Assert(appType >= APP_TYPE_ENVELOPE && appType <= APP_TYPE_NOTARY, "invalid appType");
             ExecutionEngine.Assert(appAdmin != UInt160.Zero && appAdmin.IsValid, "invalid appAdmin");
 
             // Ensure not already registered

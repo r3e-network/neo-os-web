@@ -1,0 +1,67 @@
+{
+  "generated_at_utc": "2026-07-23T00:40:34.157Z",
+  "passed": true,
+  "tenant_abi_method_count": 13,
+  "framework_operation_count": 13,
+  "tenant_abi_methods": [
+    "createMiniAppFromTemplate",
+    "deployArtifactFromTemplate",
+    "deployFromTemplate",
+    "deploymentCount",
+    "getDeployment",
+    "getDeploymentIdByIndex",
+    "getMiniApp",
+    "getMiniAppIdByIndex",
+    "getTemplate",
+    "getTemplateIdByIndex",
+    "miniAppCount",
+    "templateCount",
+    "templateExists"
+  ],
+  "framework_operations": [
+    "createMiniAppFromTemplate",
+    "deployArtifactFromTemplate",
+    "deployFromTemplate",
+    "deploymentCount",
+    "getDeployment",
+    "getDeploymentIdByIndex",
+    "getMiniApp",
+    "getMiniAppIdByIndex",
+    "getTemplate",
+    "getTemplateIdByIndex",
+    "miniAppCount",
+    "templateCount",
+    "templateExists"
+  ],
+  "missing_methods": [],
+  "extra_methods": [],
+  "wiring": {
+    "options_config": true,
+    "framework_surface": true,
+    "composition_root": true
+  },
+  "consumers": {
+    "shared_factory_runtime": true,
+    "miniapp_factory_runtime": true,
+    "asset_factory_config": true,
+    "nft_factory_config": true,
+    "miniapp_factory_config": true
+  },
+  "configured_consumers": [
+    "asset-factory",
+    "nft-factory",
+    "miniapp-factory"
+  ],
+  "deployment": {
+    "hash": "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49",
+    "status": "live-artifact-drift",
+    "local_nef_checksum": 905792977,
+    "on_chain_nef_checksum": 2240313340,
+    "current_local_artifact_match": false,
+    "missing_on_chain_methods": [
+      "deployArtifactFromTemplate"
+    ]
+  },
+  "boundary": "All three Factory applications now route deployment writes through the guarded framework surface, but this does not unlock every product lane. The retained testnet Factory differs from the local artifact and lacks deployArtifactFromTemplate; Asset/NFT execution must remain closed until the governed artifacts, exact live ABI, durable recovery, event confirmation, record readback, and funded lifecycle are certified. Direct JSON-RPC remains only for read-only contract-state/signers fee probes that the wallet bridge cannot express.",
+  "chain_writes_performed": false
+}

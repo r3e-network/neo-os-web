@@ -266,6 +266,18 @@ export const factoryMessages = {
     en: "Generate a plan to live-verify the template artifact before submitting.",
     zh: "请先生成计划以在线验证模板工件，再提交。",
   },
+  stepDeployUniqueArtifactRequired: {
+    en: "Blocked until a reviewed builder supplies the creator-unique NEF, manifest, and artifact digest required by the upgraded Factory call.",
+    zh: "已阻断，直到经过复核的构建器提供升级后 Factory 调用所需的创作者独立 NEF、manifest 与工件摘要。",
+  },
+  stepDeployFactoryUpgradeRequired: {
+    en: "Blocked: the live Factory must first expose the reviewed deployArtifactFromTemplate/6 ABI.",
+    zh: "已阻断：链上 Factory 必须先提供已审查的 deployArtifactFromTemplate/6 ABI。",
+  },
+  stepDeployFactoryAbiUnverified: {
+    en: "Manual check required: the live Factory ABI could not be verified from the selected RPC endpoint.",
+    zh: "需要人工核对：无法从所选 RPC 节点验证链上 Factory ABI。",
+  },
   stepDeployRecordDetail: {
     en: "Submit the registration from this console — the factory stores the miniapp instance record.",
     zh: "直接在本控制台提交登记，Factory 将存储小程序实例记录。",
@@ -310,6 +322,18 @@ export const factoryMessages = {
   artifactUnverified: {
     en: "The template artifact status could not be verified on-chain. Check your connection and regenerate the plan.",
     zh: "无法在链上验证模板工件状态。请检查网络连接并重新生成计划。",
+  },
+  uniqueArtifactRequired: {
+    en: "The upgraded deployment requires a complete creator-unique artifact payload. Template registration alone cannot unlock this write.",
+    zh: "升级后的部署需要完整的创作者独立工件载荷；仅注册模板不能解锁此写入。",
+  },
+  factoryAbiUnavailable: {
+    en: "The deployed Factory does not expose the exact six-argument artifact deployment ABI required by this package.",
+    zh: "已部署的 Factory 未提供该发行包所需的精确六参数工件部署 ABI。",
+  },
+  factoryAbiUnverified: {
+    en: "The deployed Factory ABI could not be verified. Check the RPC connection and regenerate the package.",
+    zh: "无法验证已部署的 Factory ABI。请检查 RPC 连接并重新生成发行包。",
   },
   templateNotRegistered: {
     en: "This template is not registered on the factory contract for the selected network.",

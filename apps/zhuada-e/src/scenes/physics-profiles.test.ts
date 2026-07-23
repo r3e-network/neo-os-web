@@ -9,8 +9,8 @@ describe("production item physics profiles", () => {
         const profile = physicsProfileOf(theme.id, kind);
         expect(profile.mass, `${theme.id}/${kind} mass`).toBeGreaterThan(0);
         expect(profile.visualScale, `${theme.id}/${kind} visual scale`).toBeGreaterThan(0.5);
-        expect(profile.sizeMultiplier, `${theme.id}/${kind} size multiplier`).toBeGreaterThanOrEqual(0.7);
-        expect(profile.sizeMultiplier, `${theme.id}/${kind} size multiplier`).toBeLessThanOrEqual(1.2);
+        expect(profile.sizeMultiplier, `${theme.id}/${kind} size multiplier`).toBeGreaterThanOrEqual(0.62);
+        expect(profile.sizeMultiplier, `${theme.id}/${kind} size multiplier`).toBeLessThanOrEqual(1.24);
         expect(profile.shapes.length, `${theme.id}/${kind} collider count`).toBeGreaterThan(0);
         expect(SURFACE_PHYSICS[profile.surface]).toBeDefined();
       }
@@ -22,9 +22,12 @@ describe("production item physics profiles", () => {
       const profiles = theme.items.map((_, kind) => physicsProfileOf(theme.id, kind));
       const masses = profiles.map((profile) => profile.mass);
       const scales = profiles.map((profile) => profile.visualScale);
+      const colliderScales = profiles.map((profile) => profile.sizeMultiplier);
       expect(Math.max(...masses) - Math.min(...masses), `${theme.id} mass range`).toBeGreaterThan(0.45);
       expect(Math.max(...scales) - Math.min(...scales), `${theme.id} visible size range`).toBeGreaterThan(0.44);
-      expect(scales.filter((scale) => scale < 0.8).length, `${theme.id} small objects`).toBeGreaterThanOrEqual(2);
+      expect(Math.max(...scales) / Math.min(...scales), `${theme.id} visible size ratio`).toBeGreaterThan(2);
+      expect(Math.max(...colliderScales) / Math.min(...colliderScales), `${theme.id} collider size ratio`).toBeGreaterThan(1.8);
+      expect(scales.filter((scale) => scale < 0.8).length, `${theme.id} small objects`).toBeGreaterThanOrEqual(5);
       expect(scales.filter((scale) => scale > 1.05).length, `${theme.id} large objects`).toBeGreaterThanOrEqual(2);
       expect(new Set(profiles.map((profile) => profile.surface)).size, `${theme.id} surface variety`).toBeGreaterThanOrEqual(4);
       expect(profiles.some((profile) => profile.shapes.length > 1), `${theme.id} compound colliders`).toBe(true);

@@ -46,31 +46,37 @@ describe("NFT Factory production contract", () => {
     const missing = buildFactoryPlan("nep11", VALID_DROP, {
       appId: "miniapp-nft-factory",
       artifactPresence: "missing",
+      artifactDeploymentSupport: "supported",
     });
     const sharedVerified = buildFactoryPlan("nep11", VALID_DROP, {
       appId: "miniapp-nft-factory",
       artifactPresence: "present",
+      artifactDeploymentSupport: "supported",
     });
     const verified = enforceNftFactoryExecutionGate(sharedVerified);
 
     expect(unverified.publishable).toBe(true);
     expect(unverified.execution.available).toBe(false);
-    expect(unverified.execution.blockedReasonKey).toBe("artifactUnverified");
+    expect(unverified.execution.blockedReasonKey).toBe("factoryAbiUnverified");
     expect(missing.execution.available).toBe(false);
     expect(missing.execution.blockedReasonKey).toBe("artifactNotRegistered");
-    // The live contract rejects deployFromTemplate for artifact-backed
-    // templates and requires a creator-unique artifact payload. NFT Factory
-    // does not generate that payload yet, so it must not expose a write.
+    // The shared planner now supplies the complete creator-unique artifact.
+    // The app-owned release gate still prevents writes until the full live
+    // transaction/event/readback lifecycle is certified.
     expect(sharedVerified.execution.available).toBe(true);
+    expect(sharedVerified.deploymentCall).toMatchObject({
+      operation: "deployArtifactFromTemplate",
+    });
+    expect(sharedVerified.deploymentCall.args).toHaveLength(6);
     expect(verified.execution.available).toBe(false);
     expect(verified.execution.blockedReasonKey).toBe(
-      "nftUniqueArtifactRequired",
+      "nftDeploymentCertificationPending",
     );
     expect(verified.execution.outcome).toBe("contract-deployment");
     expect(verified.execution.confirmingEvent).toBe("TokenDeployed");
     expect(verified.steps.find((step) => step.key === "deploy")).toMatchObject({
       status: "blocked",
-      detailKey: "stepDeployUniqueArtifactRequired",
+      detailKey: "stepDeployFactoryUpgradeRequired",
     });
     expect(isCanonicalNftFactoryPlan(verified)).toBe(true);
     const alteredContract = {
@@ -90,14 +96,6 @@ describe("NFT Factory production contract", () => {
       payload: {
         ...verified.payload,
         initParams: alteredInitParams,
-      },
-      deploymentCall: {
-        ...verified.deploymentCall,
-        args: verified.deploymentCall.args.map((arg, index) =>
-          index === 3
-            ? { ...arg, value: JSON.stringify(alteredInitParams) }
-            : arg,
-        ),
       },
     };
     // Even a self-consistent visible payload/call mutation fails because the
@@ -198,7 +196,7 @@ describe("NFT Factory production contract", () => {
     expect(setup).toContain("ownerMatchesAddress");
     expect(setup).toContain("buildNftFactorySignatureMessage");
     expect(setup).toContain("isCanonicalNftFactoryPlan");
-    expect(setup).toContain("nftUniqueArtifactRequired");
+    expect(setup).toContain("nftDeploymentCertificationPending");
     expect(setup).not.toContain("ctx.services.chain.invoke(");
     expect(styles).toContain("sunlit collection atelier");
     expect(styles).toContain(".nft-factory-release-scope");

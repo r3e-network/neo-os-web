@@ -1,53 +1,55 @@
 import { createObservable, defineMiniApp } from "@shared/react";
-import { fromFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
-import { addressToScriptHash } from "@shared/utils/neo";
 import { eventStateValue } from "@shared/utils/chain-events";
-import {
-  eventHashMatches as addrEq,
-  mapField,
-  normalizedHash as normHash,
-} from "@framework/gamefi";
+import type { SolveRow as FrameworkSolveRow } from "@framework/game";
+import type { RewardGameConfig, RewardGameSession } from "@framework/gamefi";
+import type { FrameworkPlatformGameSnapshot } from "@framework/platform-game-surface";
 import PhaserPlayArea from "./PhaserPlayArea";
 import manifest from "./manifest";
 import { messages } from "./locale/messages";
 import {
-  DEAL_TTL_MS,
   ENTRY_MEMO,
   SETTLE_GRACE_MS,
   ruleOf,
-  statusOf,
   gasDisplay,
 } from "./logic/game-rules";
-import { morpheusNetworkOf, teeFinalize, teeMove, teeStart } from "./logic/tee-session";
-import type { CardView, TeeIdentity, TeeOp, TeeStartResult } from "./logic/tee-session";
+import {
+  parseSheepSessionView,
+  type CardView,
+  type SheepSessionOp,
+  type SheepSessionView,
+} from "./logic/session-view";
 import { createGuestEngine } from "./logic/guest-engine";
 
 const appId = "miniapp-sheep-solitaire";
-
+const ENGINE_HASH = "9faf4efb68f60a44783de900254c62da8ca3b0b724dcebec57b4707f14a364ef";
 const LEADERBOARD_EVENT_LIMIT = 200;
-const OPS_STORAGE_PREFIX = "ops:";
-const RECOVERY_STORAGE_PREFIX = "recovery:";
 /** Manifest hiding is not authorization: new paid starts also fail closed here. */
 export const NEW_PAID_RUNS_ENABLED = false;
 
 type FailureReason = "none" | "tray" | "timeout";
-type RecoveryKind = "bind" | "settle" | "expire";
 
-interface RecoveryRecord {
-  gameId: string;
-  kind: RecoveryKind;
-  player: string;
-  contract: string;
-}
+const rewardGameConfig: RewardGameConfig = {
+  appId,
+  engineHash: ENGINE_HASH,
+  entryMemo: ENTRY_MEMO,
+  modes: [0, 1, 2].map((difficulty) => {
+    const rule = ruleOf(difficulty);
+    return {
+      id: difficulty,
+      key: rule.key,
+      entryFixed8: rule.entryFixed8,
+      rewardFixed8: rule.rewardFixed8,
+      limitMs: rule.limitMs,
+      minSolveMs: rule.minSolveMs,
+      target: rule.cardTypes * 3,
+    };
+  }),
+};
 
 function asNumber(value: unknown): number {
-  const n = Number(parseBigInt(value));
-  return Number.isFinite(n) ? n : 0;
-}
-
-function cleanHex(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase().replace(/^0x/, "");
+  const parsed = Number(parseBigInt(value));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export interface LeaderEntry {
@@ -73,34 +75,10 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    // Route ad-hoc arg-building / reads / invokes / events through the MiniApp
-    // framework SDK. Behaviour-preserving: arg.* builders emit the identical
-    // stack items, and readRaw/invoke/events/detectNetwork are raw passthroughs
-    // to the host chain service the framework wraps.
     const app = ctx.framework;
-
-    // TEE op log via the framework's namespaced local storage. Best-effort:
-    // the TEE session is the authority, so persistence failures are swallowed.
-    const loadOps = (gameId: string): TeeOp[] => {
-      const parsed = app.storage.local.get<TeeOp[]>(OPS_STORAGE_PREFIX + gameId, []);
-      return Array.isArray(parsed) ? parsed : [];
-    };
-
-    const saveOps = (gameId: string, ops: TeeOp[]): void => {
-      try {
-        app.storage.local.set(OPS_STORAGE_PREFIX + gameId, ops);
-      } catch {
-        /* op log is best-effort; the TEE session is the authority */
-      }
-    };
-
-    const forgetOps = (gameId: string): void => {
-      try {
-        app.storage.local.delete(OPS_STORAGE_PREFIX + gameId);
-      } catch {
-        /* nothing to clean */
-      }
-    };
+    const rewardGame = app.game.reward<SheepSessionOp>(rewardGameConfig, {
+      storagePrefix: `neo:${appId}:ops/`,
+    });
 
     const credit = createObservable(0);
     const poolFree = createObservable(0);
@@ -112,18 +90,12 @@ defineMiniApp({
     const dealtAt = createObservable(0);
     const deadline = createObservable(0);
     const undosUsed = createObservable(0);
-    /** Card pile state: cards visible from the TEE view. */
     const pileCards = createObservable<CardView[]>([]);
-    /** Slot bar: cards the player has picked (max 7). */
     const slotCards = createObservable<CardView[]>([]);
-    /** Whether a match-3 elimination animation is playing. */
     const isMatching = createObservable(false);
-    /** Whether the game was lost (slots full). */
     const isGameOver = createObservable(false);
     const failureReason = createObservable<FailureReason>("none");
-    /** Shuffle tool uses left (0 or 1). */
     const shuffleLeft = createObservable(1);
-    /** Remove 3 tool uses left (0 or 1). */
     const remove3Left = createObservable(1);
     const isPicking = createObservable(false);
     const lastPayout = createObservable("");
@@ -146,11 +118,9 @@ defineMiniApp({
     const revivesLeft = createObservable(0);
     const playMode = createObservable<string>("practice");
     const lastStatus = createObservable(ctx.t("statusReady"));
-    // Current play mode, mirrored from app.mode so the PlayArea can branch its
-    // GAS-centric copy to local framing in guest. Kept in sync via onChange.
     const appMode = createObservable<"guest" | "gamefi">(app.mode.get());
 
-    let session: (TeeStartResult & { identity: TeeIdentity }) | null = null;
+    let session: RewardGameSession | null = null;
     let financialInFlight = false;
     let teeInFlight = false;
     let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
@@ -194,9 +164,6 @@ defineMiniApp({
       }
     };
 
-    // ── Guest (free / local) engine ───────────────────────────────────────────
-    // Guest mode reuses the SAME observables + dispatch actions the scene reads,
-    // driven by a purely local match-3 engine — no chain/oracle/reward calls.
     const guest = createGuestEngine({
       gameStatus,
       activeGameId,
@@ -240,9 +207,7 @@ defineMiniApp({
       t: ctx.t,
       setStatus: ctx.setStatus,
     });
-    // Keep the mirrored mode in sync; switching to guest at the launcher resets
-    // to a clean local lobby and loads the off-chain guest board (replacing the
-    // on-chain read done on mount).
+
     const stopModeSync = app.mode.onChange((mode) => {
       appMode.set(mode);
       clearDeadlineTimer();
@@ -251,174 +216,50 @@ defineMiniApp({
         session = null;
         void guest.enter();
       } else {
-        // Freeze (and persist) the local run while a historical GameFi recovery
-        // surface is open; guest timers must not mutate chain-facing state.
         guest.dispose();
       }
     });
 
-    const playerScriptHash = (): string => {
-      const player = app.chain.address.get();
-      return player ? addressToScriptHash(player) : "";
-    };
-
-    const normalizedContractHash = (): string => {
-      const normalized = normHash(app.chain.contractAddress.get());
-      return normalized ? `0x${normalized}` : "";
-    };
-
-    const recoveryKey = (): string => {
-      const player = normHash(playerScriptHash());
-      const contract = normHash(app.chain.contractAddress.get());
-      return player && contract ? `${RECOVERY_STORAGE_PREFIX}${contract}:${player}` : "";
-    };
-
-    const saveRecovery = (gameId: string, kind: RecoveryKind): void => {
-      const key = recoveryKey();
-      const player = normHash(playerScriptHash());
-      const contract = normHash(app.chain.contractAddress.get());
-      if (!key || !player || !contract || !/^\d+$/.test(gameId) || gameId === "0") return;
-      try {
-        app.storage.local.set(key, {
-          gameId,
-          kind,
-          player,
-          contract,
-        });
-      } catch {
-        /* chain state remains authoritative */
-      }
-    };
-
-    const loadRecovery = (): RecoveryRecord | null => {
-      const key = recoveryKey();
-      if (!key) return null;
-      const record = app.storage.local.get<RecoveryRecord | null>(key, null);
-      if (!record || !/^\d+$/.test(String(record.gameId)) || record.gameId === "0") return null;
-      const player = normHash(playerScriptHash());
-      const contract = normHash(app.chain.contractAddress.get());
-      if (
-        record.player !== player ||
-        record.contract !== contract ||
-        !["bind", "settle", "expire"].includes(record.kind)
-      ) return null;
-      return record;
-    };
-
-    const clearRecovery = (): void => {
-      const key = recoveryKey();
-      if (!key) return;
-      try {
-        app.storage.local.delete(key);
-      } catch {
-        /* nothing to clean */
-      }
-    };
-
-    const buildIdentity = async (gameId: string, difficulty: number): Promise<TeeIdentity> => {
-      const playerHash = playerScriptHash();
-      const contractHash = app.chain.contractAddress.get();
-      if (!playerHash) throw new Error(ctx.t("walletRequiredStatus"));
-      if (!contractHash) throw new Error(ctx.t("contractUnavailableStatus"));
-      const normalizedContract = normalizedContractHash();
-      if (!normalizedContract) throw new Error(ctx.t("contractUnavailableStatus"));
-      const detected = await app.chain.detectNetwork();
-      return {
-        appId,
-        network: morpheusNetworkOf(detected),
-        contractHash: normalizedContract,
-        gameId,
-        player: normHash(playerHash) ? `0x${normHash(playerHash)}` : playerHash,
-        difficulty,
-      };
-    };
-
     const refreshBalances = async (): Promise<void> => {
       if (app.mode.isGuest()) return;
-      try {
-        poolFree.set(fromFixed8(parseBigInt(await app.chain.readRaw("freePool", []))));
-      } catch {
-        /* keep the previous value — reads are best-effort */
-      }
-      const playerHash = playerScriptHash();
-      if (!playerHash) return;
-      try {
-        const raw = await app.chain.readRaw("creditOf", [
-          app.chain.arg.hash160(playerHash),
-        ]);
-        credit.set(fromFixed8(parseBigInt(raw)));
-      } catch {
-        /* keep the previous value */
-      }
+      const balances = await rewardGame.balances(app.game.player.scriptHash());
+      poolFree.set(balances.poolFreeGas);
+      credit.set(balances.creditGas);
     };
 
     const refreshStats = async (): Promise<void> => {
       if (app.mode.isGuest()) return;
-      const playerHash = playerScriptHash();
-      if (!playerHash) return;
-      try {
-        const stats = await app.chain.readRaw("statsOf", [
-          app.chain.arg.hash160(playerHash),
-        ]);
-        mySolves.set(asNumber(mapField(stats, "solved")));
-        myTotalWon.set(fromFixed8(parseBigInt(mapField(stats, "totalWon"))));
-      } catch {
-        /* stats stay stale */
-      }
+      const stats = await app.game.stats.load();
+      mySolves.set(stats.solves);
+      myTotalWon.set(stats.totalWon);
     };
 
-    /**
-     * Rebuild the global ranking from Solved events.
-     */
     const loadLeaderboard = async (): Promise<void> => {
       if (app.mode.isGuest()) return;
-      const playerHash = playerScriptHash();
       try {
-        const events = await app.chain.events("Solved", {
-          limit: LEADERBOARD_EVENT_LIMIT,
-        });
-        const bestByPlayer = new Map<string, { totalWon: number; solves: number; raw: unknown }>();
-        const mine: SolveRow[] = [];
-        for (const ev of events) {
-          const who = normHash(eventStateValue(ev, 1));
-          if (!who) continue;
-          const totalWon = fromFixed8(parseBigInt(eventStateValue(ev, 6)));
-          const prior = bestByPlayer.get(who);
-          bestByPlayer.set(who, {
-            totalWon: Math.max(prior?.totalWon ?? 0, totalWon),
-            solves: (prior?.solves ?? 0) + 1,
-            raw: eventStateValue(ev, 1),
-          });
-          if (playerHash && addrEq(eventStateValue(ev, 1), playerHash)) {
-            mine.push({
-              gameId: String(parseBigInt(eventStateValue(ev, 0)) ?? ""),
-              difficulty: asNumber(eventStateValue(ev, 2)),
-              elapsedMs: asNumber(eventStateValue(ev, 3)),
-              undos: asNumber(eventStateValue(ev, 4)),
-              payout: `${fromFixed8(parseBigInt(eventStateValue(ev, 5))).toFixed(2)} GAS`,
-            });
-          }
-        }
-        const ranked: LeaderEntry[] = [...bestByPlayer.entries()]
-          .map(([address, entry]) => ({
-            address,
-            totalWon: entry.totalWon,
-            solves: entry.solves,
-            isUser: playerHash ? addrEq(entry.raw, playerHash) : false,
-          }))
-          .sort((a, b) => b.totalWon - a.totalWon)
-          .map((entry, idx) => ({ rank: idx + 1, ...entry }));
+        const { ranked, mine } = await app.game.leaderboard.load<FrameworkSolveRow>(
+          "Solved",
+          { solvedPayout: 5, totalWon: 6, undos: 7 },
+          LEADERBOARD_EVENT_LIMIT,
+          (event) => ({ score: asNumber(eventStateValue(event, 4)) }),
+        );
         leaderboard.set(ranked);
         const me = ranked.find((entry) => entry.isUser);
-        myRank.set(me ? me.rank : 0);
-        myHistory.set(mine.reverse().slice(0, 12));
+        myRank.set(me?.rank ?? 0);
+        myHistory.set(mine.slice(0, 12).map((row) => ({
+          gameId: row.gameId,
+          difficulty: row.difficulty,
+          elapsedMs: row.solveMs,
+          undos: row.undos,
+          payout: row.payout,
+        })));
       } catch {
-        /* indexer unreachable — the run stays playable without rankings */
+        /* rankings are best-effort */
       }
     };
 
     const markDeadlineFailure = (): void => {
-      if (gameStatus.get() !== "dealt" || Date.now() < deadline.get()) return;
+      if ((gameStatus.get() !== "dealt" && gameStatus.get() !== "solved") || Date.now() < deadline.get()) return;
       isGameOver.set(true);
       failureReason.set("timeout");
       lastStatus.set(ctx.t("timeUpHint"));
@@ -427,7 +268,7 @@ defineMiniApp({
     const scheduleDeadlineFailure = (): void => {
       clearDeadlineTimer();
       const expiresAt = deadline.get();
-      if (expiresAt <= 0 || gameStatus.get() !== "dealt") return;
+      if (expiresAt <= 0 || (gameStatus.get() !== "dealt" && gameStatus.get() !== "solved")) return;
       const delay = expiresAt - Date.now();
       if (delay <= 0) {
         markDeadlineFailure();
@@ -436,257 +277,133 @@ defineMiniApp({
       deadlineTimer = setTimeout(markDeadlineFailure, delay);
     };
 
-    const gameMatchesPlayer = (game: unknown, gameId: string, difficulty?: number): boolean => {
-      const playerHash = playerScriptHash();
-      const idMatches = String(parseBigInt(mapField(game, "id")) ?? "0") === gameId;
-      const playerMatches = Boolean(playerHash) && addrEq(mapField(game, "player"), playerHash);
-      const difficultyMatches = difficulty === undefined ||
-        asNumber(mapField(game, "difficulty")) === difficulty;
-      return idMatches && playerMatches && difficultyMatches;
-    };
-
-    const applyGameSnapshot = (game: unknown): void => {
-      const status = statusOf(asNumber(mapField(game, "status")));
-      gameStatus.set(status);
-      gameDifficulty.set(asNumber(mapField(game, "difficulty")));
-      commitment.set(String(mapField(game, "commitment") ?? ""));
-      startedAt.set(asNumber(mapField(game, "startTime")));
-      dealtAt.set(asNumber(mapField(game, "dealtAt")));
-      deadline.set(asNumber(mapField(game, "deadline")));
-      undosUsed.set(asNumber(mapField(game, "undos") ?? 0));
-      isGameOver.set(false);
-      failureReason.set("none");
-      if (status === "dealt") scheduleDeadlineFailure();
+    const applyGameSnapshot = (game: FrameworkPlatformGameSnapshot): void => {
+      gameStatus.set(game.status);
+      gameDifficulty.set(game.difficulty);
+      if (game.commitment) commitment.set(game.commitment);
+      startedAt.set(game.startTime);
+      dealtAt.set(game.dealtAt);
+      deadline.set(game.deadline);
+      undosUsed.set(game.undos);
+      if (game.status === "dealt") scheduleDeadlineFailure();
       else clearDeadlineTimer();
     };
 
-    const sendOp = async (op: TeeOp): Promise<Awaited<ReturnType<typeof teeMove>>> => {
-      if (!session) throw new Error(ctx.t("statusFailed"));
-      const gameId = session.identity.gameId;
-      const ops = loadOps(gameId);
-      let result: Awaited<ReturnType<typeof teeMove>>;
-      try {
-        result = await teeMove(session.identity, session.sessionToken, ops.length, op, undefined);
-      } catch {
-        // Session cache miss (worker restarted) — retry once with the full
-        // op log so the enclave can rebuild the session deterministically.
-        result = await teeMove(session.identity, session.sessionToken, ops.length, op, ops);
-      }
-      if (!result.ok) throw new Error(ctx.t("statusInputSyncFailed"));
-      ops.push(op);
-      saveOps(gameId, ops);
-      return result;
+    const applySessionView = (view: SheepSessionView): void => {
+      pileCards.set(view.cards.filter((card) => !card.picked));
+      slotCards.set(view.slots);
+      isGameOver.set(view.gameOver);
+      failureReason.set(view.gameOver ? "tray" : "none");
+      shuffleLeft.set(view.shuffleLeft);
+      remove3Left.set(view.remove3Left);
     };
 
-    /**
-     * Seal-and-bind flow: the enclave generates the card layout, returns the
-     * visible CardView[] + commitment, and the commitment hash is bound on-chain.
-     */
-    const sealAndBind = async (gameId: string, difficulty: number): Promise<boolean> => {
+    const restoreSession = async (gameId: string, difficulty: number): Promise<SheepSessionView> => {
+      const started = await rewardGame.openSession(gameId, difficulty);
+      const ops = rewardGame.storage.load(gameId);
+      let rawView = started.currentView;
+      if (started.opCount === 0 && ops.length > 0) {
+        const replayed = await rewardGame.replayOps(started, ops);
+        rawView = replayed.at(-1)?.view ?? started.view;
+      } else if (started.opCount !== ops.length) {
+        throw new Error(ctx.t("statusRecoveryUnavailable"));
+      }
+      const view = parseSheepSessionView(rawView);
+      session = started;
+      applySessionView(view);
+      commitment.set(started.commitment);
+      return view;
+    };
+
+    const openSharedSession = async (gameId: string, difficulty: number): Promise<boolean> => {
       isDealing.set(true);
       lastStatus.set(ctx.t("statusSealing"));
-      saveRecovery(gameId, "bind");
       try {
-        const identity = await buildIdentity(gameId, difficulty);
-        const started = await teeStart(identity);
-        session = { ...started, identity };
-        const visible = started.cards.filter((c) => !c.picked);
-        pileCards.set(visible);
-        slotCards.set(started.slots ?? []);
-        isGameOver.set(false);
-        failureReason.set("none");
-        shuffleLeft.set(started.shuffleLeft);
-        remove3Left.set(started.remove3Left);
-        commitment.set(started.commitment);
-        await app.chain.invoke(
-          "bindPuzzle",
-          [
-            app.chain.arg.integer(gameId),
-            app.chain.arg.string(started.commitment),
-            app.chain.arg.string(started.bindSignature),
-          ],
-          { waitForEvent: "PuzzleBound", waitTimeoutMs: 30_000 },
-        );
-        // The event is only a wait hint. The exact game snapshot is the
-        // authority before any cards or deadline are treated as live.
-        const game = await app.chain.readRaw("getGame", [
-          app.chain.arg.integer(gameId),
-        ]);
-        if (
-          !gameMatchesPlayer(game, gameId, difficulty) ||
-          asNumber(mapField(game, "status")) !== 1 ||
-          cleanHex(mapField(game, "commitment")) !== cleanHex(started.commitment)
-        ) {
+        const view = await restoreSession(gameId, difficulty);
+        const game = await app.platformGame.getGame(gameId);
+        if (!game || game.difficulty !== difficulty || game.statusCode !== 1) {
           throw new Error(ctx.t("statusSessionMismatch"));
         }
         applyGameSnapshot(game);
-        undosUsed.set(0);
+        if (view.won) gameStatus.set("solved");
         scheduleDeadlineFailure();
-        clearRecovery();
         lastStatus.set(ctx.t("statusDealt"));
         ctx.setStatus(ctx.t("statusDealt"), "success");
         return true;
       } catch (error) {
-        try {
-          const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
-          const rawStatus = asNumber(mapField(game, "status"));
-          if (
-            gameMatchesPlayer(game, gameId, difficulty) &&
-            rawStatus === 1 &&
-            cleanHex(mapField(game, "commitment")) === cleanHex(commitment.get())
-          ) {
-            applyGameSnapshot(game);
-            clearRecovery();
-            lastStatus.set(ctx.t("statusRecovered"));
-            return true;
-          }
-          if (gameMatchesPlayer(game, gameId, difficulty) && rawStatus === 0) {
-            applyGameSnapshot(game);
-            lastStatus.set(ctx.t("statusDealPending"));
-            return false;
-          }
-        } catch {
-          /* leave the exact game id recoverable */
-        }
-        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
+        session = null;
         gameStatus.set("unknown");
         lastStatus.set(ctx.t("statusDealPending"));
-        ctx.setStatus(message, "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         return false;
       } finally {
         isDealing.set(false);
       }
     };
 
-    /** Reattach to a bound game after a reload. */
-    const resumeSession = async (gameId: string, difficulty: number): Promise<void> => {
-      try {
-        const identity = await buildIdentity(gameId, difficulty);
-        const started = await teeStart(identity);
-        if (commitment.get() && cleanHex(started.commitment) !== cleanHex(commitment.get())) {
-          throw new Error(ctx.t("statusFailed"));
-        }
-        if (loadOps(gameId).length > 0 && !started.slots) {
-          throw new Error(ctx.t("statusRecoveryUnavailable"));
-        }
-        session = { ...started, identity };
-        const visible = started.cards.filter((c) => !c.picked);
-        pileCards.set(visible);
-        slotCards.set(started.slots ?? []);
-        shuffleLeft.set(started.shuffleLeft);
-        remove3Left.set(started.remove3Left);
-        commitment.set(started.commitment);
-        scheduleDeadlineFailure();
-      } catch {
-        session = null;
-        lastStatus.set(ctx.t("statusDealPending"));
-      }
+    const sendOp = async (op: SheepSessionOp): Promise<SheepSessionView> => {
+      if (!session) throw new Error(ctx.t("statusFailed"));
+      const result = await rewardGame.recordOp(session, op);
+      return parseSheepSessionView(result.step.view, { requireResultFlags: true });
     };
 
-    const finishFromSnapshot = async (gameId: string, game: unknown, announce = true): Promise<void> => {
-      if (!gameMatchesPlayer(game, gameId)) throw new Error(ctx.t("statusSessionMismatch"));
-      const status = statusOf(asNumber(mapField(game, "status")));
-      if (status === "committed" || status === "dealt") {
-        throw new Error(ctx.t("statusSettlementPending"));
-      }
-
+    const clearTerminalState = (gameId: string): void => {
       clearDeadlineTimer();
       clearMatchTimer();
       session = null;
       activeGameId.set("0");
-      gameDifficulty.set(asNumber(mapField(game, "difficulty")));
-      gameStatus.set(status);
-      commitment.set(String(mapField(game, "commitment") ?? ""));
-      startedAt.set(asNumber(mapField(game, "startTime")));
-      dealtAt.set(asNumber(mapField(game, "dealtAt")));
-      deadline.set(asNumber(mapField(game, "deadline")));
-      undosUsed.set(asNumber(mapField(game, "undos")));
-      isGameOver.set(false);
-      failureReason.set("none");
+      rewardGame.storage.forget(gameId);
       pileCards.set([]);
       slotCards.set([]);
-      forgetOps(gameId);
-      clearRecovery();
+      isGameOver.set(false);
+      failureReason.set("none");
+    };
 
+    const finishSettlement = async (
+      gameId: string,
+      status: "solved" | "expired" | "refunded",
+      payoutGas = 0,
+      elapsedMs = 0,
+    ): Promise<void> => {
+      clearTerminalState(gameId);
+      gameStatus.set(status);
+      lastElapsedMs.set(elapsedMs);
       if (status === "solved") {
-        const payout = fromFixed8(parseBigInt(mapField(game, "payout")));
-        lastPayout.set(`${payout.toFixed(2)} GAS`);
-        lastElapsedMs.set(asNumber(mapField(game, "solveMs")));
-        lastStatus.set(ctx.t("statusSolved", { payout: payout.toFixed(2) }));
-        if (announce) ctx.setStatus(lastStatus.get(), "success");
+        lastPayout.set(`${payoutGas.toFixed(2)} GAS`);
+        lastStatus.set(ctx.t("statusSolved", { payout: payoutGas.toFixed(2) }));
+        ctx.setStatus(lastStatus.get(), "success");
       } else {
         lastPayout.set("");
         lastStatus.set(ctx.t("statusExpired"));
-        if (announce) ctx.setStatus(ctx.t("statusExpired"), "info");
+        ctx.setStatus(lastStatus.get(), "info");
       }
       await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
     };
 
-    const recoverCurrentGame = async (
-      preferredGameId?: string,
-      announce = true,
-      allowBind = false,
-    ): Promise<boolean> => {
+    const recoverCurrentGame = async (announce = true): Promise<boolean> => {
       if (app.mode.isGuest() || isRecovering.get()) return false;
-      const playerHash = playerScriptHash();
-      if (!playerHash) return false;
       isRecovering.set(true);
       try {
-        let gameId = preferredGameId && preferredGameId !== "0"
-          ? preferredGameId
-          : loadRecovery()?.gameId ?? activeGameId.get();
-        if (!gameId || gameId === "0") {
-          gameId = String(parseBigInt(await app.chain.readRaw("activeGameOf", [
-            app.chain.arg.hash160(playerHash),
-          ])) ?? "0");
-        }
-        if (!gameId || gameId === "0") return false;
-
-        const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
-        if (!gameMatchesPlayer(game, gameId)) throw new Error(ctx.t("statusSessionMismatch"));
-        activeGameId.set(gameId);
+        const recovered = await rewardGame.recoverActive();
+        if (recovered.gameId === "0") return false;
+        const game = await app.platformGame.getGame(recovered.gameId);
+        if (!game) throw new Error(ctx.t("statusSessionMismatch"));
+        activeGameId.set(recovered.gameId);
         applyGameSnapshot(game);
-        const rawStatus = asNumber(mapField(game, "status"));
-
-        if (rawStatus === 0) {
-          lastStatus.set(ctx.t("statusDealPending"));
-          if (canExpireCurrentGame()) {
-            if (announce) ctx.setStatus(ctx.t("releaseReady"), "info");
-            return true;
-          }
-          if (!allowBind) {
-            if (announce) ctx.setStatus(ctx.t("statusDealPending"), "info");
-            return true;
-          }
-          const rebound = await sealAndBind(gameId, gameDifficulty.get());
-          if (rebound && announce) ctx.setStatus(ctx.t("statusRecovered"), "success");
-          return rebound;
-        }
-        if (rawStatus === 1) {
-          await resumeSession(gameId, gameDifficulty.get());
-          if (!session) {
-            gameStatus.set("unknown");
-            if (announce) ctx.setStatus(ctx.t("statusRecoveryUnavailable"), "error");
-            return false;
-          }
-          clearRecovery();
+        if (game.statusCode === 1) {
+          const view = await restoreSession(recovered.gameId, game.difficulty);
+          if (view.won) gameStatus.set("solved");
+          scheduleDeadlineFailure();
           if (announce) ctx.setStatus(ctx.t("statusRecovered"), "success");
           return true;
         }
-        if (rawStatus >= 2 && rawStatus <= 4) {
-          await finishFromSnapshot(gameId, game, announce);
-          return true;
-        }
-
         gameStatus.set("unknown");
         lastStatus.set(ctx.t("statusSettlementPending"));
         return true;
       } catch (error) {
         gameStatus.set("unknown");
         lastStatus.set(ctx.t("statusSettlementPending"));
-        if (announce) {
-          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
-        }
+        if (announce) ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         return false;
       } finally {
         isRecovering.set(false);
@@ -694,24 +411,19 @@ defineMiniApp({
     };
 
     const canExpireCurrentGame = (): boolean => {
-      const now = Date.now();
-      if (gameStatus.get() === "dealt") {
-        return deadline.get() > 0 && now > deadline.get() + SETTLE_GRACE_MS;
-      }
-      if (gameStatus.get() === "committed") {
-        return startedAt.get() > 0 && now > startedAt.get() + DEAL_TTL_MS;
-      }
-      return false;
+      const status = gameStatus.get();
+      return (status === "dealt" || status === "solved")
+        && deadline.get() > 0
+        && Date.now() > deadline.get() + SETTLE_GRACE_MS;
     };
 
     ctx.framework.actions.register("startGame", async (...args: unknown[]) => {
-      const form = (args[0] ?? {}) as { difficulty?: unknown };
+      const form = (args[0] ?? {}) as { difficulty?: unknown; mode?: unknown; level?: unknown };
       if (app.mode.isGuest()) {
-        const f = (args[0] ?? {}) as { difficulty?: unknown; mode?: unknown; level?: unknown };
         guest.startGame({
-          mode: f.mode === "daily" ? "daily" : "practice",
-          level: f.level === 2 ? 2 : 1,
-          difficulty: Number(f.difficulty ?? 0),
+          mode: form.mode === "daily" ? "daily" : "practice",
+          level: form.level === 2 ? 2 : 1,
+          difficulty: Number(form.difficulty ?? 0),
         });
         return;
       }
@@ -721,58 +433,16 @@ defineMiniApp({
       }
       if (isStarting.get() || isDealing.get() || isRecovering.get()) return;
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
-      const rule = ruleOf(difficulty);
       return withFinancialLock(async () => {
         isStarting.set(true);
         lastStatus.set(ctx.t("statusStarting"));
-        let startedGameId = "0";
         try {
-          const player = await app.chain.ensureWallet();
-          const playerHash = addressToScriptHash(player);
-          if (!playerHash) throw new Error(ctx.t("walletRequiredStatus"));
-          await refreshBalances();
-          if (poolFree.get() < fromFixed8(rule.rewardFixed8)) {
-            throw new Error(ctx.t("statusPoolLow"));
-          }
-          const invokeArgs = [
-            app.chain.arg.hash160(playerHash),
-            app.chain.arg.integer(difficulty),
-          ];
-          const options = { waitForEvent: "GameStarted", waitTimeoutMs: 30_000 };
-          const creditFixed8 = BigInt(Math.round(credit.get() * 1e8));
-          const result = creditFixed8 >= rule.entryFixed8
-            ? await app.chain.invoke("startGame", invokeArgs, options)
-            : await app.chain.invokeWithPayment(
-                rule.entryFixed8.toString(),
-                ENTRY_MEMO,
-                "startGame",
-                invokeArgs,
-                options,
-              );
-          const eventMatches = result.event != null &&
-            addrEq(eventStateValue(result.event, 1), playerHash) &&
-            asNumber(eventStateValue(result.event, 2)) === difficulty;
-          let gameId = eventMatches
-            ? String(parseBigInt(eventStateValue(result.event, 0)) ?? "0")
-            : "0";
-          if (gameId === "0") {
-            gameId = String(parseBigInt(await app.chain.readRaw("activeGameOf", [
-              app.chain.arg.hash160(playerHash),
-            ])) ?? "0");
-          }
-          if (!gameId || gameId === "0") throw new Error(ctx.t("startGameUnavailableStatus"));
-          startedGameId = gameId;
-          const snapshot = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
-          if (
-            !gameMatchesPlayer(snapshot, gameId, difficulty) ||
-            asNumber(mapField(snapshot, "status")) !== 0
-          ) throw new Error(ctx.t("statusSessionMismatch"));
-
-          activeGameId.set(gameId);
+          const result = await rewardGame.start(difficulty);
+          activeGameId.set(result.gameId);
           gameDifficulty.set(difficulty);
           undosUsed.set(0);
           commitment.set("");
-          startedAt.set(asNumber(mapField(snapshot, "startTime")));
+          startedAt.set(Date.now());
           dealtAt.set(0);
           deadline.set(0);
           pileCards.set([]);
@@ -781,20 +451,18 @@ defineMiniApp({
           failureReason.set("none");
           shuffleLeft.set(1);
           remove3Left.set(1);
-          gameStatus.set("committed");
+          gameStatus.set("dealt");
           lastStatus.set(ctx.t("statusStarted"));
           await refreshBalances();
-          await sealAndBind(gameId, difficulty);
-          return result;
+          await openSharedSession(result.gameId, difficulty);
+          return result.tx;
         } catch (error) {
-          const recovered = await recoverCurrentGame(startedGameId, false, true);
-          if (recovered) {
-            ctx.setStatus(ctx.t("statusRecovered"), "info");
-            return undefined;
+          const recovered = await recoverCurrentGame(false);
+          if (!recovered) {
+            const message = app.errors.messageOf(error, ctx.t("statusFailed"));
+            lastStatus.set(message);
+            ctx.setStatus(message, "error");
           }
-          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
-          lastStatus.set(message);
-          ctx.setStatus(message, "error");
           return undefined;
         } finally {
           isStarting.set(false);
@@ -805,33 +473,22 @@ defineMiniApp({
     ctx.framework.actions.register("retryDeal", async () => {
       if (app.mode.isGuest()) return;
       const gameId = activeGameId.get();
-      if (gameId === "0" || isDealing.get() || gameStatus.get() !== "committed") return;
-      await withFinancialLock(() => sealAndBind(gameId, gameDifficulty.get()));
+      if (gameId === "0" || isDealing.get()) return;
+      await withFinancialLock(() => openSharedSession(gameId, gameDifficulty.get()));
     });
 
-    // Pick a card from the pile into the slot bar.
     ctx.framework.actions.register("pickCard", async (...args: unknown[]) => {
-      const form = (args[0] ?? {}) as { cardId?: unknown };
-      const cardId = Number(form.cardId);
+      const cardId = Number((args[0] as { cardId?: unknown } | undefined)?.cardId);
       if (!Number.isInteger(cardId) || cardId < 0) return;
       if (app.mode.isGuest()) { guest.pickCard(cardId); return; }
-      if (
-        !session ||
-        gameStatus.get() !== "dealt" ||
-        isPicking.get() ||
-        isGameOver.get() ||
-        (deadline.get() > 0 && Date.now() >= deadline.get())
-      ) return;
-      const currentSlots = slotCards.get();
-      if (currentSlots.length >= 7) return; // slots full
+      if (!session || gameStatus.get() !== "dealt" || isPicking.get() || isGameOver.get()) return;
+      if (deadline.get() > 0 && Date.now() >= deadline.get()) return;
       await withTeeLock(async () => {
         isPicking.set(true);
         try {
-          const result = await sendOp({ type: "pick", cardId });
-          pileCards.set(result.cards.filter((c) => !c.picked));
-          slotCards.set(result.slots);
-
-          if (result.matched) {
+          const view = await sendOp({ type: "pick", cardId });
+          applySessionView(view);
+          if (view.matched) {
             isMatching.set(true);
             clearMatchTimer();
             matchTimer = setTimeout(() => {
@@ -839,120 +496,68 @@ defineMiniApp({
               matchTimer = null;
             }, 600);
           }
-
-          if (result.won) {
-            clearDeadlineTimer();
-            isGameOver.set(false);
-            failureReason.set("none");
+          if (view.won) {
             gameStatus.set("solved");
             lastStatus.set(ctx.t("statusWonTitle"));
-            ctx.setStatus(ctx.t("statusWonTitle"), "success");
-          } else if (result.gameOver) {
-            isGameOver.set(true);
-            failureReason.set("tray");
+            ctx.setStatus(lastStatus.get(), "success");
+          } else if (view.gameOver) {
             lastStatus.set(ctx.t("gameOverBanner"));
           }
-
-          shuffleLeft.set(result.shuffleLeft);
-          remove3Left.set(result.remove3Left);
         } catch (error) {
-          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
-          ctx.setStatus(message, "error");
+          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         } finally {
           isPicking.set(false);
         }
       });
     });
 
-    // Paid undo: recorded in the TEE session (no transaction).
     ctx.framework.actions.register("useUndo", async () => {
       if (app.mode.isGuest()) { guest.useUndo(); return; }
-      const gameId = activeGameId.get();
-      if (
-        gameId === "0" ||
-        isUndoing.get() ||
-        gameStatus.get() !== "dealt" ||
-        (deadline.get() > 0 && Date.now() >= deadline.get())
-      ) return;
-      const currentSlots = slotCards.get();
-      if (currentSlots.length === 0) return;
+      if (activeGameId.get() === "0" || isUndoing.get() || gameStatus.get() !== "dealt") return;
+      if (slotCards.get().length === 0 || (deadline.get() > 0 && Date.now() >= deadline.get())) return;
       await withTeeLock(async () => {
         isUndoing.set(true);
         try {
-          const result = await sendOp({ type: "undo" });
-          pileCards.set(result.cards.filter((c) => !c.picked));
-          slotCards.set(result.slots);
-          isGameOver.set(result.gameOver);
-          failureReason.set(result.gameOver ? "tray" : "none");
+          const view = await sendOp({ type: "undo" });
+          applySessionView(view);
           const undos = undosUsed.get() + 1;
           undosUsed.set(undos);
-          shuffleLeft.set(result.shuffleLeft);
-          remove3Left.set(result.remove3Left);
           lastStatus.set(ctx.t("statusUndoUsed", { pct: String(100 - 30 * undos) }));
           ctx.setStatus(lastStatus.get(), "info");
         } catch (error) {
-          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
-          ctx.setStatus(message, "error");
+          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         } finally {
           isUndoing.set(false);
         }
       });
     });
 
-    // Shuffle: return slot cards back to the pile.
     ctx.framework.actions.register("useShuffle", async () => {
       if (app.mode.isGuest()) { guest.useShuffle(); return; }
-      const gameId = activeGameId.get();
-      if (
-        gameId === "0" ||
-        gameStatus.get() !== "dealt" ||
-        shuffleLeft.get() <= 0 ||
-        (deadline.get() > 0 && Date.now() >= deadline.get())
-      ) return;
-      // No empty-tray gate: shuffle re-randomizes the remaining BOARD tiles
-      // (it never drains the tray), so it is useful with any tray fill.
+      if (activeGameId.get() === "0" || gameStatus.get() !== "dealt" || shuffleLeft.get() <= 0) return;
+      if (deadline.get() > 0 && Date.now() >= deadline.get()) return;
       await withTeeLock(async () => {
         try {
-          const result = await sendOp({ type: "shuffle" });
-          pileCards.set(result.cards.filter((c) => !c.picked));
-          slotCards.set(result.slots);
-          isGameOver.set(result.gameOver);
-          failureReason.set(result.gameOver ? "tray" : "none");
-          shuffleLeft.set(result.shuffleLeft);
-          remove3Left.set(result.remove3Left);
-          ctx.setStatus(ctx.t("shuffleAction", { left: result.shuffleLeft }), "info");
+          const view = await sendOp({ type: "shuffle" });
+          applySessionView(view);
+          ctx.setStatus(ctx.t("shuffleAction", { left: view.shuffleLeft }), "info");
         } catch (error) {
-          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
-          ctx.setStatus(message, "error");
+          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         }
       });
     });
 
-    // Paid Remove 3: discard the first three tray cards in the authoritative TEE state.
     ctx.framework.actions.register("useRemove3", async () => {
       if (app.mode.isGuest()) { guest.useRemove3(); return; }
-      const gameId = activeGameId.get();
-      if (
-        gameId === "0" ||
-        gameStatus.get() !== "dealt" ||
-        remove3Left.get() <= 0 ||
-        (deadline.get() > 0 && Date.now() >= deadline.get())
-      ) return;
-      const currentSlots = slotCards.get();
-      if (currentSlots.length < 3) return;
+      if (activeGameId.get() === "0" || gameStatus.get() !== "dealt" || remove3Left.get() <= 0) return;
+      if (slotCards.get().length < 3 || (deadline.get() > 0 && Date.now() >= deadline.get())) return;
       await withTeeLock(async () => {
         try {
-          const result = await sendOp({ type: "remove3" });
-          pileCards.set(result.cards.filter((c) => !c.picked));
-          slotCards.set(result.slots);
-          isGameOver.set(result.gameOver);
-          failureReason.set(result.gameOver ? "tray" : "none");
-          shuffleLeft.set(result.shuffleLeft);
-          remove3Left.set(result.remove3Left);
-          ctx.setStatus(ctx.t("remove3Action", { left: result.remove3Left }), "info");
+          const view = await sendOp({ type: "remove3" });
+          applySessionView(view);
+          ctx.setStatus(ctx.t("remove3Action", { left: view.remove3Left }), "info");
         } catch (error) {
-          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
-          ctx.setStatus(message, "error");
+          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         }
       });
     });
@@ -961,63 +566,37 @@ defineMiniApp({
       if (app.mode.isGuest()) { await guest.submitRun(); return; }
       const gameId = activeGameId.get();
       const status = gameStatus.get();
-      if (
-        gameId === "0" ||
-        isSubmitting.get() ||
-        isTeeBusy.get() ||
-        (status !== "dealt" && status !== "solved" && status !== "unknown")
-      ) return;
+      if (gameId === "0" || isSubmitting.get() || isTeeBusy.get()) return;
+      if (status !== "dealt" && status !== "solved" && status !== "unknown") return;
       return withFinancialLock(async () => {
         isSubmitting.set(true);
         lastStatus.set(ctx.t("statusSubmitting"));
-        saveRecovery(gameId, "settle");
         try {
           if (status === "unknown") {
-            await recoverCurrentGame(gameId, true);
+            await recoverCurrentGame(true);
             return undefined;
           }
-          if (!session) await resumeSession(gameId, gameDifficulty.get());
+          if (!session) await restoreSession(gameId, gameDifficulty.get());
           if (!session) throw new Error(ctx.t("statusRecoveryUnavailable"));
-          const settlement = await teeFinalize(
-            session.identity,
-            session.sessionToken,
-            loadOps(gameId),
-          );
-          const result = await app.chain.invoke(
-            "settleVerified",
-            [
-              app.chain.arg.integer(gameId),
-              app.chain.arg.string(settlement.problemHash),
-              app.chain.arg.string(settlement.answerHash),
-              app.chain.arg.integer(settlement.elapsedMs),
-              app.chain.arg.integer(settlement.undos),
-              app.chain.arg.string(settlement.settleSignature),
-            ],
-            { waitForEvent: "Solved", waitTimeoutMs: 45_000 },
-          );
-          const exactEvent = result.event != null &&
-            String(parseBigInt(eventStateValue(result.event, 0)) ?? "0") === gameId &&
-            addrEq(eventStateValue(result.event, 1), playerScriptHash()) &&
-            asNumber(eventStateValue(result.event, 2)) === gameDifficulty.get();
-          const snapshot = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
-          if (
-            !exactEvent ||
-            !gameMatchesPlayer(snapshot, gameId, gameDifficulty.get()) ||
-            asNumber(mapField(snapshot, "status")) !== 2
-          ) throw new Error(ctx.t("statusSettlementPending"));
-          await finishFromSnapshot(gameId, snapshot, true);
-          return result;
-        } catch (error) {
-          session = null;
-          const recovered = await recoverCurrentGame(gameId, false);
-          if (!recovered || activeGameId.get() !== "0") {
+          const result = await rewardGame.finalize(session);
+          if (result.settlement.status === "unknown") {
             gameStatus.set("unknown");
             lastStatus.set(ctx.t("statusSettlementPending"));
-            ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+            ctx.setStatus(lastStatus.get(), "info");
+            return result.tx;
           }
-          if (!recovered && error instanceof Error) {
-            ctx.setStatus(error.message, "error");
-          }
+          const terminal = result.settlement.status === "solved" ? "solved" : "expired";
+          await finishSettlement(
+            gameId,
+            terminal,
+            result.settlement.payoutGas,
+            result.settlement.elapsedMs,
+          );
+          return result.tx;
+        } catch (error) {
+          gameStatus.set("unknown");
+          lastStatus.set(ctx.t("statusSettlementPending"));
+          ctx.setStatus(app.errors.messageOf(error, lastStatus.get()), "error");
           return undefined;
         } finally {
           isSubmitting.set(false);
@@ -1028,16 +607,11 @@ defineMiniApp({
     ctx.framework.actions.register("returnToLobby", async () => {
       if (app.mode.isGuest()) { guest.returnToLobby(); return; }
       if (isSubmitting.get() || isDealing.get() || isStarting.get() || isRecovering.get()) return;
-      const gameId = activeGameId.get();
-      // Never discard the exact id/op-log of an unfinished or uncertain paid
-      // game. Terminal snapshots clear activeGameId before this action is used.
-      if (gameId !== "0") return;
-      activeGameId.set("0");
+      if (activeGameId.get() !== "0") return;
       gameStatus.set("idle");
       session = null;
       clearDeadlineTimer();
       clearMatchTimer();
-      if (gameId !== "0") forgetOps(gameId);
       pileCards.set([]);
       slotCards.set([]);
       startedAt.set(0);
@@ -1056,65 +630,27 @@ defineMiniApp({
         return;
       }
       await withFinancialLock(async () => {
-        saveRecovery(gameId, "expire");
         try {
-          await app.chain.invoke(
-            "expireGame",
-            [app.chain.arg.integer(gameId)],
-            { waitForEvent: gameStatus.get() === "committed" ? "GameRefunded" : "GameExpired" },
-          );
-          const snapshot = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
-          const rawStatus = asNumber(mapField(snapshot, "status"));
-          if (!gameMatchesPlayer(snapshot, gameId) || (rawStatus !== 3 && rawStatus !== 4)) {
-            throw new Error(ctx.t("statusSettlementPending"));
-          }
-          await finishFromSnapshot(gameId, snapshot, true);
+          await rewardGame.expire(gameId);
+          await finishSettlement(gameId, "expired");
         } catch (error) {
-          const recovered = await recoverCurrentGame(gameId, false);
-          if (!recovered || activeGameId.get() !== "0") {
-            gameStatus.set("unknown");
-            lastStatus.set(ctx.t("statusSettlementPending"));
-            ctx.setStatus(
-              app.errors.messageOf(error, ctx.t("statusSettlementPending")),
-              "error",
-            );
-          }
+          gameStatus.set("unknown");
+          lastStatus.set(ctx.t("statusSettlementPending"));
+          ctx.setStatus(app.errors.messageOf(error, lastStatus.get()), "error");
         }
       });
     });
 
     ctx.framework.actions.register("withdrawWinnings", async () => {
       if (app.mode.isGuest()) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
-      const playerHash = playerScriptHash();
-      if (!playerHash) {
-        ctx.setStatus(ctx.t("statusFailed"), "error");
-        return;
-      }
-      if (credit.get() <= 0) {
-        ctx.setStatus(ctx.t("noCreditToWithdraw"), "info");
-        return;
-      }
+      if (credit.get() <= 0) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       await withFinancialLock(async () => {
-        const before = credit.get();
         try {
-          await app.chain.ensureWallet();
-          const result = await app.chain.invoke(
-            "withdraw",
-            [app.chain.arg.hash160(playerHash)],
-            { waitForEvent: "CreditWithdrawn" },
-          );
-          const exactEvent = result.event != null &&
-            addrEq(eventStateValue(result.event, 0), playerHash) &&
-            parseBigInt(eventStateValue(result.event, 1)) > 0n;
+          const result = await rewardGame.withdrawCredit();
           await refreshBalances();
-          if (!exactEvent || credit.get() !== 0) throw new Error(ctx.t("withdrawPending"));
-          ctx.setStatus(ctx.t("creditWithdrawn"), "success");
+          ctx.setStatus(result.skipped ? ctx.t("noCreditToWithdraw") : ctx.t("creditWithdrawn"), result.skipped ? "info" : "success");
         } catch (error) {
           await refreshBalances();
-          if (before > 0 && credit.get() === 0) {
-            ctx.setStatus(ctx.t("creditWithdrawn"), "success");
-            return;
-          }
           ctx.setStatus(app.errors.messageOf(error, ctx.t("withdrawPending")), "error");
         }
       });
@@ -1122,17 +658,14 @@ defineMiniApp({
 
     ctx.framework.actions.register("recoverGame", async () => {
       if (app.mode.isGuest()) return;
-      await withFinancialLock(() => recoverCurrentGame(undefined, true, true));
+      await withFinancialLock(() => recoverCurrentGame(true));
     });
-
     ctx.framework.actions.register("advanceLevel", async () => {
-      if (app.mode.isGuest()) { guest.advanceLevel(); return; }
+      if (app.mode.isGuest()) guest.advanceLevel();
     });
-
     ctx.framework.actions.register("revive", async () => {
-      if (app.mode.isGuest()) { guest.revive(); return; }
+      if (app.mode.isGuest()) guest.revive();
     });
-
     ctx.framework.actions.register("refreshLeaderboard", async () => {
       if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
@@ -1183,11 +716,9 @@ defineMiniApp({
       loadData: async () => {
         if (app.mode.isGuest()) { await guest.enter(); return; }
         await refreshBalances();
-        await recoverCurrentGame(loadRecovery()?.gameId, false);
+        await recoverCurrentGame(false);
         await Promise.all([refreshStats(), loadLeaderboard()]);
-        if (gameStatus.get() === "idle") {
-          lastStatus.set(ctx.t("statusReady"));
-        }
+        if (gameStatus.get() === "idle") lastStatus.set(ctx.t("statusReady"));
       },
       cleanup: () => {
         stopModeSync();

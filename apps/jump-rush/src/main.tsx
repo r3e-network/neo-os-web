@@ -1,36 +1,50 @@
 import { createObservable, defineMiniApp } from "@shared/react";
 import type { Observable } from "@shared/react";
-import { fromFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { eventStateValue } from "@shared/utils/chain-events";
-import {
-  eventHashMatches as addrEq,
-  mapField,
-  normalizedHash as normHash,
-} from "@framework/gamefi";
+import type { RewardGameConfig, RewardGameSession } from "@framework/gamefi";
+import type { SolveRow } from "@framework/game";
+import type { TeeSessionOp } from "@framework/logic/tee-session";
+import type { FrameworkPlatformGameSnapshot } from "@framework/platform-game-surface";
 import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import {
-  DEAL_TTL_MS,
   ENTRY_MEMO,
-  MAX_UNDOS,
+  GAMEFI_MAX_UNDOS,
   SETTLE_GRACE_MS,
   ruleOf,
-  statusOf,
   gasDisplay,
 } from "./logic/game-rules";
-import { morpheusNetworkOf, teeFinalize, teeMove, teeStart } from "./logic/tee-session";
-import type { TeeIdentity, TeeOp, TeeStartResult } from "./logic/tee-session";
 import { createGuestEngine } from "./logic/guest-engine";
 import type { Platform } from "./logic/jump-engine";
 
 const appId = "miniapp-jump-rush";
+const ENGINE_HASH = "a61fca9f6cfc3a88cde4230d6817d7fc84491f42b03815453775585a3d9c820f";
 /** Paid starts remain unavailable until the contract and Morpheus rules match. */
 const GAMEFI_NEW_ENTRIES_ENABLED = false;
 
 const LEADERBOARD_EVENT_LIMIT = 200;
+type TeeOp = ({ type: "jump"; chargeLevel: number } | { type: "undo" }) & TeeSessionOp;
+
+const rewardGameConfig: RewardGameConfig = {
+  appId,
+  engineHash: ENGINE_HASH,
+  entryMemo: ENTRY_MEMO,
+  modes: [0, 1, 2].map((difficulty) => {
+    const rule = ruleOf(difficulty);
+    return {
+      id: difficulty,
+      key: rule.key,
+      entryFixed8: rule.entryFixed8,
+      rewardFixed8: rule.rewardFixed8,
+      limitMs: rule.limitMs,
+      minSolveMs: rule.minSolveMs,
+      target: rule.targetJumps,
+    };
+  }),
+};
 
 function asNumber(value: unknown): number {
   const n = Number(parseBigInt(value));
@@ -76,6 +90,8 @@ export interface RunRow {
   payout: string;
 }
 
+type SharedRunRow = SolveRow & Pick<RunRow, "jumps" | "perfects">;
+
 defineMiniApp({
   appId,
   playArea: PhaserPlayArea,
@@ -88,6 +104,9 @@ defineMiniApp({
     // stack items, and readRaw/invoke/events/detectNetwork are raw passthroughs
     // to the host chain service the framework wraps.
     const app = ctx.framework;
+    const rewardGame = app.game.reward<TeeOp>(rewardGameConfig, {
+      storagePrefix: `neo:${appId}:ops/`,
+    });
 
     // Fail closed for direct Vite launches and stale platform hosts. The public
     // manifest intentionally exposes only local practice until the live
@@ -159,73 +178,22 @@ defineMiniApp({
       subscribe: (fn) => myRank.subscribe(fn),
     };
 
-    // TEE session context for the active game (rebuilt idempotently from the
-    // deterministic teeStart, so nothing here needs durable storage).
-    let session: (TeeStartResult & { identity: TeeIdentity }) | null = null;
-
-    // Per-game TEE op log through the framework's namespaced local KV instead
-    // of raw window.localStorage (best-effort telemetry + undo accounting).
-    const opsKey = (gameId: string): string => `ops/${gameId}`;
-
-    const loadOps = (gameId: string): TeeOp[] => {
-      const parsed = app.storage.local.get<TeeOp[]>(opsKey(gameId), []);
-      return Array.isArray(parsed) ? parsed : [];
-    };
-
-    const saveOps = (gameId: string, ops: TeeOp[]): void => {
-      try {
-        app.storage.local.set(opsKey(gameId), ops);
-      } catch {
-        /* telemetry log is best-effort */
-      }
-    };
-
-    const forgetOps = (gameId: string): void => {
-      try {
-        app.storage.local.delete(opsKey(gameId));
-      } catch {
-        /* nothing to clean */
-      }
-    };
+    // TEE session context for the active shared-engine game.
+    let session: RewardGameSession | null = null;
 
     const playerScriptHash = (): string => {
       const player = app.chain.address.get();
       return player ? addressToScriptHash(player) : "";
     };
 
-    const buildIdentity = async (gameId: string, difficulty: number): Promise<TeeIdentity> => {
-      const playerHash = playerScriptHash();
-      const contractHash = app.chain.contractAddress.get();
-      if (!playerHash || !contractHash) throw new Error(ctx.t("statusFailed"));
-      // A proof envelope is network-bound. Never guess testnet when wallet
-      // network detection fails, or a valid signature can be built for the
-      // wrong domain and leave the paid run unrecoverable.
-      const detected = await app.chain.detectNetwork();
-      return {
-        appId,
-        network: morpheusNetworkOf(detected),
-        contractHash: normHash(contractHash) ? `0x${normHash(contractHash)}` : contractHash,
-        gameId,
-        player: normHash(playerHash) ? `0x${normHash(playerHash)}` : playerHash,
-        difficulty,
-      };
-    };
-
     const refreshBalances = async (): Promise<void> => {
       if (app.mode.isGuest()) return;
       try {
-        poolFree.set(fromFixed8(await app.chain.query("freePool", []).asBigInt()));
+        const balances = await rewardGame.balances(playerScriptHash());
+        poolFree.set(balances.poolFreeGas);
+        credit.set(balances.creditGas);
       } catch {
-        /* keep the previous value — reads are best-effort */
-      }
-      const playerHash = playerScriptHash();
-      if (!playerHash) return;
-      try {
-        credit.set(fromFixed8(
-          await app.chain.query("creditOf", [app.chain.arg.hash160(playerHash)]).asBigInt(),
-        ));
-      } catch {
-        /* keep the previous value */
+        /* keep the previous values — reads are best-effort */
       }
     };
 
@@ -234,11 +202,9 @@ defineMiniApp({
       const playerHash = playerScriptHash();
       if (!playerHash) return;
       try {
-        const stats = await app.chain.readRaw("statsOf", [
-          app.chain.arg.hash160(playerHash),
-        ]);
-        myRuns.set(asNumber(mapField(stats, "runs")));
-        myTotalWon.set(fromFixed8(parseBigInt(mapField(stats, "totalWon"))));
+        const stats = await app.game.stats.load(playerHash);
+        myRuns.set(stats.solves);
+        myTotalWon.set(stats.totalWon);
       } catch {
         /* stats stay stale */
       }
@@ -251,107 +217,93 @@ defineMiniApp({
      */
     const loadLeaderboard = async (): Promise<void> => {
       if (app.mode.isGuest()) return;
-      const playerHash = playerScriptHash();
       try {
-        const events = await app.chain.events("Solved", {
-          limit: LEADERBOARD_EVENT_LIMIT,
-        });
-        const bestByPlayer = new Map<string, { totalWon: number; runs: number; raw: unknown }>();
-        const mine: RunRow[] = [];
-        for (const ev of events) {
-          const who = normHash(eventStateValue(ev, 1));
-          if (!who) continue;
-          const totalWon = fromFixed8(parseBigInt(eventStateValue(ev, 6)));
-          const prior = bestByPlayer.get(who);
-          bestByPlayer.set(who, {
-            totalWon: Math.max(prior?.totalWon ?? 0, totalWon),
-            runs: (prior?.runs ?? 0) + 1,
-            raw: eventStateValue(ev, 1),
-          });
-          if (playerHash && addrEq(eventStateValue(ev, 1), playerHash)) {
-            const solvedDifficulty = asNumber(eventStateValue(ev, 2));
-            mine.push({
-              gameId: String(parseBigInt(eventStateValue(ev, 0)) ?? ""),
-              difficulty: solvedDifficulty,
-              elapsedMs: asNumber(eventStateValue(ev, 3)),
-              undos: asNumber(eventStateValue(ev, 4)),
-              // MiniAppJumpRush.Solved currently has seven fields. A solved run
-              // necessarily cleared the configured target, while perfects are
-              // not present and must stay unknown instead of being fabricated.
-              jumps: ruleOf(solvedDifficulty).targetJumps,
+        const { ranked, mine } = await app.game.leaderboard.load<SharedRunRow>(
+          "Solved",
+          { solvedPayout: 5, totalWon: 6, undos: 7 },
+          LEADERBOARD_EVENT_LIMIT,
+          (event) => {
+            const difficulty = asNumber(eventStateValue(event, 2));
+            return {
+              jumps: ruleOf(difficulty).targetJumps,
               perfects: null,
-              payout: `${fromFixed8(parseBigInt(eventStateValue(ev, 5))).toFixed(2)} GAS`,
-            });
-          }
-        }
-        const ranked: LeaderEntry[] = [...bestByPlayer.entries()]
-          .map(([address, entry]) => ({
-            address,
-            totalWon: entry.totalWon,
-            runs: entry.runs,
-            isUser: playerHash ? addrEq(entry.raw, playerHash) : false,
-          }))
-          .sort((a, b) => b.totalWon - a.totalWon)
-          .map((entry, idx) => ({ rank: idx + 1, ...entry }));
-        leaderboard.set(ranked);
-        const me = ranked.find((entry) => entry.isUser);
+            };
+          },
+        );
+        const rows = ranked.map((entry) => ({ ...entry, runs: entry.solves }));
+        leaderboard.set(rows);
+        const me = rows.find((entry) => entry.isUser);
         myRank.set(me ? me.rank : 0);
-        myHistory.set(mine.reverse().slice(0, 12));
+        myHistory.set(mine.slice(0, 12).map((row) => ({
+          gameId: row.gameId,
+          difficulty: row.difficulty,
+          elapsedMs: row.solveMs,
+          undos: row.undos,
+          jumps: row.jumps,
+          perfects: row.perfects,
+          payout: row.payout,
+        })));
       } catch {
         /* indexer unreachable — the board stays playable without rankings */
       }
     };
 
-    const applyGameSnapshot = (game: unknown): void => {
-      const status = statusOf(asNumber(mapField(game, "status")));
-      gameStatus.set(status);
-      gameDifficulty.set(asNumber(mapField(game, "difficulty")));
-      commitment.set(String(mapField(game, "commitment") ?? ""));
-      dealtAt.set(asNumber(mapField(game, "dealtAt")));
-      deadline.set(asNumber(mapField(game, "deadline")));
-      startedAt.set(asNumber(mapField(game, "startTime")));
-      undosUsed.set(asNumber(mapField(game, "undos") ?? 0));
+    const applyGameSnapshot = (game: FrameworkPlatformGameSnapshot): void => {
+      gameStatus.set(game.status);
+      gameDifficulty.set(game.difficulty);
+      if (game.commitment) commitment.set(game.commitment);
+      dealtAt.set(game.dealtAt);
+      deadline.set(game.deadline);
+      startedAt.set(game.startTime);
+      undosUsed.set(game.undos);
+    };
+
+    const applyProgressView = (view: Record<string, unknown>): void => {
+      currentPlatform.set(asNumber(view.platformIndex));
+      jumpCount.set(asNumber(view.jumps));
+      perfectCount.set(asNumber(view.perfects));
+      comboCount.set(0);
+      missedPlatform.set(view.failed === true);
+    };
+
+    const restoreSharedSession = async (
+      gameId: string,
+      difficulty: number,
+    ): Promise<RewardGameSession> => {
+      const started = await rewardGame.openSession(gameId, difficulty);
+      const ops = rewardGame.storage.load(gameId);
+      let progressView = started.currentView;
+      if (started.opCount === 0 && ops.length > 0) {
+        const replayed = await rewardGame.replayOps(started, ops);
+        progressView = replayed.at(-1)?.view ?? started.view;
+      } else if (started.opCount !== ops.length) {
+        throw new Error(ctx.t("statusFailed"));
+      }
+      const platforms = Array.isArray(started.view.platforms)
+        ? started.view.platforms as Platform[]
+        : [];
+      if (platforms.length === 0) throw new Error(ctx.t("statusFailed"));
+      session = started;
+      platformsView.set(platforms);
+      applyProgressView(progressView);
+      commitment.set(started.commitment);
+      return started;
     };
 
     /**
-     * Seal-and-bind flow: ask the TEE to generate the platform layout (the
-     * jump sequence never leaves the enclave), then bind its hash commitment
-     * on-chain. The TEE start is deterministic per game, so retries and reloads
-     * converge on the same layout.
+     * Open the generic confidential session for the active PlatformGame run.
+     * The TEE start is deterministic per game, so retries and reloads converge
+     * on the same platform layout.
      */
-    const sealAndBind = async (gameId: string, difficulty: number): Promise<boolean> => {
+    const openSharedSession = async (gameId: string, difficulty: number): Promise<boolean> => {
       isDealing.set(true);
       lastStatus.set(ctx.t("statusSealing"));
       try {
-        const identity = await buildIdentity(gameId, difficulty);
-        const started = await teeStart(identity);
-        session = { ...started, identity };
-        platformsView.set(started.view.platforms);
-        commitment.set(started.commitment);
-        const result = await app.chain.invoke(
-          "bindPuzzle",
-          [
-            app.chain.arg.integer(gameId),
-            app.chain.arg.string(started.commitment),
-            app.chain.arg.string(started.bindSignature),
-          ],
-          { waitForEvent: "PuzzleBound", waitTimeoutMs: 30_000 },
-        );
-        if (result.event != null) {
-          dealtAt.set(asNumber(eventStateValue(result.event, 3)));
-          deadline.set(asNumber(eventStateValue(result.event, 4)));
-        } else {
-          const game = await app.chain.readRaw("getGame", [
-            app.chain.arg.integer(gameId),
-          ]);
-          applyGameSnapshot(game);
-        }
+        await restoreSharedSession(gameId, difficulty);
+        const game = await app.platformGame.getGame(gameId);
+        if (game) applyGameSnapshot(game);
         gameStatus.set("dealt");
         undosUsed.set(0);
-        currentPlatform.set(0);
-        jumpCount.set(0);
-        perfectCount.set(0);
-        comboCount.set(0);
         chargeLevel.set(0);
         isCharging.set(false);
         isJumping.set(false);
@@ -370,30 +322,24 @@ defineMiniApp({
       }
     };
 
-    /** Reattach to a bound game after a reload: same TEE identity, same layout. */
+    /** Reattach to an active game after reload: same TEE identity and layout. */
     const resumeSession = async (gameId: string, difficulty: number): Promise<void> => {
       try {
-        const identity = await buildIdentity(gameId, difficulty);
-        const started = await teeStart(identity);
-        if (commitment.get() && started.commitment !== commitment.get()) {
+        const previousCommitment = commitment.get();
+        const started = await restoreSharedSession(gameId, difficulty);
+        if (previousCommitment && started.commitment !== previousCommitment) {
           throw new Error(ctx.t("statusFailed"));
         }
-        session = { ...started, identity };
-        platformsView.set(started.view.platforms);
-        commitment.set(started.commitment);
       } catch {
+        session = null;
         lastStatus.set(ctx.t("statusDealPending"));
       }
     };
 
     const sendOp = async (op: TeeOp): Promise<Record<string, unknown>> => {
       if (!session) throw new Error(ctx.t("statusFailed"));
-      const gameId = session.identity.gameId;
-      const ops = loadOps(gameId);
-      const result = await teeMove(session.identity, session.sessionToken, ops.length, op, undefined);
-      ops.push(op);
-      saveOps(gameId, ops);
-      return result;
+      const result = await rewardGame.recordOp(session, op);
+      return result.step.view;
     };
 
     // ── Guest (free / local) engine ───────────────────────────────────────────
@@ -476,41 +422,11 @@ defineMiniApp({
       if (isStarting.get() || isDealing.get()) return;
       const form = (args[0] ?? {}) as { difficulty?: unknown };
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
-      const rule = ruleOf(difficulty);
       isStarting.set(true);
       lastStatus.set(ctx.t("statusStarting"));
       try {
-        const player = await app.chain.ensureWallet();
-        const playerHash = addressToScriptHash(player);
-        if (!playerHash) throw new Error(ctx.t("statusFailed"));
-        await refreshBalances();
-        if (poolFree.get() < fromFixed8(rule.rewardFixed8)) {
-          throw new Error(ctx.t("statusPoolLow"));
-        }
-        const invokeArgs = [
-          app.chain.arg.hash160(playerHash),
-          app.chain.arg.integer(difficulty),
-        ];
-        const options = { waitForEvent: "GameStarted", waitTimeoutMs: 30_000 };
-        const creditFixed8 = BigInt(Math.round(credit.get() * 1e8));
-        const result =
-          creditFixed8 >= rule.entryFixed8
-            ? await app.chain.invoke("startGame", invokeArgs, options)
-            : await app.chain.invokeWithPayment(
-                rule.entryFixed8.toString(),
-                ENTRY_MEMO,
-                "startGame",
-                invokeArgs,
-                options,
-              );
-        let gameId =
-          result.event != null ? String(parseBigInt(eventStateValue(result.event, 0)) ?? "") : "";
-        if (!gameId || gameId === "0") {
-          gameId = (
-            await app.chain.query("activeGameOf", [app.chain.arg.hash160(playerHash)]).asBigInt()
-          ).toString();
-        }
-        if (!gameId || gameId === "0") throw new Error(ctx.t("statusFailed"));
+        const result = await rewardGame.start(difficulty);
+        const gameId = result.gameId;
         activeGameId.set(gameId);
         gameDifficulty.set(difficulty);
         undosUsed.set(0);
@@ -518,15 +434,13 @@ defineMiniApp({
         commitment.set("");
         dealtAt.set(0);
         deadline.set(0);
-        startedAt.set(
-          result.event != null ? asNumber(eventStateValue(result.event, 4)) : Date.now(),
-        );
-        gameStatus.set("committed");
+        startedAt.set(Date.now());
+        gameStatus.set("dealt");
         inputSyncFailed.set(false);
         lastStatus.set(ctx.t("statusStarted"));
         await refreshBalances();
-        void sealAndBind(gameId, difficulty);
-        return result;
+        void openSharedSession(gameId, difficulty);
+        return result.tx;
       } catch (error) {
         const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         lastStatus.set(message);
@@ -537,12 +451,12 @@ defineMiniApp({
       }
     });
 
-    // Retry handle for a seal/bind that failed (TEE unreachable, tx rejected).
+    // Retry opening a shared session after a transient TEE failure.
     ctx.framework.actions.register("retryDeal", async () => {
       if (app.mode.isGuest()) { guest.retryDeal(); return; }
       const gameId = activeGameId.get();
-      if (gameId === "0" || isDealing.get() || gameStatus.get() !== "committed") return;
-      await sealAndBind(gameId, gameDifficulty.get());
+      if (gameId === "0" || isDealing.get() || gameStatus.get() !== "dealt") return;
+      await openSharedSession(gameId, gameDifficulty.get());
     });
 
     // Record a jump in the TEE session for telemetry + undo accounting.
@@ -562,30 +476,20 @@ defineMiniApp({
         return;
       }
       const chargeLevel = Math.round(Number(form.chargeLevel));
-      const platformIndex = Math.round(Number(form.platformIndex));
       if (!Number.isInteger(chargeLevel) || chargeLevel < 0 || chargeLevel > 100) return;
       try {
-        await sendOp({ type: "jump", chargeLevel });
+        const view = await sendOp({ type: "jump", chargeLevel });
         inputSyncFailed.set(false);
-        if (form.landed === false) {
+        if (view.landed !== true || view.failed === true) {
+          applyProgressView(view);
           missedPlatform.set(true);
           comboCount.set(0);
           return;
         }
-        if (
-          Number.isInteger(platformIndex) &&
-          platformIndex === currentPlatform.get() + 1
-        ) {
-          currentPlatform.set(platformIndex);
-          jumpCount.set(platformIndex);
-          if (form.perfect === true) {
-            perfectCount.set(perfectCount.get() + 1);
-            comboCount.set(comboCount.get() + 1);
-          } else {
-            comboCount.set(0);
-          }
-          missedPlatform.set(false);
-        }
+        const previousCombo = comboCount.get();
+        applyProgressView(view);
+        comboCount.set(view.perfect === true ? previousCombo + 1 : 0);
+        missedPlatform.set(false);
       } catch (error) {
         inputSyncFailed.set(true);
         const message = app.errors.messageOf(error, ctx.t("statusInputSyncFailed"));
@@ -600,7 +504,7 @@ defineMiniApp({
       if (app.mode.isGuest()) { guest.useUndo(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0" || isUndoing.get() || gameStatus.get() !== "dealt") return;
-      if (undosUsed.get() >= MAX_UNDOS) {
+      if (undosUsed.get() >= GAMEFI_MAX_UNDOS) {
         ctx.setStatus(ctx.t("undoLimitReached"), "info");
         return;
       }
@@ -633,33 +537,27 @@ defineMiniApp({
           await resumeSession(gameId, gameDifficulty.get());
         }
         if (!session) throw new Error(ctx.t("statusFailed"));
-        const settlement = await teeFinalize(session.identity, session.sessionToken);
-        const result = await app.chain.invoke(
-          "settleVerified",
-          [
-            app.chain.arg.integer(gameId),
-            app.chain.arg.string(settlement.problemHash),
-            app.chain.arg.string(settlement.answerHash),
-            app.chain.arg.integer(settlement.elapsedMs),
-            app.chain.arg.integer(settlement.undos),
-            app.chain.arg.string(settlement.settleSignature),
-          ],
-          { waitForEvent: "Solved", waitTimeoutMs: 45_000 },
-        );
-        const payoutGas =
-          result.event != null
-            ? fromFixed8(parseBigInt(eventStateValue(result.event, 5)))
-            : fromFixed8(0n);
+        const result = await rewardGame.finalize(session);
+        const payoutGas = result.settlement.payoutGas;
         lastPayout.set(`${payoutGas.toFixed(2)} GAS`);
-        lastElapsedMs.set(settlement.elapsedMs);
-        gameStatus.set("solved");
+        lastElapsedMs.set(result.settlement.elapsedMs);
+        if (result.settlement.status === "unknown") {
+          gameStatus.set("unknown");
+          lastStatus.set(ctx.t("statusSettlementPending"));
+          ctx.setStatus(lastStatus.get(), "info");
+          return result.tx;
+        }
+        gameStatus.set(result.settlement.status);
         activeGameId.set("0");
-        forgetOps(gameId);
         session = null;
-        lastStatus.set(ctx.t("statusSolved", { payout: payoutGas.toFixed(2) }));
-        ctx.setStatus(lastStatus.get(), "success");
+        lastStatus.set(
+          result.settlement.status === "solved"
+            ? ctx.t("statusSolved", { payout: payoutGas.toFixed(2) })
+            : ctx.t("statusExpired"),
+        );
+        ctx.setStatus(lastStatus.get(), result.settlement.status === "solved" ? "success" : "info");
         await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
-        return result;
+        return result.tx;
       } catch (error) {
         const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         lastStatus.set(message);
@@ -671,7 +569,7 @@ defineMiniApp({
     });
 
     // Permissionless housekeeping: release the reward reservation of a game
-    // whose deadline passed (or refund an entry that was never bound).
+    // whose settlement deadline and grace period have passed.
     ctx.framework.actions.register("expireGame", async () => {
       if (app.mode.isGuest()) { guest.expireGame(); return; }
       const gameId = activeGameId.get();
@@ -679,19 +577,16 @@ defineMiniApp({
       const status = gameStatus.get();
       const now = Date.now();
       const canExpire = status === "dealt"
-        ? deadline.get() > 0 && now > deadline.get() + SETTLE_GRACE_MS
-        : status === "committed"
-          ? startedAt.get() > 0 && now > startedAt.get() + DEAL_TTL_MS
-          : false;
+        && deadline.get() > 0
+        && now > deadline.get() + SETTLE_GRACE_MS;
       if (!canExpire) {
         ctx.setStatus(ctx.t("statusReleasePending"), "info");
         return;
       }
       try {
-        await app.chain.invoke("expireGame", [app.chain.arg.integer(gameId)], {});
+        await rewardGame.expire(gameId);
         gameStatus.set("expired");
         activeGameId.set("0");
-        forgetOps(gameId);
         session = null;
         lastStatus.set(ctx.t("statusExpired"));
         ctx.setStatus(ctx.t("statusExpired"), "info");
@@ -720,12 +615,7 @@ defineMiniApp({
         return;
       }
       await withdrawOp.run(async () => {
-        await app.chain.ensureWallet();
-        await app.chain.invoke(
-          "withdraw",
-          [app.chain.arg.hash160(playerHash)],
-          { waitForEvent: "CreditWithdrawn" },
-        );
+        await rewardGame.withdrawCredit();
         await refreshBalances();
       }, { successKey: "creditWithdrawn" });
     });
@@ -782,18 +672,13 @@ defineMiniApp({
         const playerHash = playerScriptHash();
         if (playerHash) {
           try {
-            const active = (
-              await app.chain.query("activeGameOf", [app.chain.arg.hash160(playerHash)]).asBigInt()
-            ).toString();
+            const recovered = await rewardGame.recoverActive();
+            const active = recovered.gameId;
             if (active !== "0") {
               activeGameId.set(active);
-              const game = await app.chain.readRaw("getGame", [
-                app.chain.arg.integer(active),
-              ]);
-              applyGameSnapshot(game);
-              if (gameStatus.get() === "committed") {
-                void sealAndBind(active, gameDifficulty.get());
-              } else if (gameStatus.get() === "dealt") {
+              const game = await app.platformGame.getGame(active);
+              if (game) applyGameSnapshot(game);
+              if (gameStatus.get() === "dealt") {
                 await resumeSession(active, gameDifficulty.get());
               }
             }

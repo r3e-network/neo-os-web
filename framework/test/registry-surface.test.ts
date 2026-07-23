@@ -20,6 +20,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createMiniAppFramework,
   deriveAppAccountHash,
+  deriveVirtualAAAccount,
   FrameworkCapabilityError,
 } from "../index";
 import type { MiniAppFrameworkContext, MiniAppFrameworkOptions } from "../index";
@@ -31,6 +32,8 @@ const REGISTRY_HASH = `0x${"cd".repeat(20)}`;
 const ENGINE_HASH = "0x0123456789abcdef0123456789abcdef01234567";
 const ADMIN_HASH = "0x89abcdef0123456789abcdef0123456789abcdef";
 const ACCOUNT_HASH = "0xfedcba9876543210fedcba9876543210fedcba98";
+const AA_CORE_HASH = `0x${"34".repeat(20)}`;
+const AA_ACCOUNT_ID = `0x${"56".repeat(20)}`;
 const ZERO_HASH = `0x${"00".repeat(20)}`;
 
 /**
@@ -80,6 +83,8 @@ describe("registry config validation", () => {
       () => app.registry.getApp(),
       () => app.registry.appAccountOf(),
       () => app.registry.appIdOfAccount(ACCOUNT_HASH),
+      () => app.registry.getAbstractAccount(),
+      () => app.registry.appIdOfAbstractAccount(AA_CORE_HASH, AA_ACCOUNT_ID),
       () => app.registry.engineOf(),
       () => app.registry.isPaused(),
       () => app.registry.getGlobalPause(),
@@ -215,6 +220,45 @@ describe("app.registry directory reads", () => {
     expect(chain.read).toHaveBeenLastCalledWith(
       "isPaused",
       [{ type: "String", value: "registry-test" }],
+      { scriptHash: REGISTRY_HASH },
+    );
+  });
+
+  it("reads the shared AA identity and derives its Neo address centrally", async () => {
+    const { app, chain } = makeApp();
+    chain.read.mockResolvedValueOnce([
+      chainHex(AA_CORE_HASH),
+      chainHex(AA_ACCOUNT_ID),
+      true,
+    ]);
+
+    await expect(app.registry.getAbstractAccount()).resolves.toEqual({
+      ...deriveVirtualAAAccount(AA_CORE_HASH, AA_ACCOUNT_ID),
+      materialized: true,
+    });
+    expect(chain.read).toHaveBeenCalledWith(
+      "getAppAbstractAccount",
+      [{ type: "String", value: "registry-test" }],
+      { scriptHash: REGISTRY_HASH },
+    );
+
+    chain.read.mockResolvedValueOnce([ZERO_HASH, ZERO_HASH, false]);
+    await expect(app.registry.getAbstractAccount()).resolves.toBeNull();
+  });
+
+  it("reads the core-scoped AA reverse index", async () => {
+    const { app, chain } = makeApp();
+    chain.read.mockResolvedValue("registry-test");
+
+    await expect(
+      app.registry.appIdOfAbstractAccount(AA_CORE_HASH, AA_ACCOUNT_ID),
+    ).resolves.toBe("registry-test");
+    expect(chain.read).toHaveBeenCalledWith(
+      "appIdOfAbstractAccount",
+      [
+        { type: "Hash160", value: AA_CORE_HASH },
+        { type: "Hash160", value: AA_ACCOUNT_ID },
+      ],
       { scriptHash: REGISTRY_HASH },
     );
   });

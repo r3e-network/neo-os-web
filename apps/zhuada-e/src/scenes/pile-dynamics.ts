@@ -4,6 +4,8 @@ import type { ItemPhysicsProfile } from "./physics-profiles";
 const LOCAL_UP = new Vec3(0, 1, 0);
 const worldAxis = new Vec3();
 const SIDE_REST_TIP_SPEED = 0.48;
+const SUPPORT_WAKE_MARGIN = 0.42;
+const SUPPORT_BELOW_MARGIN = 0.24;
 
 export interface LivePileBody {
   body: CannonBody;
@@ -66,10 +68,11 @@ export function initialPileEuler(
 
 /**
  * Removing a body does not wake Cannon bodies that were sleeping on top of it.
- * Re-activate the complete live pile so gravity and contacts can rebuild the
- * support chain. Upright elongated pieces receive a tiny deterministic tip;
- * this only breaks an implausibly perfect end-cap balance and never launches a
- * body or overrides the solver.
+ * Re-activate the nearby support column so gravity and contacts can rebuild the
+ * changed chain without making the complete basket tremble on every pick.
+ * Upright elongated pieces receive a tiny deterministic tip; this only breaks
+ * an implausibly perfect end-cap balance and never launches a body or overrides
+ * the solver.
  */
 export function resettlePileAfterSupportRemoval(
   bodies: Iterable<LivePileBody>,
@@ -81,6 +84,20 @@ export function resettlePileAfterSupportRemoval(
   for (const entry of bodies) {
     const { body, profile, seed } = entry;
     if (body === removedBody || body.mass <= 0 || body.world == null) continue;
+
+    // Waking every body after every tap makes the whole basket shiver and
+    // spends solver work on objects whose support chain did not change. A
+    // removed body's bounding sphere is deliberately conservative: nearby
+    // sleepers above (or just beside) the gap wake and gravity propagates the
+    // contact change through the real pile, while distant settled clusters
+    // remain visually still.
+    const dx = body.position.x - removedBody.position.x;
+    const dz = body.position.z - removedBody.position.z;
+    const dy = body.position.y - removedBody.position.y;
+    const wakeRadius = Math.max(0.24, body.boundingRadius)
+      + Math.max(0.24, removedBody.boundingRadius)
+      + SUPPORT_WAKE_MARGIN;
+    if (dy < -SUPPORT_BELOW_MARGIN || dx * dx + dz * dz > wakeRadius * wakeRadius) continue;
 
     if (body.sleepState !== Body.AWAKE) woken += 1;
     body.wakeUp();

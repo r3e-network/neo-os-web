@@ -17,7 +17,7 @@ At each stage there is one dominant action: lock the blueprint, then sign it. Th
 
 The configured TestNet Factory at `0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49` exposes the legacy `deployFromTemplate/4` ABI. Its `tpl.nep17.asset.v1` record is metadata-only (`HasArtifact = false`). That path can create a Factory registry record with a zero contract hash; it cannot create a user-specific NEP-17 contract.
 
-The repository contains a newer `deployArtifactFromTemplate/6` implementation, but that ABI is not deployed at the configured hash. Asset Factory therefore:
+The repository contains a newer `deployArtifactFromTemplate/6` implementation plus compiled, creator-specific `FactoryNep17Token` artifacts and exact digest/call generation. That ABI and governed artifact are not deployed at the configured hash. Asset Factory therefore:
 
 - does not expose `invoke:primary`;
 - sets `platform.transactions` to `false`;

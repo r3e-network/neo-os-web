@@ -18,6 +18,7 @@ const requiredFiles = [
   "src/logic/use-device-shake.test.tsx",
   "src/logic/motion-quality.test.ts",
   "src/scenes/scene-motion.ts",
+  "src/scenes/physics-profiles.test.ts",
   "src/scenes/pick-lock.test.ts",
   "src/scenes/model-cache.test.ts",
   "src/main.tsx",
@@ -488,6 +489,15 @@ describe("release audit script", () => {
     expectAuditFailure(overrides, "allows rapid different-item picks while the tray choreography queues receipts");
   });
 
+  it("rejects a late guest reload that can cancel an immediate start or resume", () => {
+    const overrides = baselineOverrides();
+    overrides["src/main.tsx"] = overrides["src/main.tsx"].replace(
+      "if (!isPlaying.get()) guest.enter();",
+      "guest.enter();",
+    );
+    expectAuditFailure(overrides, "if (!isPlaying.get()) guest.enter()");
+  });
+
   it("rejects stale design QA motion timings", () => {
     const overrides = baselineOverrides();
     overrides["design-qa.md"] =
@@ -503,6 +513,21 @@ describe("release audit script", () => {
     overrides["src/PlayArea.scss"] =
       overrides["src/PlayArea.scss"].replace("--goose-tray-entry-ms: 692ms", "--goose-tray-entry-ms: 360ms");
     expectAuditFailure(overrides, "--goose-tray-entry-ms: 692ms");
+  });
+
+  it("rejects removal of the production size-spectrum and portrait-composition gates", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/physics-profiles.test.ts"] = overrides["src/scenes/physics-profiles.test.ts"]
+      .replace("visible size ratio", "uniform visible size");
+    expectAuditFailure(overrides, "visible size ratio");
+
+    const portraitOverrides = baselineOverrides();
+    portraitOverrides["src/logic/motion-quality.test.ts"] = portraitOverrides["src/logic/motion-quality.test.ts"]
+      .replace(
+        "moves a tall-phone pile down into the reference composition without shifting desktop",
+        "keeps the pile centered everywhere",
+      );
+    expectAuditFailure(portraitOverrides, "moves a tall-phone pile down into the reference composition without shifting desktop");
   });
 
   it("rejects stale release evidence counts and build digests", () => {

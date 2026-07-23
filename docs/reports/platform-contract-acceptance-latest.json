@@ -1,0 +1,616 @@
+{
+  "generated_at_utc": "2026-07-23T01:33:22.881Z",
+  "scope": "current source/build/test evidence plus retained deployment artifacts",
+  "summary": {
+    "contracts": 7,
+    "source_accepted": 7,
+    "deployment_reports_present": 4,
+    "partial_operational_evidence": 2,
+    "no_deployment_record": 1,
+    "current_testnet_artifact_matches": 2,
+    "testnet_artifact_drifts": 4,
+    "factory_templates": 2,
+    "factory_templates_source_accepted": 2
+  },
+  "live_testnet_evidence": {
+    "path": "docs/reports/platform-contract-testnet-live-latest.json",
+    "generated_at_utc": "2026-07-23T01:33:00.990Z",
+    "network": "neo-n3-testnet",
+    "network_magic": 894710606
+  },
+  "contracts": [
+    {
+      "name": "PlatformRegistry",
+      "source_files": [
+        "contracts/platform/PlatformRegistry/PlatformRegistry.AbstractAccounts.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.Accounts.Predict.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.Accounts.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.Credit.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.Descriptor.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.Directory.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.Engines.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.Governance.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.Registry.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.Treasury.cs",
+        "contracts/platform/PlatformRegistry/PlatformRegistry.cs"
+      ],
+      "abi": {
+        "methods": 74,
+        "events": 32,
+        "permissions": 5,
+        "supported_standards": []
+      },
+      "money_contract": true,
+      "test_files": [
+        "contracts/__tests__/AppAccountTests.cs",
+        "contracts/__tests__/ContractUpdateCoverageTest.cs",
+        "contracts/__tests__/CreateContractHashVectorTests.cs",
+        "contracts/__tests__/FinancialTransferSafetyTest.cs",
+        "contracts/__tests__/OnNep17PaymentConventionTests.cs",
+        "contracts/__tests__/PlatformGameAdminTimelockTests.cs",
+        "contracts/__tests__/PlatformGameRewardGameModelHarness.cs",
+        "contracts/__tests__/PlatformGameRewardGameModelInvariantTests.cs",
+        "contracts/__tests__/PlatformGameRewardGameSourceSecurityTests.cs",
+        "contracts/__tests__/PlatformGameRewardGameTests.cs",
+        "contracts/__tests__/PlatformRegistryAbstractAccountTests.cs",
+        "contracts/__tests__/PlatformRegistryHarness.cs",
+        "contracts/__tests__/PlatformRegistryHashSemanticsTests.cs",
+        "contracts/__tests__/PlatformRegistryMintTests.cs",
+        "contracts/__tests__/PlatformRegistryModelHarness.cs",
+        "contracts/__tests__/PlatformRegistryModelInvariantTests.cs",
+        "contracts/__tests__/PlatformRegistrySourceSecurityTests.cs",
+        "contracts/__tests__/PlatformRegistryTests.cs",
+        "contracts/__tests__/PlatformRegistryTreasuryTests.cs",
+        "contracts/__tests__/platform-contracts-only.test.ts"
+      ],
+      "deployment_status": "testnet registry report retained; fresh live read documented separately",
+      "deployment_evidence_class": "deployment-report",
+      "deployment_evidence": [
+        "deploy/config/platform-registry-testnet-2026-07-19.json"
+      ],
+      "live_testnet": {
+        "status": "live-artifact-drift",
+        "kind": "contract",
+        "hash": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+        "local_nef_checksum": 2644796843,
+        "on_chain_nef_checksum": 372915605,
+        "current_local_artifact_match": false,
+        "missing_on_chain_methods": [
+          "abstractAccountCore",
+          "abstractAccountCoreAvailableAt",
+          "appIdOfAbstractAccount",
+          "cancelAbstractAccountCore",
+          "cancelSpendThresholdRaise",
+          "executeSpendThresholdRaise",
+          "getAppAbstractAccount",
+          "materializeAbstractAccount",
+          "pendingAbstractAccountCore",
+          "proposeAbstractAccountCore",
+          "setAbstractAccountCore"
+        ]
+      },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "update_in_abi": true,
+        "update_in_source": true,
+        "destroy_absent": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "money_callback_present": true,
+        "contract_tests_present": true,
+        "deployment_evidence_paths_present": true
+      },
+      "source_acceptance": true,
+      "deployment_report_present": true,
+      "oversized_files": [],
+      "wildcard_method_permissions": []
+    },
+    {
+      "name": "AppAccount",
+      "source_files": [
+        "contracts/platform/AppAccount/AppAccount.Spend.cs",
+        "contracts/platform/AppAccount/AppAccount.cs"
+      ],
+      "abi": {
+        "methods": 13,
+        "events": 5,
+        "permissions": 4,
+        "supported_standards": []
+      },
+      "money_contract": true,
+      "test_files": [
+        "contracts/__tests__/AppAccountSourceSecurityTests.cs",
+        "contracts/__tests__/AppAccountTests.cs",
+        "contracts/__tests__/ContractUpdateCoverageTest.cs",
+        "contracts/__tests__/CreateContractHashVectorTests.cs",
+        "contracts/__tests__/FinancialTransferSafetyTest.cs",
+        "contracts/__tests__/OnNep17PaymentConventionTests.cs",
+        "contracts/__tests__/PlatformRegistryHarness.cs",
+        "contracts/__tests__/PlatformRegistryMintTests.cs",
+        "contracts/__tests__/PlatformRegistrySourceSecurityTests.cs",
+        "contracts/__tests__/PlatformRegistryTreasuryTests.cs",
+        "contracts/__tests__/platform-contracts-only.test.ts"
+      ],
+      "deployment_status": "artifact active on testnet registry; no fleet accounts materialized",
+      "deployment_evidence_class": "artifact-activation",
+      "deployment_evidence": [
+        "deploy/config/platform-registry-testnet-2026-07-19.json"
+      ],
+      "live_testnet": {
+        "status": "active-artifact-match",
+        "kind": "registry-artifact",
+        "hash": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+        "local_nef_checksum": 2055764547,
+        "on_chain_nef_checksum": 2055764547,
+        "current_local_artifact_match": true,
+        "missing_on_chain_methods": []
+      },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "update_in_abi": true,
+        "update_in_source": true,
+        "destroy_absent": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "money_callback_present": true,
+        "contract_tests_present": true,
+        "deployment_evidence_paths_present": true
+      },
+      "source_acceptance": true,
+      "deployment_report_present": false,
+      "oversized_files": [],
+      "wildcard_method_permissions": []
+    },
+    {
+      "name": "MiniAppFactory",
+      "source_files": [
+        "contracts/platform/MiniAppFactory/MiniAppFactory.Deploy.cs",
+        "contracts/platform/MiniAppFactory/MiniAppFactory.Reads.cs",
+        "contracts/platform/MiniAppFactory/MiniAppFactory.cs"
+      ],
+      "abi": {
+        "methods": 20,
+        "events": 6,
+        "permissions": 3,
+        "supported_standards": []
+      },
+      "money_contract": false,
+      "test_files": [
+        "contracts/__tests__/FactoryTokenTemplateTests.cs",
+        "contracts/__tests__/Fix_factory_Tests.cs",
+        "contracts/__tests__/platform-contracts-only.test.ts"
+      ],
+      "deployment_status": "consumer bindings exist; no dedicated deployment report retained",
+      "deployment_evidence_class": "consumer-binding",
+      "deployment_evidence": [
+        "apps/asset-factory/neo-manifest.json",
+        "apps/miniapp-factory/neo-manifest.json",
+        "apps/nft-factory/neo-manifest.json"
+      ],
+      "live_testnet": {
+        "status": "live-artifact-drift",
+        "kind": "contract",
+        "hash": "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49",
+        "local_nef_checksum": 905792977,
+        "on_chain_nef_checksum": 2240313340,
+        "current_local_artifact_match": false,
+        "missing_on_chain_methods": [
+          "deployArtifactFromTemplate"
+        ]
+      },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "update_in_abi": true,
+        "update_in_source": true,
+        "destroy_absent": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "money_callback_present": true,
+        "contract_tests_present": true,
+        "deployment_evidence_paths_present": true
+      },
+      "source_acceptance": true,
+      "deployment_report_present": false,
+      "oversized_files": [],
+      "wildcard_method_permissions": []
+    },
+    {
+      "name": "PlatformAnchor",
+      "source_files": [
+        "contracts/platform/PlatformAnchor/PlatformAnchor.Agents.cs",
+        "contracts/platform/PlatformAnchor/PlatformAnchor.Internal.cs",
+        "contracts/platform/PlatformAnchor/PlatformAnchor.Query.cs",
+        "contracts/platform/PlatformAnchor/PlatformAnchor.Staking.cs",
+        "contracts/platform/PlatformAnchor/PlatformAnchor.cs"
+      ],
+      "abi": {
+        "methods": 45,
+        "events": 8,
+        "permissions": 4,
+        "supported_standards": []
+      },
+      "money_contract": true,
+      "test_files": [
+        "contracts/__tests__/AnchorBoundarySafetyTest.cs",
+        "contracts/__tests__/AnchorRewardAccountingInvariantTest.cs",
+        "contracts/__tests__/ContractUpdateCoverageTest.cs",
+        "contracts/__tests__/MiniAppContractFunctionalTests.cs",
+        "contracts/__tests__/platform-contracts-only.test.ts"
+      ],
+      "deployment_status": "testnet and mainnet deployment reports retained",
+      "deployment_evidence_class": "deployment-report",
+      "deployment_evidence": [
+        "contracts/build/testnet_anchor_deployment.json",
+        "contracts/build/mainnet_anchor_deployment.json"
+      ],
+      "live_testnet": {
+        "status": "live-artifact-drift",
+        "kind": "contract",
+        "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+        "local_nef_checksum": 1528462004,
+        "on_chain_nef_checksum": 1604090204,
+        "current_local_artifact_match": false,
+        "missing_on_chain_methods": []
+      },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "update_in_abi": true,
+        "update_in_source": true,
+        "destroy_absent": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "money_callback_present": true,
+        "contract_tests_present": true,
+        "deployment_evidence_paths_present": true
+      },
+      "source_acceptance": true,
+      "deployment_report_present": true,
+      "oversized_files": [],
+      "wildcard_method_permissions": []
+    },
+    {
+      "name": "PlatformGame",
+      "source_files": [
+        "contracts/platform/PlatformGame/PlatformGame.Admin.cs",
+        "contracts/platform/PlatformGame/PlatformGame.CoinFlip.Expiry.cs",
+        "contracts/platform/PlatformGame/PlatformGame.CoinFlip.Internal.cs",
+        "contracts/platform/PlatformGame/PlatformGame.CoinFlip.Query.cs",
+        "contracts/platform/PlatformGame/PlatformGame.CoinFlip.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Countdown.Internal.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Countdown.Query.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Countdown.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Credit.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Dice.Expiry.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Dice.Internal.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Dice.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Gacha.Admin.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Gacha.Expiry.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Gacha.Internal.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Gacha.Play.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Gacha.Query.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Gacha.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Internal.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Oracle.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Registry.cs",
+        "contracts/platform/PlatformGame/PlatformGame.RewardGame.Descriptor.cs",
+        "contracts/platform/PlatformGame/PlatformGame.RewardGame.Reads.cs",
+        "contracts/platform/PlatformGame/PlatformGame.RewardGame.Settle.cs",
+        "contracts/platform/PlatformGame/PlatformGame.RewardGame.cs",
+        "contracts/platform/PlatformGame/PlatformGame.Storage.cs",
+        "contracts/platform/PlatformGame/PlatformGame.cs"
+      ],
+      "abi": {
+        "methods": 77,
+        "events": 36,
+        "permissions": 6,
+        "supported_standards": []
+      },
+      "money_contract": true,
+      "test_files": [
+        "contracts/__tests__/ContractProjectConventionsTest.cs",
+        "contracts/__tests__/ContractSecurityRegressionTest.cs",
+        "contracts/__tests__/ContractUpdateCoverageTest.cs",
+        "contracts/__tests__/FinancialTransferSafetyTest.cs",
+        "contracts/__tests__/MiniAppContractFunctionalTests.cs",
+        "contracts/__tests__/PlatformGameAdminTimelockTests.cs",
+        "contracts/__tests__/PlatformGameComprehensiveTests.cs",
+        "contracts/__tests__/PlatformGameCountdownPullPayoutTests.cs",
+        "contracts/__tests__/PlatformGameRealKernelIntegrationTests.cs",
+        "contracts/__tests__/PlatformGameRewardGameModelHarness.cs",
+        "contracts/__tests__/PlatformGameRewardGameModelInvariantTests.cs",
+        "contracts/__tests__/PlatformGameRewardGameSourceSecurityTests.cs",
+        "contracts/__tests__/PlatformGameRewardGameTests.cs",
+        "contracts/__tests__/PlatformRegistrySourceSecurityTests.cs",
+        "contracts/__tests__/PlatformRegistryTreasuryTests.cs",
+        "contracts/__tests__/RealKernelHarness.cs",
+        "contracts/__tests__/platform-contracts-only.test.ts"
+      ],
+      "deployment_status": "testnet and mainnet deployment reports retained; testnet Registry row active",
+      "deployment_evidence_class": "deployment-report",
+      "deployment_evidence": [
+        "contracts/build/testnet_game_deployment.json",
+        "contracts/build/mainnet_game_deployment.json",
+        "deploy/config/platform-registry-testnet-2026-07-19.json"
+      ],
+      "live_testnet": {
+        "status": "live-artifact-match",
+        "kind": "contract",
+        "hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "local_nef_checksum": 2377918952,
+        "on_chain_nef_checksum": 2377918952,
+        "current_local_artifact_match": true,
+        "missing_on_chain_methods": []
+      },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "update_in_abi": true,
+        "update_in_source": true,
+        "destroy_absent": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "money_callback_present": true,
+        "contract_tests_present": true,
+        "deployment_evidence_paths_present": true
+      },
+      "source_acceptance": true,
+      "deployment_report_present": true,
+      "oversized_files": [],
+      "wildcard_method_permissions": []
+    },
+    {
+      "name": "PlatformDeFi",
+      "source_files": [
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Admin.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Capsule.Query.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Capsule.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Credit.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Events.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.FeeSweep.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.FlashLoan.Migration.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.FlashLoan.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.GasLiquidity.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.Abandon.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.Anchor.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.Internal.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.Liquidation.Internal.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.Liquidation.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Storage.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.cs"
+      ],
+      "abi": {
+        "methods": 62,
+        "events": 30,
+        "permissions": 5,
+        "supported_standards": []
+      },
+      "money_contract": true,
+      "test_files": [
+        "contracts/__tests__/AnchorBoundarySafetyTest.cs",
+        "contracts/__tests__/ContractSecurityRegressionTest.cs",
+        "contracts/__tests__/ContractUpdateCoverageTest.cs",
+        "contracts/__tests__/FinancialTransferSafetyTest.cs",
+        "contracts/__tests__/FixV_platformdefiliquidation_Tests.cs",
+        "contracts/__tests__/Fix_platformdefi_Tests.cs",
+        "contracts/__tests__/MiniAppContractFunctionalTests.cs",
+        "contracts/__tests__/platform-contracts-only.test.ts"
+      ],
+      "deployment_status": "testnet hash retained in anchor deployment report; no live app bindings",
+      "deployment_evidence_class": "deployment-report",
+      "deployment_evidence": [
+        "contracts/build/testnet_anchor_deployment.json"
+      ],
+      "live_testnet": {
+        "status": "live-artifact-drift",
+        "kind": "contract",
+        "hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
+        "local_nef_checksum": 3365527823,
+        "on_chain_nef_checksum": 3687605410,
+        "current_local_artifact_match": false,
+        "missing_on_chain_methods": [
+          "abandonLoan",
+          "fundCapsuleYieldReserve",
+          "getCapsuleYieldReserve",
+          "getFlashProviderBalance",
+          "getFlashTotalLpDeposits",
+          "getLastPriceDropTime",
+          "getLendingLiquidity",
+          "getNeoGasPrice",
+          "getTotalAbandonedCollateral",
+          "getTotalCapsuleFees",
+          "getTotalLendingFees",
+          "getUnclaimedFlashLoanFees",
+          "isLiquidatable",
+          "lendingDeposit",
+          "liquidateLoan",
+          "migrateFlashProviderBalance",
+          "setNeoGasPrice",
+          "withdrawAbandonedCollateral",
+          "withdrawCapsuleFees",
+          "withdrawCapsulePenalties",
+          "withdrawCapsuleYieldReserve",
+          "withdrawFlashLoanFees",
+          "withdrawGasCredit",
+          "withdrawLendingFees",
+          "withdrawLendingLiquidity",
+          "withdrawNeoCredit"
+        ]
+      },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "update_in_abi": true,
+        "update_in_source": true,
+        "destroy_absent": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "money_callback_present": true,
+        "contract_tests_present": true,
+        "deployment_evidence_paths_present": true
+      },
+      "source_acceptance": true,
+      "deployment_report_present": true,
+      "oversized_files": [],
+      "wildcard_method_permissions": []
+    },
+    {
+      "name": "PlatformSocial",
+      "source_files": [
+        "contracts/platform/PlatformSocial/PlatformSocial.Admin.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.Credit.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.Envelope.Internal.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.Envelope.Query.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.Envelope.RangePool.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.Envelope.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.Notary.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.Storage.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.Trust.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.Vault.cs",
+        "contracts/platform/PlatformSocial/PlatformSocial.cs"
+      ],
+      "abi": {
+        "methods": 44,
+        "events": 23,
+        "permissions": 6,
+        "supported_standards": []
+      },
+      "money_contract": true,
+      "test_files": [
+        "contracts/__tests__/ContractSecurityRegressionTest.cs",
+        "contracts/__tests__/ContractUpdateCoverageTest.cs",
+        "contracts/__tests__/FinancialTransferSafetyTest.cs",
+        "contracts/__tests__/MiniAppContractFunctionalTests.cs",
+        "contracts/__tests__/PlatformSocialNotaryTests.cs",
+        "contracts/__tests__/platform-contracts-only.test.ts"
+      ],
+      "deployment_status": "no deployment record",
+      "deployment_evidence_class": "none",
+      "deployment_evidence": [],
+      "live_testnet": {
+        "status": "no-deployment-record",
+        "kind": "undeployed",
+        "hash": null,
+        "local_nef_checksum": 67671598,
+        "on_chain_nef_checksum": null,
+        "current_local_artifact_match": false,
+        "missing_on_chain_methods": []
+      },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "update_in_abi": true,
+        "update_in_source": true,
+        "destroy_absent": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "money_callback_present": true,
+        "contract_tests_present": true,
+        "deployment_evidence_paths_present": true
+      },
+      "source_acceptance": true,
+      "deployment_report_present": false,
+      "oversized_files": [],
+      "wildcard_method_permissions": []
+    }
+  ],
+  "factory_templates": [
+    {
+      "key": "nep17",
+      "name": "FactoryNep17Token",
+      "supported_standard": "NEP-17",
+      "source_files": [
+        "contracts/templates/FactoryNep17Token/FactoryNep17Token.cs"
+      ],
+      "build_artifacts": [
+        "contracts/build/FactoryNep17Token.nef",
+        "contracts/build/FactoryNep17Token.manifest.json"
+      ],
+      "generated_artifacts": "apps/shared/factory/generated-template-artifacts.ts",
+      "artifact_hashes": {
+        "nef_sha256": "0x17536c9f275384f554b673a1230b0435c6bbbe4db74ba312f27ff420c13d2508",
+        "manifest_sha256": "0xab47361f56812258b88584f19a626187b7b33f8a83717635ea6f1540b417f7d7"
+      },
+      "test_files": [
+        "contracts/__tests__/FactoryTokenTemplateTests.cs"
+      ],
+      "abi": {
+        "methods": 16,
+        "events": 3,
+        "permissions": 3,
+        "supported_standards": [
+          "NEP-17"
+        ]
+      },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "supported_standard_present": true,
+        "lifecycle_tests_present": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "generated_hashes_fresh": true
+      },
+      "source_acceptance": true,
+      "oversized_files": [],
+      "wildcard_method_permissions": [],
+      "boundary": "Template source/build/lifecycle acceptance does not prove the current testnet Factory exposes the six-argument deployment ABI or that a funded deployment has recovered end to end."
+    },
+    {
+      "key": "nep11",
+      "name": "FactoryNep11Collection",
+      "supported_standard": "NEP-11",
+      "source_files": [
+        "contracts/templates/FactoryNep11Collection/FactoryNep11Collection.Operations.cs",
+        "contracts/templates/FactoryNep11Collection/FactoryNep11Collection.cs"
+      ],
+      "build_artifacts": [
+        "contracts/build/FactoryNep11Collection.nef",
+        "contracts/build/FactoryNep11Collection.manifest.json"
+      ],
+      "generated_artifacts": "apps/shared/factory/generated-template-artifacts.ts",
+      "artifact_hashes": {
+        "nef_sha256": "0x86397a3b9006d1c92b16e89c662f2f2d58971ca61bdbcdc994154cfa736969f7",
+        "manifest_sha256": "0xe540d437ef9d356d52a709802fc721d9a47b1b0518c12604715399ce83d68dab"
+      },
+      "test_files": [
+        "contracts/__tests__/FactoryTokenTemplateTests.cs"
+      ],
+      "abi": {
+        "methods": 23,
+        "events": 3,
+        "permissions": 3,
+        "supported_standards": [
+          "NEP-11"
+        ]
+      },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "supported_standard_present": true,
+        "lifecycle_tests_present": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "generated_hashes_fresh": true
+      },
+      "source_acceptance": true,
+      "oversized_files": [],
+      "wildcard_method_permissions": [],
+      "boundary": "Template source/build/lifecycle acceptance does not prove the current testnet Factory exposes the six-argument deployment ABI or that a funded deployment has recovered end to end."
+    }
+  ],
+  "boundary": "Source acceptance and read-only testnet checks do not prove funded lifecycle behavior, mainnet parity, or operational health. A retained deployment report is historical evidence, not current bytecode equality."
+}

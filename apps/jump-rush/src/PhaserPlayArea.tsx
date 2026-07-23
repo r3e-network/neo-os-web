@@ -26,6 +26,7 @@ import {
   ruleOf,
   rewardPctAfterUndos,
   MAX_UNDOS,
+  GAMEFI_MAX_UNDOS,
 } from "./logic/game-rules";
 import type { Platform } from "./logic/jump-engine";
 import type { LeaderEntry, RunRow } from "./main";
@@ -147,7 +148,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   // moment the local route is cleared.
   const minSolveReached = isGuest || (dealtAt > 0 && elapsedMs >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS);
   const rewardPoolReady = isGuest || poolFree >= Number(gasDisplay(rule.rewardFixed8));
-  const undosLeft       = MAX_UNDOS - undosUsed;
+  const modeMaxUndos    = isGuest ? MAX_UNDOS : GAMEFI_MAX_UNDOS;
+  const undosLeft       = modeMaxUndos - undosUsed;
   const routeCleared    = jumpCount >= rule.targetJumps;
   const interactionPaused = drawerOpen;
   const canReleaseRun   = isGuest
@@ -241,7 +243,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     undosLeft,
     canReleaseRun,
     recoveryWaitMs,
-    maxUndos:     MAX_UNDOS,
+    maxUndos:     modeMaxUndos,
     projectedPayout,
     rewardGas:    Number(gasDisplay(rule.rewardFixed8)),
     entryGas:     Number(gasDisplay(rule.entryFixed8)),
@@ -335,7 +337,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           label: t("scoreTime"),
           value: gameStatus === "dealt" ? formatClock(remainingMs) : formatClock(rule.limitMs),
         },
-        { label: t("scoreUndos"), value: `${undosLeft}/${MAX_UNDOS}` },
+        { label: t("scoreUndos"), value: `${undosLeft}/${modeMaxUndos}` },
       ];
   const gamefiScoreItems = gameStatus === "idle"
     ? [
@@ -349,7 +351,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           label: t("scoreTime"),
           value: gameStatus === "dealt" ? formatClock(remainingMs) : formatClock(rule.limitMs),
         },
-        { label: t("scoreUndos"), value: `${undosLeft}/${MAX_UNDOS}` },
+        { label: t("scoreUndos"), value: `${undosLeft}/${modeMaxUndos}` },
       ];
   const scoreItems = isGuest ? guestScoreItems : gamefiScoreItems;
   const drawerTitle = t("drawerTitle");

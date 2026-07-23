@@ -58,6 +58,13 @@ export default defineConfig({
         ...(systemChrome ? { channel: "chrome" } : {}),
       },
     },
+    {
+      name: "mobile-chrome",
+      use: {
+        ...devices["Pixel 7"],
+        ...(systemChrome ? { channel: "chrome" } : {}),
+      },
+    },
   ],
   webServer: {
     // Wrap the standalone server so its stdout/stderr are preserved for post-mortem

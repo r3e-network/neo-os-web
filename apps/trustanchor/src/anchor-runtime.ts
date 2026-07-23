@@ -481,11 +481,10 @@ export function createAnchorRuntime(
   const readBinding = async () => {
     if (!network) throw new Error("walletNetworkUnknown");
     if (!contract) throw new Error("missingContract");
-    const appArg = [app.chain.arg.string(config.appId)];
     const [modeRaw, pausedRaw, statsRaw] = await Promise.all([
-      app.chain.readRaw("getAppMode", appArg, { scriptHash: contract }),
-      app.chain.readRaw("isAppPaused", appArg, { scriptHash: contract }),
-      app.chain.readRaw("getAnchorStats", appArg, { scriptHash: contract }),
+      app.platformAnchor.appMode(),
+      app.platformAnchor.appPaused(),
+      app.platformAnchor.stats(),
     ]);
     const mode = parseAnchorInteger(modeRaw, "mode");
     const paused = parseAnchorBoolean(pausedRaw, "paused");
@@ -500,11 +499,10 @@ export function createAnchorRuntime(
 
   const readUser = async (hash: string): Promise<AnchorUserSnapshot> => {
     if (!contract) throw new Error("missingContract");
-    const userArg = app.chain.arg.hash160(hash);
     const [stakeRaw, rewardsRaw, creditRaw] = await Promise.all([
-      app.chain.readRaw("getUserStake", [app.chain.arg.string(config.appId), userArg], { scriptHash: contract }),
-      app.chain.readRaw("getPendingRewards", [app.chain.arg.string(config.appId), userArg], { scriptHash: contract }),
-      app.chain.readRaw("getCredit", [userArg, app.chain.arg.string("NEO")], { scriptHash: contract }),
+      app.platformAnchor.userStake(hash),
+      app.platformAnchor.pendingRewards(hash),
+      app.platformAnchor.credit("NEO", hash),
     ]);
     return {
       walletHash: hash,
@@ -725,29 +723,13 @@ export function createAnchorRuntime(
       let result;
       try {
         if (action === "stake") {
-          result = await app.chain.invoke("transfer", [
-            app.chain.arg.hash160(hash),
-            app.chain.arg.hash160(contract),
-            app.chain.arg.integer(amount),
-            app.chain.arg.string(`stake:${config.appId}`),
-          ], { ...options, scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH });
+          result = await app.platformAnchor.stakeNeo(amount, hash, options);
         } else if (action === "withdraw") {
-          result = await app.chain.invoke("withdraw", [
-            app.chain.arg.string(config.appId),
-            app.chain.arg.hash160(hash),
-            app.chain.arg.integer(amount),
-          ], { ...options, scriptHash: contract });
+          result = await app.platformAnchor.withdraw(amount, hash, options);
         } else if (action === "claim") {
-          result = await app.chain.invoke("claimRewards", [
-            app.chain.arg.string(config.appId),
-            app.chain.arg.hash160(hash),
-          ], { ...options, scriptHash: contract });
+          result = await app.platformAnchor.claimRewards(hash, options);
         } else {
-          result = await app.chain.invoke("withdrawCredit", [
-            app.chain.arg.hash160(hash),
-            app.chain.arg.string("NEO"),
-            app.chain.arg.integer(amount),
-          ], { ...options, scriptHash: contract });
+          result = await app.platformAnchor.withdrawCredit("NEO", amount, hash, options);
         }
       } catch (error) {
         if (pendingTransaction.get()) {

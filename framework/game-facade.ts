@@ -13,6 +13,7 @@ import type { FrameworkGuardDeps } from "./internal/guards";
 import { localStorageAvailable } from "./utils/safe-storage";
 import {
   createLocalStorageRewardGameStorage,
+  createPlatformGameRewardChain,
   createRewardRunner,
   expireRewardGame,
   finalizeRewardGame,
@@ -27,6 +28,8 @@ import {
   rewardGameEvents,
   rewardGameModeOf,
   rewardGameProgressionOf,
+  platformGameEventsForApp,
+  RewardGameError,
   startRewardGame,
   withdrawRewardCredit,
 } from "./gamefi";
@@ -36,6 +39,7 @@ import type {
   RewardGameConfig,
   RewardGameSession,
 } from "./gamefi";
+import type { FrameworkPlatformGameSurface } from "./platform-game-surface";
 import type { TeeSessionOp, TeeStepResult } from "./logic/tee-session";
 import {
   toScriptHash,
@@ -78,6 +82,10 @@ export interface GameFacadeDeps {
   onAccountChanged(
     handler: (change: { previous: string | null; current: string | null }) => void,
   ): () => void;
+  /** Shared PlatformGame surface used only when an engine hash is configured. */
+  platformGame?: () => FrameworkPlatformGameSurface;
+  /** Deployed shared engine hash; absent keeps the legacy clone backend. */
+  platformGameHash?: string;
 }
 
 /**
@@ -163,7 +171,23 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
         rewardOptions.storagePrefix ?? `${storagePrefix}gamefi/${config.appId}/ops/`,
         localStorageAvailable(),
       );
-      const chainAdapter = rewardChain();
+      const legacyChain = rewardChain();
+      const platformGame = deps.platformGameHash ? deps.platformGame?.() : undefined;
+      if (deps.platformGameHash && !platformGame?.available) {
+        throw new RewardGameError(
+          "BAD_PLATFORM_GAME_CONFIG",
+          "The configured shared PlatformGame backend is unavailable",
+        );
+      }
+      const chainAdapter = platformGame?.available
+        ? createPlatformGameRewardChain({
+            appId: config.appId,
+            engineHash: deps.platformGameHash!,
+            config,
+            chain: legacyChain,
+            platformGame,
+          })
+        : legacyChain;
       const rewardSurface: FrameworkRewardGameSurface<Op> = {
         config,
         storage,
@@ -289,10 +313,25 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
                 balances: () => rewardSurface.balances(),
                 storage,
               },
-              loadStats: () => game.stats.load(),
+              loadStats: async () => {
+                if (!platformGame?.available) return game.stats.load();
+                const stats = await platformGame.statsOf();
+                return {
+                  solves: stats.solved,
+                  totalWon: Number(stats.totalWonFixed8) / 100_000_000,
+                };
+              },
               loadLeaderboard: async () => {
-                const { ranked } = await game.leaderboard.load(
+                const events = await chainAdapter.listEvents?.(
                   rewardGameEvents(config).solved,
+                  { limit: 200 },
+                ) ?? [];
+                const { ranked } = buildLeaderboard(
+                  events,
+                  toScriptHash(chain.address.get()),
+                  platformGame?.available
+                    ? { solvedPayout: 5, totalWon: 6, undos: 7 }
+                    : {},
                 );
                 return ranked.map((entry) => ({
                   user: entry.address,
@@ -347,6 +386,14 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
         const hash = playerHash ?? toScriptHash(chain.address.get());
         if (!hash) return { solves: 0, totalWon: 0 };
         try {
+          const platformGame = deps.platformGameHash ? deps.platformGame?.() : undefined;
+          if (platformGame?.available) {
+            const stats = await platformGame.statsOf(hash);
+            return {
+              solves: stats.solved,
+              totalWon: Number(stats.totalWonFixed8) / 100_000_000,
+            };
+          }
           const raw = await chain.read("statsOf", [{ type: "Hash160", value: hash }]);
           return parsePlayerStats(raw);
         } catch {
@@ -378,7 +425,11 @@ export function createGameFacade(deps: GameFacadeDeps): FrameworkGameSurface {
       ): Promise<{ ranked: LeaderEntry[]; mine: TRow[] }> {
         const playerHash = toScriptHash(chain.address.get());
         try {
-          const events = await chain.listEvents?.(eventName, { limit }) ?? [];
+          let events = await chain.listEvents?.(eventName, { limit }) ?? [];
+          const platformGame = deps.platformGameHash ? deps.platformGame?.() : undefined;
+          if (platformGame?.available) {
+            events = platformGameEventsForApp(events, appId);
+          }
           return buildLeaderboard<TRow>(events, playerHash, slots, extraRowFields);
         } catch {
           return { ranked: [], mine: [] };

@@ -30,7 +30,12 @@ const versionAtLeast = (actual, expected) => {
 test("root package pins vulnerable transitive dependencies used by deployable surfaces", () => {
   const pkg = readJson("package.json");
 
-  assert.equal(pkg.overrides?.axios, "1.16.0");
+  assert.equal(pkg.overrides?.axios, "1.18.1");
+  assert.equal(pkg.overrides?.dompurify, "3.4.12");
+  assert.equal(pkg.overrides?.["fast-uri"], "3.1.4");
+  assert.equal(pkg.overrides?.immutable, "5.1.9");
+  assert.equal(pkg.overrides?.sharp, "0.35.3");
+  assert.equal(pkg.overrides?.["minimatch@>=9"]?.["brace-expansion"], "5.0.7");
   assert.equal(pkg.overrides?.picomatch, "4.0.4");
   assert.equal(pkg.overrides?.micromatch?.picomatch, "2.3.2");
   assert.equal(pkg.overrides?.anymatch?.picomatch, "2.3.2");
@@ -43,7 +48,8 @@ test("workspace manifests pin vulnerable transitive dependencies at the package 
   const adminPkg = readJson(path.join("platform", "admin-console", "package.json"));
 
   assert.equal(hostAppPkg.dependencies?.["@sentry/nextjs"], "^10.48.0");
-  assert.equal(hostAppPkg.overrides?.axios, "1.16.0");
+  assert.equal(hostAppPkg.overrides?.axios, "1.18.1");
+  assert.equal(hostAppPkg.overrides?.dompurify, "3.4.12");
   assert.equal(hostAppPkg.overrides?.["@sentry/nextjs"], undefined);
   assert.equal(adminPkg.overrides?.anymatch?.picomatch, "2.3.2");
   assert.equal(adminPkg.overrides?.readdirp?.picomatch, "2.3.2");
@@ -59,7 +65,12 @@ test("package lock resolves the hardened dependency versions used in production 
     packages["node_modules/@sentry/nextjs/node_modules/rollup"]?.version ??
     packages["node_modules/rollup"]?.version;
 
-  assert.equal(packages["node_modules/axios"]?.version, "1.16.0");
+  assert.equal(packages["node_modules/axios"]?.version, "1.18.1");
+  assert.equal(packages["node_modules/dompurify"]?.version, "3.4.12");
+  assert.equal(packages["node_modules/fast-uri"]?.version, "3.1.4");
+  assert.equal(packages["node_modules/immutable"]?.version, "5.1.9");
+  assert.equal(packages["node_modules/sharp"]?.version, "0.35.3");
+  assert.equal(packages["node_modules/brace-expansion"]?.version, "5.0.7");
   assert.equal(packages["node_modules/picomatch"]?.version, "2.3.2");
   assert.equal(packages["node_modules/@sentry/nextjs"]?.version, "10.56.0");
   assert.ok(versionAtLeast(resolvedRollup, "4.35.0"));

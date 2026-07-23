@@ -54,6 +54,12 @@ embeds; app entrypoints use the runtime-provided `ctx.framework`.
 | `app.events` / `app.bus` | Chain event queries / in-app pub/sub |
 | `app.lifecycle` | Mount/unmount, loaders, visibility-aware `poll` |
 | `app.platform` | Host detection, typed `params(schema)`, `network()`, Dora `explorer` links |
+| `app.registry` | Complete tenant Registry surface: directory, self-registration, shared-AA materialization, descriptors, credits, app governance and role-bound treasury exits |
+| `app.platformGame` | Shared PlatformGame lifecycle with appId auto-threading and guarded writes |
+| `app.platformSocial` | Shared envelope, range-pool, trust, vault and Notary primitives plus tenant-scoped GAS/NEO credit prepayment and recovery |
+| `app.platformAnchor` | Shared staking, reward, credit and AA-agent operations with appId auto-threading |
+| `app.platformDeFi` | Shared capsule, lending, flash-loan, liquidity and fee operations with guarded writes |
+| `app.platformFactory` | Governed template reads and allowlisted deployment calls across network-specific Factory hashes |
 | `app.mode` | Guest/gamefi two-mode surface, guest guard, guest leaderboard |
 | `app.game` | Reward-game SDK (`reward(config)` + lifecycle `runner(hooks)`), `rules(config)`, player/stats/leaderboard/session helpers |
 | `app.oracle` | HTTP/VRF/compute/seal envelopes + `dispatch`, dataFeed reader, seal client |
