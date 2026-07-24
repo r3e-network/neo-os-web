@@ -117,12 +117,15 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public void PlatformSocialExposesSafeGasCreditRecoveryForTwoStepPoolCreation()
         {
             string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformSocial");
+            string ledger = ContractSourceAssertions.ReadSource("contracts", "MiniApp.DevPack", "MiniAppCreditLedger.cs");
 
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "BigInteger", "GetDirectGasCredit");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "BigInteger", "WithdrawGasCredit");
             Assert.Contains("Runtime.CheckWitness(user)", code);
             Assert.Contains("GasCreditWithdrawn", code);
-            Assert.Contains("memo == appId + \":credit\"", code);
+            Assert.Contains("MiniAppCreditLedger.RequireCreditAppId(data)", code);
+            Assert.Contains("return RequireAppIdWithSuffix(data, \":credit\")", ledger);
+            Assert.Contains("memo.Substring(0, separator) + suffix", ledger);
             Assert.Contains("AppKey(appId, PREFIX_DIRECT_GAS_CREDIT, payer)", code);
             Assert.Contains("PREFIX_TOTAL_GAS_CREDIT_LIABILITY", code);
             Assert.Contains("PREFIX_TOTAL_NEO_CREDIT_LIABILITY", code);
@@ -133,12 +136,15 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public void PlatformDeFiScopesDirectCreditAndLiabilitiesByTenant()
         {
             string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformDeFi");
+            string ledger = ContractSourceAssertions.ReadSource("contracts", "MiniApp.DevPack", "MiniAppCreditLedger.cs");
 
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "BigInteger", "GetDirectNeoCredit");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "BigInteger", "GetDirectGasCredit");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "BigInteger", "WithdrawNeoCredit");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "BigInteger", "WithdrawGasCredit");
-            Assert.Contains("memo == appId + \":credit\"", code);
+            Assert.Contains("MiniAppCreditLedger.RequireCreditAppId(data)", code);
+            Assert.Contains("return RequireAppIdWithSuffix(data, \":credit\")", ledger);
+            Assert.Contains("memo.Substring(0, separator) + suffix", ledger);
             Assert.Contains("AppKey(appId, PREFIX_NEO_CREDIT, payer)", code);
             Assert.Contains("AppKey(appId, PREFIX_GAS_CREDIT, payer)", code);
             Assert.Contains("PREFIX_APP_NEO_CREDIT_LIABILITY", code);
