@@ -40,6 +40,8 @@ export interface DeviceQaRenderSample {
   pixelRatio: number;
   canvasWidth: number;
   canvasHeight: number;
+  qualityTier?: "full" | "constrained";
+  rendererLabel?: string;
 }
 
 export interface DeviceQaMotionEvidence {

@@ -1,6 +1,6 @@
 # Goose Basket Shuffle · 鹅篮翻翻乐 — Production Readiness
 
-Last reviewed: 2026-07-11
+Last reviewed: 2026-07-24
 
 Package / manifest version: `3.1.0`
 
@@ -21,7 +21,7 @@ npm run verify:release
 
 No release should be staged from a dirty or partially generated `public/` directory without rerunning this command.
 
-Latest verified repository build (2026-07-11):
+Latest verified repository build (2026-07-24):
 
 - Local release gate: test suite, ESLint, vendored-shim hygiene, balance audit, release audit, production dependency audit, asset gate, TypeScript, Vite build, production bundle scan and production bundle budget gate passed. Do not preserve hard-coded test counts here; they drift as coverage is added.
 - Generated `dist/` tree digest: run `npm run dist:digest` after the production build and attach that output to the release record. Do not paste a dist digest into this document; it becomes stale whenever CSS, JS chunks, assets or Vite hashing change.
@@ -31,17 +31,17 @@ Latest verified repository build (2026-07-11):
 
 | Area | Automated evidence | Release meaning |
 |---|---|---|
-| Core game rules | `engine-zhuada.test.ts`, `guest-engine.test.ts`, `game-rules.test.ts` | Seven-slot matching, rescue rules, terminal outcomes, timed/untimed paths and all 15 levels draining to solved are regression-covered. |
-| Long-level streaming | `item-stream.test.ts`, `guest-engine.test.ts` | 18–432 logical objects, complete-triple packets, 48-object opening, refill at ≤42, +9 bottom waves and ≤54 live ceiling are asserted. |
-| Fresh random runs | `game-rules.test.ts`, `guest-engine.test.ts` | New-run theme-pool order, packet order and repeated L15 redeals are not fixed while injected RNG remains reproducible in tests. |
-| Physics catalogue | `physics-profiles.test.ts`, `model-cache.test.ts` | All three themes × 18 objects have mass/surface/collision profiles; geometry reuse does not share mutable materials or dispose shared buffers. |
+| Core game rules | `engine-zhuada.test.ts`, `guest-engine.test.ts`, `progress.test.ts` | Seven-slot matching, rescue rules, terminal outcomes, timed/untimed paths and all 24 levels draining to solved are regression-covered. |
+| Long-level streaming | `item-stream.test.ts`, `guest-engine.test.ts`, `pile-density.test.ts` | 18–1,584 logical objects, complete-triple packets, 54-object challenge opening, deep refill at ≤18, +27 bottom layers and ≤54 live ceiling are asserted; L2 owns 864 objects and L3 owns 1,008, while each cycle visibly excavates before a substantial buried layer resurfaces. |
+| Fresh balanced runs | `progress.test.ts`, `guest-engine.test.ts` | Every scene exposes a distinct 48-of-54 themed series. L1 selects a reproducible but replay-varying balanced three-kind tutorial; L2+ uses all 48 scene kinds. The first 54 bodies contain 12 authored silhouettes: six exact-silhouette near-match pairs plus six additional silhouettes, for 18 complete-triple identities. Another 30 identities are deferred to the reservoir. Packet order, family/treatment selection, placement and repeated late-level redeals remain non-fixed. |
+| Physics catalogue | `physics-profiles.test.ts`, `model-cache.test.ts`, `render-quality.test.ts`, `themes.test.ts` | All three themes × 54 match identities have mass/surface/collision profiles. Each theme has 18 original authored model/icon recipes and 36 deliberate color treatments, making three independent identities per silhouette; variants use guaranteed full-body colour separation plus matching compact/standard/substantial size tiers in both 3D and tray, with no painted marker symbols. Bottle profiles retain a raised neck, crown seal and four-way label wrap after tumbling. Same-material authored parts are flattened to 2–7 runtime surfaces per item while retaining geometry/material detail, and the constrained tier reduces raster/shadow cost without changing the 54-body physics, picking, refill stream or rules. Geometry reuse does not share mutable materials or dispose shared buffers. |
 | Picking | `pick-raycast.test.ts` | Recursive child-mesh hit resolution, nearest-surface ordering and item-root recovery are asserted. |
 | Tray choreography and 3D motion | `tray-motion.test.ts`, `AnimatedTray.test.tsx`, `motion-quality.test.ts`, `scene-motion.ts` | Holes compact left, same-kind items group together, right-side items shift, triple matches visually land, highlight, clear and compact in separate timed phases, 3D pick flight and tray handoff share smooth easing, and the motion guardrail keeps tray movement on `translate3d`/opacity while locking 3D pick press, tray-flight arc, camera kick and pan-toss timings to readable capped values. |
 | Motion detection | `device-motion.test.ts`, `shake-dynamics.test.ts` | Permission states, soft-pair/strong thresholds, hysteresis, refractory behavior, 0.65–1.35 mapping and impulse/velocity caps are asserted without pretending to emulate hardware sensors. |
 | Audio logic | `sound.test.ts`, `scripts/verify-assets.mjs` | Cue table completeness, mute/unlock/fallback behavior, PCM headers, sample format and minimum duration are checked. |
 | Persistence | `progress.test.ts`, `progress-store.test.ts`, `guest-engine.test.ts` | v1/v2→v3 migration, backup writes, future-version protection, mode-specific local records, 24h run snapshot TTL, resume and discard are covered. |
 | UI/accessibility | `PlayArea.accessibility.test.tsx`, `ThreeGameComponent.test.tsx`, `scripts/release-audit.mjs` | Keyboard activation, semantic regions/live status, 44px touch targets, reduced motion, measured mobile game-fit sizing, immersive/compact mobile lobby composition and WebGL context-loss recovery are covered. |
-| Content and reference compliance | `scripts/verify-assets.mjs`, `ASSET_PROVENANCE.md`, `REFERENCE-IMPLEMENTATION-COMPLIANCE.md` | 20 source hashes, 75 production images, alpha on all 54 item icons, six transparent goose portraits, 15 PCM files, manifest/package/app-version parity, required notices, and public-reference no-copy/license boundaries are checked. |
+| Content and reference compliance | `scripts/verify-assets.mjs`, `ASSET_PROVENANCE.md`, `REFERENCE-IMPLEMENTATION-COMPLIANCE.md` | 23 source hashes, 186 production images, alpha on all 162 item icons, nine transparent goose portraits, 15 PCM files, manifest/package/app-version parity, required notices, and public-reference no-copy/license boundaries are checked. |
 | Balance | `scripts/tune.mjs` | The current 24-level curve and mathematical triple invariants are parsed from source and audited before release. |
 | Dependency risk | `npm audit --omit=dev` | Production dependency advisories fail the release command. |
 | Compile/package | `tsc --noEmit`, Vite build | Type errors or bundling failures fail the release command. |
@@ -54,11 +54,12 @@ Browser visual evidence is recorded separately in `design-qa.md` and `REFERENCE-
 
 ### Visual assets
 
-- 20 reviewed PNG masters live under `art-src/` and are pinned by SHA-256 in `art-src/SOURCE_MANIFEST.md`.
+- 23 reviewed PNG masters live under `art-src/` and are pinned by SHA-256 in `art-src/SOURCE_MANIFEST.md`.
 - The masters were generated specifically for this project with OpenAI ImageGen and then selected/refined locally.
 - The workspace did not receive generation job IDs or verbatim prompts; provenance documents state this limitation explicitly.
-- Runtime generation produces 75 checked production images: six logo/banner variants, three backdrops, three mascots, three container textures, six transparent goose portraits and 54 transparent per-item icons.
-- 54 runtime pile objects are code-built multi-mesh 3D models; they are not extracted GLTFs, commercial-game sprites or screenshot crops. The current model audit includes transparent vessels with closed/thick bases and the night-market zongzi as layered leaves, folds, veins, cord wraps, knot and tails rather than a single flat shell.
+- Runtime generation produces 186 checked production images: six logo/banner variants, three backdrops, three mascots, three container textures, nine transparent goose portraits and 162 transparent per-item icons.
+- All nine collection portraits are optimized from reviewed PNG masters; chapter-2 portraits 7–9 replace the former flat procedural placeholders with the same layered, textured chibi material language as portraits 1–6. The production bundle gate requires all nine outputs.
+- 54 authored runtime model recipes (18 per theme) are code-built multi-mesh 3D objects; 36 additional color identities per theme reuse matching authored geometry with independent full-body material colors, physics size tiers, localized label and hue-treated tray icon. This produces 162 gameplay match identities without falsely claiming 162 unrelated source models. Every authored silhouette has a three-identity near-match family. None are extracted GLTFs, commercial-game sprites or screenshot crops. The current model audit includes tumbling bottles with raised neck/cap/labels, transparent vessels with closed/thick bases and the night-market zongzi as a three-face layered leaf parcel with clean broad surfaces rather than painted marker lines.
 
 ### Audio assets
 
@@ -179,7 +180,7 @@ report for the same app version and build id.
 | Toss calibration | Ten soft and ten strong gestures on each device | Soft gestures visibly disturb fewer objects; strong gestures never exceed caps, eject objects or create an unrecoverable pile. |
 | Audio unlock/mix | Headphone or clean speaker capture covering first tap, dense collisions, match/combo, win/fail, shake, mute and theme ambience | No autoplay rejection visible to the player, no clipping or stacked collision burst, cue classes remain distinguishable, mute persists after reload. |
 | Haptics | Physical observation of pick/match/win/fail/shake with haptics on/off | Supported Android behaves as designed; unsupported iOS/Safari path is silent and error-free; off state persists. |
-| Frame time | 60-second performance trace at 48 live bodies with reserve, including refill, rapid picks and a strong toss | Target median ≥55 FPS, P95 frame time ≤25ms, longest foreground frame ≤80ms, long-frame rate ≤0.6%, and worst consecutive slow-frame burst ≤2 frames on the selected mid-range Android. |
+| Frame time | 60-second performance trace at the 54-live-body ceiling with reserve, including refill, rapid picks and a strong toss | Target median ≥55 FPS, P95 frame time ≤25ms, longest foreground frame ≤80ms, long-frame rate ≤0.6%, and worst consecutive slow-frame burst ≤2 frames on the selected mid-range Android. |
 | Memory/GPU stability | 20 start/retry/exit/resume cycles and at least one long L15 run, with memory timeline | No monotonic WebGL/geometry/audio/listener growth, context-loss loop or progressively slower restarts. |
 | Background/resume | Timed and relaxed runs sent to background, restored, killed/reopened and resumed | Timed deadline excludes hidden time according to product rule; run snapshot restores within 24h; expired/corrupt snapshots fail safely. |
 | Responsive input | 308×720-class and modern tall phone, portrait plus one rotation cycle | No horizontal scroll, tray/tools remain reachable, visible surface can be selected, 44px controls do not overlap system insets. |
@@ -191,7 +192,7 @@ Evidence should record device model, OS/browser version, build hash, date, theme
 
 ### Ready in repository/browser scope
 
-- Three complete selectable themes and 54 distinct objects are wired end to end; nine scene bands curate different 12-kind series from each 18-item theme catalogue.
+- Three complete selectable themes and 162 gameplay match identities are wired end to end, backed by 54 original authored model/icon bases plus 108 intentional color variants. Nine scene bands each expose a different 48-of-54 series; L1 randomizes a balanced three-kind tutorial, then L2 jumps to 48 kinds / 864 items. Its first 54 bodies contain 12 authored silhouettes—six exact-silhouette near-match pairs plus six singletons—for 18 identities, with 30 more introduced through later bottom refills.
 - The level curve, streamed reserve, random new-run generation, grouped/left-compacting tray rules, tools, progress v3 and interrupted-run resume have automated coverage.
 - Deterministic image/audio generation, immutable source hashes, public notices, package/manifest parity, vendored-shim hygiene, dependency audit, type-check, production build, bundle leak scan, gzip bundle budgets and staged host parity are part of one release command.
 - Browser design QA reports no open P0/P1/P2 visual defects for the audited viewports.

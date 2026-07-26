@@ -6,7 +6,6 @@
     "dev": "vite --host 0.0.0.0",
     "art:generate": "node scripts/generate-art.mjs",
     "audio:generate": "node scripts/generate-audio.mjs",
-    "geese:generate": "node scripts/generate-goose-portraits.mjs",
     "assets:verify": "node scripts/verify-assets.mjs",
     "shims:verify": "node scripts/verify-vendored-shims.mjs",
     "lint": "eslint src",

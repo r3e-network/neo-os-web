@@ -1,0 +1,49 @@
+{
+  "schema": "zhuada-e-simulator-qa-v1",
+  "appVersion": "3.1.0",
+  "devUrl": "http://127.0.0.1:5175/?simQa=1",
+  "distDigest": "cedacb38cfc4488666129f6219003a7a82f26f53291d203277ebac49ac397af7",
+  "verifiedAt": "2026-07-24T14:24:56+08:00",
+  "themesCovered": [
+    "fresh-market",
+    "farm-kitchen",
+    "night-market"
+  ],
+  "ios": {
+    "simulator": "iPhone 17 Pro",
+    "runtime": "iOS 26.5 Safari",
+    "screenshot": "/tmp/zhuada-audit-2026-07-24-final/ios-final.png",
+    "level": 2,
+    "activeCount": 54,
+    "reserveCount": 810,
+    "gameVisible": true,
+    "topViewVisible": true,
+    "trayVisible": true,
+    "singleTrayLayout": true
+  },
+  "android": {
+    "emulator": "onegate_api36",
+    "runtime": "Android 36 Emulator / Chrome 133.0.6943.137 / SwiftShader",
+    "url": "http://127.0.0.1:5175/?simQa=1",
+    "networkBridge": "adb-reverse",
+    "reverseCommand": "adb reverse tcp:5175 tcp:5175",
+    "gpuBackend": "swiftshader_indirect",
+    "hostGpuObservation": "After clearing Chrome's first-run onboarding, snapshot-free SwiftShader rendered the final-source real 48-kind, twelve-silhouette WebGL opening. This is functional evidence, not a startup-performance pass.",
+    "screenshotBeforePick": "/tmp/zhuada-audit-2026-07-24-final/android-l2-before-pick.png",
+    "screenshotAfterPick": "/tmp/zhuada-audit-2026-07-24-final/android-l2-after-pick2.png",
+    "level": 2,
+    "activeCountBeforePick": 54,
+    "reserveCount": 810,
+    "gameVisible": true,
+    "topViewVisible": true,
+    "trayVisible": true,
+    "singleTrayLayout": true,
+    "webglCanvasPresent": true,
+    "androidFallbackActive": false,
+    "pickProof": {
+      "trayCountBefore": 0,
+      "trayCountAfter": 2,
+      "bodyTextAfterPick": "Two center-area Web View taps selected two different visible items and changed the tray from 0/7 to 2/7. The final Android crash buffer was empty."
+    }
+  }
+}

@@ -4,13 +4,19 @@ import { TRAY_SLOTS, type ExtractReceipt } from "./engine-zhuada";
  * Deliberate, readable tray cadence. The incoming chip first travels/group-slides,
  * a completed triple then holds a bright confirmation beat, fades, and only
  * afterwards lets surviving chips close the gap.
+ *
+ * v3.2 tuning: approachMs raised from 72→130ms so the "materialize above" beat
+ * is perceptible on 60Hz displays (was only ~4 frames, read as a flicker).
+ * compactOvershootMs adds a spring-like overshoot on compaction for juicier feel.
  */
 export const TRAY_MOTION_TIMINGS = Object.freeze({
-  approachMs: 72,
+  approachMs: 130,
   groupingMs: 620,
   highlightMs: 240,
   clearMs: 420,
   compactMs: 460,
+  /** Spring overshoot duration after compact — tokens scale to 1.04 then settle. */
+  compactOvershootMs: 120,
 });
 
 export const TRAY_ENTRY_MOTION_MS =
@@ -21,6 +27,18 @@ export const TRAY_MATCH_MOTION_MS =
   + TRAY_MOTION_TIMINGS.highlightMs
   + TRAY_MOTION_TIMINGS.clearMs
   + TRAY_MOTION_TIMINGS.compactMs;
+
+/**
+ * Progressive tray tension level for visual warning cues:
+ * - 0: safe (0-4 slots filled)
+ * - 1: caution (5 slots filled) — slots pulse amber
+ * - 2: danger (6 slots filled) — slots pulse red, screen edge vignette
+ */
+export function trayWarningLevel(filledCount: number): 0 | 1 | 2 {
+  if (filledCount >= 6) return 2;
+  if (filledCount >= 5) return 1;
+  return 0;
+}
 
 export type TrayMotionPhase =
   | "idle"

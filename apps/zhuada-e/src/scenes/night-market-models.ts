@@ -1,7 +1,6 @@
 import * as THREE from "three";
 
 import {
-  addGrooves,
   capsule,
   extrudedShape,
   finishModel,
@@ -21,7 +20,6 @@ const DEEP_GOLD = 0xa96718;
 const CREAM = 0xfff1cf;
 const DARK = 0x211b26;
 const BAMBOO = 0xc8953c;
-const TWINE = 0xe1b96d;
 
 function triangularLeafPanel(
   a: THREE.Vector3,
@@ -35,6 +33,15 @@ function triangularLeafPanel(
     b.x, b.y, b.z,
     c.x, c.y, c.z,
   ], 3));
+  // The custom leaf plane is the only hand-authored BufferGeometry in the
+  // catalogue. Give it explicit UVs so its produce albedo, normal and
+  // roughness skins survive merging and remain visible on all three zongzi
+  // faces instead of silently sampling one texture pixel.
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute([
+    0.5, 1,
+    0, 0,
+    1, 0,
+  ], 2));
   geometry.setIndex([0, 1, 2]);
   geometry.computeVertexNormals();
   return part(geometry, material);
@@ -42,44 +49,57 @@ function triangularLeafPanel(
 
 function buildLantern(color: number): THREE.Group {
   const group = new THREE.Group();
-  const paper = surface(color, "paper", { clearcoat: 0.18, clearcoatRoughness: 0.46 });
+  const paper = surface(color, "paper", {
+    clearcoat: 0.24,
+    clearcoatRoughness: 0.4,
+    emissive: tint(color, -0.34),
+    emissiveIntensity: 0.08,
+  });
   const metal = surface(GOLD, "metal");
 
-  group.add(lathe([
-    [0.3, -0.58],
-    [0.54, -0.45],
-    [0.66, -0.12],
-    [0.66, 0.12],
-    [0.54, 0.45],
-    [0.3, 0.58],
-  ], paper, 32));
+  // Use a truly closed, softly squashed sphere for the paper shell. The
+  // previous open-ended lathe could still read as a thin fan when the lantern
+  // tumbled end-on, even after adding surface ribs.
+  const body = part(new THREE.SphereGeometry(0.68, 32, 24), paper);
+  body.scale.y = 0.82;
+  body.userData.detailLayer = "lantern-round-body";
+  group.add(body);
 
-  const top = part(new THREE.CylinderGeometry(0.32, 0.36, 0.14, 24), metal);
-  top.position.y = 0.63;
+  const top = part(new THREE.CylinderGeometry(0.24, 0.29, 0.16, 24), metal);
+  top.position.y = 0.62;
+  top.userData.detailLayer = "lantern-cap";
   group.add(top);
-  const bottom = part(new THREE.CylinderGeometry(0.34, 0.3, 0.14, 24), metal);
-  bottom.position.y = -0.63;
+  const bottom = part(new THREE.CylinderGeometry(0.29, 0.24, 0.16, 24), metal);
+  bottom.position.y = -0.62;
+  bottom.userData.detailLayer = "lantern-cap";
   group.add(bottom);
-
-  addGrooves(group, "y", 3, 0.62, 0.64, surface(tint(color, -0.18), "paper"));
 
   const handlePoints: THREE.Vector3[] = [];
   for (let i = 0; i <= 8; i += 1) {
     const angle = Math.PI - (i / 8) * Math.PI;
-    handlePoints.push(new THREE.Vector3(Math.cos(angle) * 0.34, 0.72 + Math.sin(angle) * 0.36, 0));
+    handlePoints.push(new THREE.Vector3(Math.cos(angle) * 0.32, 0.7 + Math.sin(angle) * 0.32, 0));
   }
-  group.add(tube(handlePoints, 0.045, metal, 20, 7));
+  const handle = tube(handlePoints, 0.045, metal, 20, 7);
+  handle.userData.detailLayer = "lantern-handle";
+  group.add(handle);
 
-  const tassel = capsule(0.055, 0.42, metal);
-  tassel.position.y = -0.9;
-  group.add(tassel);
+  const tasselStem = capsule(0.045, 0.28, metal);
+  tasselStem.position.y = -0.82;
+  tasselStem.userData.detailLayer = "lantern-tassel";
+  group.add(tasselStem);
+  for (let index = -1; index <= 1; index += 1) {
+    const tassel = capsule(0.025, 0.3, metal);
+    tassel.position.set(index * 0.055, -1.03, 0);
+    tassel.rotation.z = index * 0.08;
+    tassel.userData.detailLayer = "lantern-tassel";
+    group.add(tassel);
+  }
   return finishModel(group);
 }
 
 function buildBao(color: number): THREE.Group {
   const group = new THREE.Group();
   const dough = surface(color || CREAM, "matte", { roughness: 0.6, clearcoat: 0.08 });
-  const crease = surface(tint(color || CREAM, -0.12), "matte", { roughness: 0.78 });
 
   const body = lathe([
     [0.14, -0.68],
@@ -102,58 +122,80 @@ function buildBao(color: number): THREE.Group {
   baseSeal.userData.detailLayer = "bao-base-seal";
   group.add(baseSeal);
 
-  const knot = part(new THREE.SphereGeometry(0.18, 16, 12), dough);
+  const knot = part(new THREE.SphereGeometry(0.18, 16, 12), surface(tint(color || CREAM, 0.08), "matte"));
   knot.scale.y = 0.62;
   knot.position.y = 0.64;
   group.add(knot);
 
-  for (let i = 0; i < 6; i += 1) {
-    const angle = (i / 6) * Math.PI * 2;
-    group.add(tube([
-      new THREE.Vector3(Math.cos(angle) * 0.08, 0.62, Math.sin(angle) * 0.08),
-      new THREE.Vector3(Math.cos(angle) * 0.34, 0.48, Math.sin(angle) * 0.34),
-      new THREE.Vector3(Math.cos(angle) * 0.58, 0.22, Math.sin(angle) * 0.58),
-    ], 0.026, crease, 10, 5));
-  }
   return finishModel(group);
 }
 
-function buildSodaCan(color: number): THREE.Group {
+function buildSodaBottle(color: number): THREE.Group {
   const group = new THREE.Group();
-  const can = surface(color, "metal", { metalness: 0.48, roughness: 0.2, clearcoat: 0.7 });
-  const aluminum = surface(0xe8eef1, "metal", { metalness: 0.82, roughness: 0.18 });
-  const accent = surface(tint(color, 0.2), "glaze");
+  const glass = surface(color, "glaze", {
+    roughness: 0.18,
+    clearcoat: 0.94,
+    clearcoatRoughness: 0.08,
+    emissive: tint(color, -0.32),
+    emissiveIntensity: 0.06,
+  });
+  const liquid = surface(tint(color, 0.12), "glaze", { clearcoat: 0.88 });
+  const cap = surface(GOLD, "metal", { metalness: 0.58, roughness: 0.2 });
+  const pale = surface(0xc8fff0, "glaze", { clearcoat: 0.96 });
 
-  group.add(lathe([
-    [0.42, -0.76],
-    [0.49, -0.68],
-    [0.51, -0.56],
-    [0.51, 0.56],
-    [0.48, 0.68],
-    [0.4, 0.76],
-  ], can, 30));
+  const body = lathe([
+    [0, -0.76],
+    [0.35, -0.76],
+    [0.47, -0.66],
+    [0.5, -0.48],
+    [0.49, 0.16],
+    [0.43, 0.32],
+    [0.28, 0.5],
+    [0.24, 0.64],
+    [0.24, 0.7],
+    [0, 0.7],
+  ], glass, 32);
+  body.userData.detailLayer = "soda-bottle-body";
+  group.add(body);
 
-  const top = part(new THREE.CylinderGeometry(0.41, 0.41, 0.055, 28), aluminum);
-  top.position.y = 0.77;
-  group.add(top);
-  const bottomSeal = part(new THREE.CylinderGeometry(0.4, 0.4, 0.055, 28), aluminum);
-  bottomSeal.position.y = -0.765;
-  bottomSeal.userData.detailLayer = "can-bottom-seal";
-  group.add(bottomSeal);
-  const bottom = part(new THREE.TorusGeometry(0.43, 0.035, 7, 28), aluminum);
-  bottom.rotation.x = Math.PI / 2;
-  bottom.position.y = -0.74;
-  group.add(bottom);
+  const heel = part(new THREE.CylinderGeometry(0.38, 0.42, 0.09, 28), liquid);
+  heel.position.y = -0.72;
+  heel.userData.detailLayer = "soda-bottle-heel";
+  group.add(heel);
+  const heelRing = part(new THREE.TorusGeometry(0.4, 0.025, 6, 28), pale);
+  heelRing.rotation.x = Math.PI / 2;
+  heelRing.position.y = -0.68;
+  heelRing.userData.detailLayer = "soda-bottle-heel-ring";
+  group.add(heelRing);
 
-  const pull = part(new THREE.TorusGeometry(0.13, 0.025, 7, 20), aluminum);
-  pull.scale.x = 0.65;
-  pull.rotation.x = Math.PI / 2;
-  pull.position.set(0.08, 0.815, 0);
-  group.add(pull);
+  const crown = part(new THREE.CylinderGeometry(0.28, 0.3, 0.16, 24), cap);
+  crown.position.y = 0.76;
+  crown.userData.detailLayer = "soda-bottle-cap";
+  group.add(crown);
+  for (let index = 0; index < 10; index += 1) {
+    const angle = (index / 10) * Math.PI * 2;
+    const tab = roundedBox(0.075, 0.13, 0.045, 0.016, cap, 2);
+    tab.position.set(Math.cos(angle) * 0.28, 0.73, Math.sin(angle) * 0.28);
+    tab.rotation.y = -angle;
+    tab.userData.detailLayer = "soda-bottle-crown-tab";
+    group.add(tab);
+  }
 
-  for (let i = 0; i < 3; i += 1) {
-    const bubble = part(new THREE.SphereGeometry(0.055 + i * 0.01, 10, 8), accent);
-    bubble.position.set(0.38 - i * 0.08, -0.28 + i * 0.32, 0.34);
+  const bubblePositions: ReadonlyArray<readonly [number, number, number, number]> = [
+    [-0.24, -0.42, 0.43, 0.06],
+    [0.1, -0.5, 0.46, 0.045],
+    [0.28, -0.26, 0.39, 0.055],
+    [-0.08, -0.12, 0.48, 0.05],
+    [0.2, 0.02, 0.43, 0.042],
+    [-0.26, 0.12, 0.38, 0.05],
+    [0.02, 0.24, 0.39, 0.038],
+    [0.22, -0.1, -0.43, 0.045],
+    [-0.16, -0.3, -0.44, 0.052],
+  ];
+  for (const [x, y, z, radius] of bubblePositions) {
+    const bubble = part(new THREE.SphereGeometry(radius, 10, 8), pale);
+    bubble.position.set(x, y, z);
+    bubble.userData.detailLayer = "soda-bottle-bubble";
     group.add(bubble);
   }
   return finishModel(group);
@@ -163,26 +205,26 @@ function buildMooncake(color: number): THREE.Group {
   const group = new THREE.Group();
   const pastry = surface(color, "glaze", { roughness: 0.38, clearcoat: 0.3 });
   const toasted = surface(tint(color, -0.18), "matte", { roughness: 0.66 });
-  const highlight = surface(tint(color, 0.16), "glaze");
 
   group.add(part(new THREE.CylinderGeometry(0.72, 0.72, 0.52, 24), pastry));
+  // A broad toasted top plane gives the mooncake a clear second colour block;
+  // no stamped flower, cross or fine face lines are needed for identity.
   const top = part(new THREE.CylinderGeometry(0.62, 0.68, 0.08, 24), toasted);
   top.position.y = 0.3;
   group.add(top);
 
-  const petals = petalRing(8, 0.32, 0.34, highlight);
-  petals.position.y = 0.38;
-  group.add(petals);
-  const center = part(new THREE.CylinderGeometry(0.13, 0.13, 0.08, 18), toasted);
-  center.position.y = 0.43;
-  group.add(center);
+  // Physics can expose the underside as often as the ornate top. Keep a
+  // shallow pastry face for volume, without decorative marker rings.
+  const bottom = part(new THREE.CylinderGeometry(0.62, 0.68, 0.08, 24), toasted);
+  bottom.position.y = -0.3;
+  bottom.userData.detailLayer = "mooncake-bottom-face";
+  group.add(bottom);
   return finishModel(group);
 }
 
 function buildTanghulu(color: number): THREE.Group {
   const group = new THREE.Group();
   const berry = surface(color, "glaze", { clearcoat: 0.92, clearcoatRoughness: 0.08 });
-  const shine = surface(0xffd6b0, "glaze", { emissive: 0x4f120b, emissiveIntensity: 0.08 });
   const wood = surface(BAMBOO, "wood");
 
   const stick = capsule(0.055, 2.2, wood);
@@ -193,11 +235,6 @@ function buildTanghulu(color: number): THREE.Group {
     const fruit = part(new THREE.SphereGeometry(0.31, 18, 14), berry);
     fruit.position.y = y;
     group.add(fruit);
-    if (i === 1 || i === 3) {
-      const glint = part(new THREE.SphereGeometry(0.055, 9, 7), shine);
-      glint.position.set(-0.12, y + 0.12, 0.26);
-      group.add(glint);
-    }
   }
   return finishModel(group);
 }
@@ -210,13 +247,15 @@ function buildDrum(color: number): THREE.Group {
 
   group.add(part(new THREE.CylinderGeometry(0.62, 0.62, 0.82, 24), lacquer));
   for (const y of [-0.44, 0.44]) {
+    const facing = Math.sign(y);
     const skin = part(new THREE.CylinderGeometry(0.64, 0.64, 0.07, 24), hide);
     skin.position.y = y;
     group.add(skin);
     const rim = part(new THREE.TorusGeometry(0.62, 0.045, 7, 24), brass);
     rim.rotation.x = Math.PI / 2;
-    rim.position.y = y + Math.sign(y) * 0.035;
+    rim.position.y = y + facing * 0.035;
     group.add(rim);
+
   }
   for (let i = 0; i < 4; i += 1) {
     const angle = (i / 4) * Math.PI * 2;
@@ -230,7 +269,6 @@ function buildDrum(color: number): THREE.Group {
 function buildBambooCup(color: number): THREE.Group {
   const group = new THREE.Group();
   const wood = surface(color || BAMBOO, "wood", { roughness: 0.58, clearcoat: 0.14 });
-  const band = surface(tint(color || BAMBOO, -0.22), "wood");
 
   group.add(lathe([
     [0, -0.72],
@@ -243,15 +281,13 @@ function buildBambooCup(color: number): THREE.Group {
     [0, -0.56],
   ], wood, 24));
 
-  for (const y of [-0.55, 0.04, 0.68]) {
-    const ring = part(new THREE.TorusGeometry(0.51, 0.045, 7, 24), band);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = y;
-    group.add(ring);
-  }
-  const seam = capsule(0.025, 1.2, band);
-  seam.position.set(0, 0.02, 0.51);
-  group.add(seam);
+  const opening = part(
+    new THREE.CylinderGeometry(0.37, 0.37, 0.045, 20),
+    surface(tint(color || BAMBOO, -0.22), "matte"),
+  );
+  opening.position.y = 0.68;
+  group.add(opening);
+
   return finishModel(group);
 }
 
@@ -265,18 +301,12 @@ function buildZongzi(color: number): THREE.Group {
   const leafMats = [
     surface(tint(color, 0.16), "produce", { roughness: 0.72, clearcoat: 0.08, emissive: tint(color, -0.18), emissiveIntensity: 0.14, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }),
     surface(tint(color, 0.07), "produce", { roughness: 0.76, clearcoat: 0.06, emissive: tint(color, -0.18), emissiveIntensity: 0.14, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }),
-    surface(tint(color, -0.02), "produce", { roughness: 0.8, clearcoat: 0.04, emissive: tint(color, -0.2), emissiveIntensity: 0.16, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }),
   ] as const;
-  const seamMat = surface(tint(color, -0.26), "matte", { roughness: 0.9 });
-  const foldMat = surface(tint(color, 0.2), "produce", {
-    roughness: 0.7,
-    emissive: tint(color, -0.16),
-    emissiveIntensity: 0.12,
-    side: THREE.DoubleSide,
-  });
-  const cord = surface(TWINE, "fabric", { sheen: 0.12 });
 
-  const parcel = part(new THREE.ConeGeometry(0.66, 1.12, 3), leafCore);
+  // Keep the triangular wrapped-leaf silhouette, but subdivide its curved
+  // surface so lighting gives the parcel real volume without painted veins,
+  // cords or diagonal identity strokes.
+  const parcel = part(new THREE.ConeGeometry(0.66, 1.12, 3, 40), leafCore);
   parcel.rotation.y = Math.PI / 6;
   parcel.userData.detailLayer = "zongzi-core";
   group.add(parcel);
@@ -297,65 +327,10 @@ function buildZongzi(color: number): THREE.Group {
     const panelA = apex.clone().add(lift);
     const panelB = left.clone().add(lift);
     const panelC = right.clone().add(lift);
-    const panel = triangularLeafPanel(panelA, panelB, panelC, leafMats[index]!);
+    const panel = triangularLeafPanel(panelA, panelB, panelC, leafMats[index % leafMats.length]!);
     panel.userData.detailLayer = "zongzi-leaf-panel";
     group.add(panel);
 
-    const midBase = panelB.clone().lerp(panelC, 0.5);
-    const vein = tube([
-      midBase.clone().lerp(panelA, 0.12).add(normal.clone().multiplyScalar(0.018)),
-      midBase.clone().lerp(panelA, 0.5).add(normal.clone().multiplyScalar(0.024)),
-      midBase.clone().lerp(panelA, 0.86).add(normal.clone().multiplyScalar(0.018)),
-    ], 0.024, seamMat, 9, 5);
-    vein.userData.detailLayer = "zongzi-leaf-vein";
-    group.add(vein);
-
-    const foldLeft = panelA.clone().lerp(panelB, 0.26);
-    const foldRight = panelA.clone().lerp(panelC, 0.3);
-    const foldBase = foldLeft.clone().lerp(foldRight, 0.5).lerp(midBase, 0.14);
-    const fold = triangularLeafPanel(
-      panelA.clone().add(normal.clone().multiplyScalar(0.025)),
-      foldLeft.add(normal.clone().multiplyScalar(0.034)),
-      foldBase.add(normal.clone().multiplyScalar(0.045)),
-      foldMat,
-    );
-    fold.userData.detailLayer = "zongzi-fold";
-    group.add(fold);
-  }
-
-  for (const [y, tilt] of [[-0.15, 0.16], [0.18, -0.22]] as const) {
-    const tie = part(new THREE.TorusGeometry(0.49 - y * 0.14, 0.043, 7, 28), cord);
-    tie.rotation.x = Math.PI / 2;
-    tie.rotation.z = tilt;
-    tie.scale.z = 0.82;
-    tie.position.y = y;
-    tie.userData.detailLayer = "zongzi-cord-wrap";
-    group.add(tie);
-  }
-
-  const crossCord = tube([
-    new THREE.Vector3(-0.44, -0.36, 0.34),
-    new THREE.Vector3(-0.2, 0.02, 0.54),
-    new THREE.Vector3(0.12, 0.34, 0.48),
-    new THREE.Vector3(0.36, 0.46, 0.2),
-  ], 0.038, cord, 14, 6);
-  crossCord.userData.detailLayer = "zongzi-cord-cross";
-  group.add(crossCord);
-
-  const knot = part(new THREE.SphereGeometry(0.105, 12, 9), cord);
-  knot.position.set(0.08, 0.22, 0.55);
-  knot.scale.set(1.25, 0.75, 0.9);
-  knot.userData.detailLayer = "zongzi-knot";
-  group.add(knot);
-
-  for (const [x, lean] of [[0.02, -0.16], [0.17, 0.14]] as const) {
-    const tail = tube([
-      new THREE.Vector3(0.08, 0.2, 0.55),
-      new THREE.Vector3(x, -0.04, 0.6),
-      new THREE.Vector3(x + lean, -0.31, 0.42),
-    ], 0.027, cord, 10, 5);
-    tail.userData.detailLayer = "zongzi-cord-tail";
-    group.add(tail);
   }
   return finishModel(group);
 }
@@ -420,10 +395,6 @@ function buildBowl(color: number): THREE.Group {
   const foot = part(new THREE.CylinderGeometry(0.3, 0.34, 0.14, 24), ceramic);
   foot.position.y = -0.54;
   group.add(foot);
-  const footLine = part(new THREE.TorusGeometry(0.32, 0.025, 6, 24), glaze);
-  footLine.rotation.x = Math.PI / 2;
-  footLine.position.y = -0.6;
-  group.add(footLine);
   return finishModel(group);
 }
 
@@ -477,30 +448,15 @@ function buildBell(color: number): THREE.Group {
 function buildPastryTin(color: number): THREE.Group {
   const group = new THREE.Group();
   const enamel = surface(color, "metal", { metalness: 0.46, roughness: 0.27, clearcoat: 0.5 });
-  const gold = surface(GOLD, "metal");
-  const lightGold = surface(0xffd87a, "glaze");
+  const lidMat = surface(tint(color, 0.08), "metal", { metalness: 0.42, roughness: 0.3, clearcoat: 0.42 });
 
   const base = roundedBox(1.36, 0.52, 1.05, 0.16, enamel, 5);
   base.position.y = -0.08;
   group.add(base);
-  const lid = roundedBox(1.42, 0.17, 1.1, 0.17, enamel, 5);
+  const lid = roundedBox(1.42, 0.17, 1.1, 0.17, lidMat, 5);
   lid.position.y = 0.3;
   group.add(lid);
 
-  for (const z of [-0.52, 0.52]) {
-    const edge = roundedBox(1.22, 0.06, 0.045, 0.02, gold, 2);
-    edge.position.set(0, 0.4, z);
-    group.add(edge);
-  }
-  for (const x of [-0.68, 0.68]) {
-    const edge = roundedBox(0.045, 0.06, 0.92, 0.02, gold, 2);
-    edge.position.set(x, 0.4, 0);
-    group.add(edge);
-  }
-
-  const emblem = petalRing(4, 0.18, 0.28, lightGold);
-  emblem.position.y = 0.43;
-  group.add(emblem);
   return finishModel(group);
 }
 
@@ -528,10 +484,6 @@ function buildJadeTeapot(color: number): THREE.Group {
     new THREE.Vector3(-0.86, -0.24, 0),
     new THREE.Vector3(-0.48, -0.32, 0),
   ], 0.075, gold, 20, 8));
-  const seal = petalRing(4, 0.14, 0.22, gold);
-  seal.rotation.x = Math.PI / 2;
-  seal.position.set(0, -0.05, 0.62);
-  group.add(seal);
   return finishModel(group);
 }
 
@@ -539,18 +491,12 @@ function buildFestivalFan(color: number): THREE.Group {
   const group = new THREE.Group();
   const paper = surface(color, "paper", { clearcoat: 0.14 });
   const gold = surface(GOLD, "metal");
-  const bamboo = surface(BAMBOO, "wood");
   for (let i = 0; i < 7; i += 1) {
     const angle = -0.72 + i * 0.24;
     const panel = extrudedShape([[-0.11, -0.58], [0.11, -0.58], [0.27, 0.65], [-0.27, 0.65]], 0.055, 0.025, i % 2 ? surface(tint(color, 0.08), "paper") : paper);
     panel.position.y = 0.22;
     panel.rotation.z = angle;
     group.add(panel);
-    const rib = capsule(0.025, 1.25, bamboo);
-    rib.position.y = 0.16;
-    rib.rotation.z = angle;
-    rib.position.x = Math.sin(-angle) * 0.05;
-    group.add(rib);
   }
   const pivot = part(new THREE.SphereGeometry(0.13, 14, 10), gold);
   pivot.position.y = -0.43;
@@ -598,9 +544,6 @@ function buildLuckyCat(color: number): THREE.Group {
   coin.rotation.x = Math.PI / 2;
   coin.position.set(0, -0.22, 0.48);
   group.add(coin);
-  const stamp = roundedBox(0.1, 0.24, 0.045, 0.025, red, 2);
-  stamp.position.set(0, -0.22, 0.54);
-  group.add(stamp);
   return finishModel(group);
 }
 
@@ -662,8 +605,6 @@ function buildMahjongTile(color: number): THREE.Group {
   const group = new THREE.Group();
   const ivory = surface(color, "ceramic");
   const jade = surface(0x4e9874, "glaze");
-  const red = surface(0xc43d36, "glaze");
-  const dark = surface(0x24493d, "matte");
   const tile = roundedBox(0.9, 1.25, 0.46, 0.12, jade, 5);
   group.add(tile);
   const face = roundedBox(0.78, 1.1, 0.12, 0.09, ivory, 5);
@@ -672,19 +613,13 @@ function buildMahjongTile(color: number): THREE.Group {
   const frame = roundedBox(0.6, 0.85, 0.04, 0.08, surface(tint(color, -0.04), "ceramic"), 4);
   frame.position.z = 0.31;
   group.add(frame);
-  [[-0.18, 0.25, red], [0.18, 0.25, dark], [-0.18, -0.08, dark], [0.18, -0.08, red], [0, -0.36, dark]].forEach(([x, y, material]) => {
-    const dot = part(new THREE.CylinderGeometry(0.075, 0.075, 0.045, 14), material as THREE.Material);
-    dot.rotation.x = Math.PI / 2;
-    dot.position.set(x as number, y as number, 0.36);
-    group.add(dot);
-  });
   return finishModel(group);
 }
 
 const BUILDERS: readonly Builder[] = [
   buildLantern,
   buildBao,
-  buildSodaCan,
+  buildSodaBottle,
   buildMooncake,
   buildTanghulu,
   buildDrum,
@@ -702,7 +637,7 @@ const BUILDERS: readonly Builder[] = [
   buildMahjongTile,
 ];
 
-/** Build one original, fully modeled Lantern Night object (logical kinds 0..17). */
+/** Build one original, fully modeled Lantern Night base recipe (authored kinds 0..17). */
 export function buildNightMarketModel(kind: number, color: number): THREE.Group {
   const safeKind = Math.max(0, Math.min(BUILDERS.length - 1, Math.floor(kind)));
   return BUILDERS[safeKind]!(color);

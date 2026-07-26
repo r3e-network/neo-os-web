@@ -46,6 +46,7 @@ import {
 import { buildGoose, buildThemeModelMesh } from "./models";
 import { pickItemAt, pickItemNearPointer } from "./pick";
 import { sound } from "../logic/sound";
+import { publicAssetUrl } from "../logic/public-asset-url";
 import { haptics } from "../logic/haptics";
 import { specOf, tuneGravity } from "../logic/game-rules";
 import { computeHintPlan } from "../logic/hint-plan";
@@ -67,10 +68,20 @@ import { disposeObject } from "./scene-resources";
 import { SCENE_MOTION, portraitCameraBias } from "./scene-motion";
 import { duplicatePickGuardUntil } from "./pick-lock";
 import {
+  clearSettleCooldown,
   initialPileEuler,
   resettlePileAfterSupportRemoval,
+  settleReadableFace,
+  settleReadableUpright,
   tipUprightSideRestBody,
 } from "./pile-dynamics";
+import { pileDimensions } from "./pile-density";
+import { webglFrameHasVisibleContent } from "./webgl-frame-health";
+import {
+  isSoftwareRendererLabel,
+  renderQualityProfile,
+  type RenderQualityProfile,
+} from "./render-quality";
 
 // Logical scene size (CSS pixels of the canvas host on desktop).
 const SCENE_W = 400;
@@ -86,7 +97,7 @@ const CONTAINER_TEXTURE_CACHE = new Map<GameThemeId, THREE.Texture>();
 function containerTexture(themeId: GameThemeId): THREE.Texture {
   const cached = CONTAINER_TEXTURE_CACHE.get(themeId);
   if (cached) return cached;
-  const texture = new THREE.TextureLoader().load(`./art/container-${themeId}.webp`);
+  const texture = new THREE.TextureLoader().load(publicAssetUrl(`./art/container-${themeId}.webp`));
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
@@ -125,6 +136,10 @@ interface ItemVisual {
   baseScale: number;
   /** when true the body is asleep / not yet spawned. */
   spawned: boolean;
+  /** Cached physics profile — avoids per-frame physicsProfileOf allocation. */
+  profile: ItemPhysicsProfile;
+  /** True while the pointer hovers this item (pre-pick visual feedback). */
+  hovered: boolean;
 }
 
 export class ZhuaDaScene {
@@ -192,11 +207,15 @@ export class ZhuaDaScene {
   private containerPhysicsMaterial!: CannonMaterial;
   private physicsMaterials = new Map<PhysicsSurface, CannonMaterial>();
   private mobileQuality = false;
+  private renderQuality: RenderQualityProfile = renderQualityProfile({ mobile: false });
+  private rendererLabel = "unknown";
 
   private rafId = 0;
   private paused = false;
   private lastRafAt = 0;
   private frameAccumulatorMs = 0;
+  /** Throttles the synchronous framebuffer health probe until one real frame passes. */
+  private lastFrameHealthProbeAt = 0;
   private reducedMotion = false;
   private unsubState: (() => void) | null = null;
   private unsubReady: (() => void) | null = null;
@@ -205,6 +224,10 @@ export class ZhuaDaScene {
   private disposed = false;
   /** Last one-second production QA renderer sample (QA build only). */
   private lastDeviceQaTelemetryAt = 0;
+  /** Cached URLSearchParams check — avoids per-frame allocation. */
+  private deviceQaEnabled = false;
+  /** Currently hovered visual for pre-pick feedback (null = none). */
+  private hoveredVisual: ItemVisual | null = null;
   /** Invalidates every short-lived rAF effect across retry/theme/unmount. */
   private animationEpoch = 0;
   /** Invalidates only overlay particles/goose beats when overlays are replaced. */
@@ -218,6 +241,7 @@ export class ZhuaDaScene {
     this.disposed = false;
     this.paused = false;
     this.lastRafAt = 0;
+    this.lastFrameHealthProbeAt = 0;
     this.frameAccumulatorMs = 0;
     this.clock = new THREE.Clock();
     this.itemVisuals.clear();
@@ -253,8 +277,15 @@ export class ZhuaDaScene {
     const w = host.clientWidth || SCENE_W;
     const h = host.clientHeight || SCENE_H;
     this.mobileQuality = w <= 760 || (window.matchMedia?.("(pointer: coarse)").matches ?? false);
+    const runtimeNavigator = navigator as Navigator & { deviceMemory?: number };
+    const qualityHints = {
+      mobile: this.mobileQuality,
+      deviceMemoryGb: runtimeNavigator.deviceMemory,
+      hardwareConcurrency: runtimeNavigator.hardwareConcurrency,
+    };
+    const provisionalQuality = renderQualityProfile(qualityHints);
     const rendererOptions: THREE.WebGLRendererParameters = {
-      antialias: true,
+      antialias: provisionalQuality.antialias,
       alpha: true,
       premultipliedAlpha: false,
       powerPreference: "high-performance",
@@ -265,13 +296,31 @@ export class ZhuaDaScene {
       // The scene never uses stencil operations; avoiding that attachment
       // lowers tile-memory pressure on mobile GPUs without changing visuals.
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.mobileQuality ? 1.5 : 2));
+    const gl = this.renderer.getContext();
+    const rendererInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    this.rendererLabel = rendererInfo
+      ? String(gl.getParameter(rendererInfo.UNMASKED_RENDERER_WEBGL) ?? "unknown")
+      : String(gl.getParameter(gl.RENDERER) ?? "unknown");
+    this.renderQuality = renderQualityProfile({
+      ...qualityHints,
+      rendererLabel: this.rendererLabel,
+    });
+    this.renderer.setPixelRatio(Math.min(
+      window.devicePixelRatio || 1,
+      this.renderQuality.pixelRatioCap,
+    ));
     // updateStyle=true: the canvas MUST get explicit CSS width/height, or on
     // dpr>=2 devices it lays out at its attribute size (2x the host, clipped
     // to a magnified top-left quadrant).
     this.renderer.setSize(w, h, true);
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.domElement.dataset.gooseQualityTier = this.renderQuality.tier;
+    this.renderer.domElement.dataset.gooseSoftwareRenderer = isSoftwareRendererLabel(this.rendererLabel)
+      ? "true"
+      : "false";
+    this.renderer.shadowMap.enabled = this.renderQuality.shadows;
+    this.renderer.shadowMap.type = this.renderQuality.tier === "constrained"
+      ? THREE.PCFShadowMap
+      : THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.96;
@@ -294,7 +343,7 @@ export class ZhuaDaScene {
 
     this.setupLights();
     this.setupWorld();
-    const initial = penDimensions(1);
+    const initial = pileDimensions(specOf(1).boxSize);
     this.buildBox(initial.half, initial.height, this.themeId);
     this.frameCamera(initial.half, initial.height);
     this.buildTray();
@@ -314,6 +363,12 @@ export class ZhuaDaScene {
 
     // Pointer pick.
     this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
+    // Hover feedback — subtle emissive glow on the item under the pointer.
+    this.renderer.domElement.addEventListener("pointermove", this.onPointerMove);
+    this.renderer.domElement.addEventListener("pointerleave", this.onPointerLeave);
+
+    // Cache the deviceQa URL flag once (avoids per-frame URLSearchParams alloc).
+    this.deviceQaEnabled = new URLSearchParams(window.location.search).get("deviceQa") === "1";
 
     // Physics pauses while the tab is hidden; on return the accumulated clock
     // delta is discarded so the pile resumes exactly where it froze (paired
@@ -332,6 +387,16 @@ export class ZhuaDaScene {
     this.paused = true;
   }
 
+  resume(): void {
+    if (this.disposed) return;
+    // Discard the time spent behind the DOM compatibility surface so the
+    // first resumed frame cannot advance physics or spawn pacing in a burst.
+    this.paused = false;
+    this.clock.getDelta();
+    this.lastRafAt = 0;
+    this.frameAccumulatorMs = 0;
+  }
+
   unmount(): void {
     if (this.disposed) return;
     this.disposed = true;
@@ -339,6 +404,9 @@ export class ZhuaDaScene {
     this.overlayEpoch += 1;
     cancelAnimationFrame(this.rafId);
     this.renderer?.domElement.removeEventListener("pointerdown", this.onPointerDown);
+    this.renderer?.domElement.removeEventListener("pointermove", this.onPointerMove);
+    this.renderer?.domElement.removeEventListener("pointerleave", this.onPointerLeave);
+    this.hoveredVisual = null;
     document.removeEventListener("visibilitychange", this.onVisibilityChange);
     this.unsubState?.();
     this.unsubReady?.();
@@ -369,7 +437,7 @@ export class ZhuaDaScene {
     this.keyLight = key;
     key.position.set(-4.5, 13, 5.5);
     key.castShadow = true;
-    const shadowSize = this.mobileQuality ? 1024 : 1536;
+    const shadowSize = this.renderQuality.shadowMapSize;
     key.shadow.mapSize.set(shadowSize, shadowSize);
     key.shadow.camera.near = 1;
     key.shadow.camera.far = 40;
@@ -408,7 +476,7 @@ export class ZhuaDaScene {
     this.world.allowSleep = true;
     // A few solver iterations is plenty for a small pile (the default World
     // solver is a GSSolver; the base Solver type just doesn't expose it).
-    (this.world.solver as GSSolver).iterations = this.mobileQuality ? 10 : 12;
+    (this.world.solver as GSSolver).iterations = this.renderQuality.solverIterations;
     this.world.defaultContactMaterial.friction = 0.36;
     this.world.defaultContactMaterial.restitution = 0.08;
     this.world.defaultContactMaterial.contactEquationStiffness = 8e6;
@@ -682,7 +750,7 @@ export class ZhuaDaScene {
     this.wallMat = null;
     this.rimMat = null;
     this.setupWorld();
-    const dimensions = penDimensions(level);
+    const dimensions = pileDimensions(specOf(level).boxSize);
     this.buildBox(dimensions.half, dimensions.height, themeId);
     this.frameCamera(dimensions.half, dimensions.height);
     this.layoutTray();
@@ -866,6 +934,7 @@ export class ZhuaDaScene {
       if (!vis) {
         if (!this.spawnQueue.some((q) => q.id === it.id)) this.spawnQueue.push(it);
       } else if (vis.extracting) {
+        clearSettleCooldown(vis.body.id);
         this.world.removeBody(vis.body);
         this.playfieldGroup.remove(vis.mesh);
         disposeObject(vis.mesh);
@@ -891,6 +960,7 @@ export class ZhuaDaScene {
     this.camera.position.copy(this.cameraBase);
     for (const vis of this.itemVisuals.values()) {
       this.playfieldGroup.remove(vis.mesh);
+      clearSettleCooldown(vis.body.id);
       this.world.removeBody(vis.body);
       disposeObject(vis.mesh);
     }
@@ -982,6 +1052,8 @@ export class ZhuaDaScene {
       flying: false,
       baseScale: mesh.scale.x,
       spawned: true,
+      profile: physics,
+      hovered: false,
     });
     if (this.pendingHintKind === it.kind) {
       this.pendingHintKind = null;
@@ -1014,6 +1086,7 @@ export class ZhuaDaScene {
       : this.trayKinds.findIndex((k) => k === vis.kind);
     const target = slotIdx >= 0 ? this.traySlots[slotIdx]?.position.clone() : new THREE.Vector3(0, this.boxHeight + 1.1, 0);
     vis.extracting = true;
+    clearSettleCooldown(vis.body.id);
     this.world.removeBody(vis.body);
     // Cannon does not wake sleeping bodies when their supporting body is
     // removed. Rebuild the pile's contact chain immediately so unsupported
@@ -1123,19 +1196,25 @@ export class ZhuaDaScene {
     requestAnimationFrame(step);
   }
 
-  /** Small radial particle burst in the cleared kind's color. */
+  /** Small radial particle burst in the cleared kind's color (InstancedMesh). */
   private spawnPopBurst(color: number, origin: THREE.Vector3): void {
     const count = 10;
     const geo = new THREE.TetrahedronGeometry(0.09);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true });
-    const group = new THREE.Group();
-    const parts: { mesh: THREE.Mesh; vel: THREE.Vector3; spin: THREE.Vector3 }[] = [];
+    const mat = new THREE.MeshStandardMaterial({
+      color,
+      transparent: true,
+      emissive: color,
+      emissiveIntensity: 0.4,
+      roughness: 0.5,
+    });
+    // Single InstancedMesh = 1 draw call instead of 10 individual Meshes.
+    const instanced = new THREE.InstancedMesh(geo, mat, count);
+    instanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const dummy = new THREE.Object3D();
+    const parts: { vel: THREE.Vector3; spin: THREE.Vector3 }[] = [];
     for (let i = 0; i < count; i += 1) {
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.copy(origin);
       const a = (i / count) * Math.PI * 2 + Math.random() * 0.5;
       parts.push({
-        mesh,
         vel: new THREE.Vector3(
           Math.cos(a) * (1.2 + Math.random() * 0.9),
           1.8 + Math.random() * 1.3,
@@ -1143,32 +1222,46 @@ export class ZhuaDaScene {
         ),
         spin: new THREE.Vector3(Math.random() * 8, Math.random() * 8, Math.random() * 8),
       });
-      group.add(mesh);
+      // Initial transform at origin.
+      dummy.position.copy(origin);
+      dummy.updateMatrix();
+      instanced.setMatrixAt(i, dummy.matrix);
     }
-    this.overlayGroup.add(group);
+    instanced.instanceMatrix.needsUpdate = true;
+    this.overlayGroup.add(instanced);
     const t0 = performance.now();
     const dur = SCENE_MOTION.popBurstMs;
     const overlayEpoch = this.overlayEpoch;
     let last = t0;
+    const positions = parts.map(() => origin.clone());
+    const rotations = parts.map(() => new THREE.Euler());
     const step = (): void => {
       if (this.disposed || overlayEpoch !== this.overlayEpoch) return;
       const now = performance.now();
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const t = Math.min(1, (now - t0) / dur);
-      for (const p of parts) {
-        p.vel.y -= 7.5 * dt; // light gravity arc
-        p.mesh.position.addScaledVector(p.vel, dt);
-        p.mesh.rotation.x += p.spin.x * dt;
-        p.mesh.rotation.y += p.spin.y * dt;
-        p.mesh.rotation.z += p.spin.z * dt;
+      for (let i = 0; i < count; i += 1) {
+        const p = parts[i]!;
+        p.vel.y -= 7.5 * dt;
+        positions[i]!.addScaledVector(p.vel, dt);
+        rotations[i]!.x += p.spin.x * dt;
+        rotations[i]!.y += p.spin.y * dt;
+        rotations[i]!.z += p.spin.z * dt;
+        dummy.position.copy(positions[i]!);
+        dummy.rotation.copy(rotations[i]!);
+        dummy.updateMatrix();
+        instanced.setMatrixAt(i, dummy.matrix);
       }
+      instanced.instanceMatrix.needsUpdate = true;
       mat.opacity = Math.max(0, 1 - t * t);
+      mat.emissiveIntensity = 0.4 * (1 - t);
       if (t < 1) requestAnimationFrame(step);
       else {
-        this.overlayGroup.remove(group);
+        this.overlayGroup.remove(instanced);
         geo.dispose();
         mat.dispose();
+        instanced.dispose();
       }
     };
     requestAnimationFrame(step);
@@ -1189,9 +1282,12 @@ export class ZhuaDaScene {
     if (!this.reducedMotion) {
       const overlayEpoch = this.overlayEpoch;
       let t = 0;
+      let lastBobAt = performance.now();
       const bob = () => {
         if (this.disposed || overlayEpoch !== this.overlayEpoch) return;
-        t += 0.016;
+        const now = performance.now();
+        t += Math.min(0.05, (now - lastBobAt) / 1000);
+        lastBobAt = now;
         goose.position.y = this.boxHeight + 1.8 + Math.sin(t * 3) * 0.3;
         goose.rotation.y = Math.PI * 0.1 + Math.sin(t * 1.5) * 0.3;
         if (t < SCENE_MOTION.winBobMs / 1_000) requestAnimationFrame(bob);
@@ -1249,6 +1345,7 @@ export class ZhuaDaScene {
       meshes.forEach((m) => { const mm = m.material as THREE.MeshStandardMaterial; if (mm) mm.emissiveIntensity = 0; });
       sprites.forEach((sprite) => sprite.material.color.setHex(0xffffff));
       target.mesh.scale.setScalar(baseScale);
+      target.mesh.position.y = target.body.position.y;
     };
     const step = (): void => {
       if (this.disposed || animationEpoch !== this.animationEpoch) { this.hintPulsing.delete(target.id); return; }
@@ -1259,11 +1356,20 @@ export class ZhuaDaScene {
       const p = reduced ? 0.8 : 0.5 + 0.5 * Math.sin(e * Math.PI * 6);
       meshes.forEach((m) => {
         const mm = m.material as THREE.MeshStandardMaterial;
-        if (mm) { mm.emissive = tint; mm.emissiveIntensity = p * 0.9; }
+        if (mm) { mm.emissive = tint; mm.emissiveIntensity = p * 1.6; }
       });
       const spriteTint = new THREE.Color(0xffffff).lerp(tint, 0.34 * p);
       sprites.forEach((sprite) => sprite.material.color.copy(spriteTint));
-      if (!reduced) target.mesh.scale.setScalar(baseScale + p * 0.14);
+      if (!reduced) {
+        // The object itself is the feedback: a gentle lift/breath makes the
+        // target unmistakable without drawing a stripe, cross, ring, or other
+        // identity marker over the authored model.
+        target.mesh.scale.setScalar(baseScale + p * 0.26);
+        // Lift it above the nearest layer so the authored silhouette can be
+        // read in a dense pile; the motion ends back at the physics body and
+        // never paints a badge, stripe, cross, or other identity decoration.
+        target.mesh.position.y = target.body.position.y + p * 0.42;
+      }
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -1465,6 +1571,63 @@ export class ZhuaDaScene {
     this.beginPick(picked);
   };
 
+  /** Hover feedback: subtle emissive glow on the item under the pointer. */
+  private onPointerMove = (ev: PointerEvent): void => {
+    if (!this.renderer || this.gameStatus !== "dealt" || this.reducedMotion) return;
+    // Throttle hover raycasts to ~30Hz to avoid GPU overhead on high-Hz mice.
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.pointer.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+    this.camera.updateMatrixWorld();
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+
+    const roots = new Map<THREE.Object3D, ItemVisual>();
+    for (const v of this.itemVisuals.values()) {
+      if (!v.extracting) roots.set(v.mesh, v);
+    }
+    const hit = pickItemAt(this.raycaster, roots);
+    const newHovered = hit ?? null;
+
+    if (newHovered === this.hoveredVisual) return;
+    // Clear previous hover glow.
+    if (this.hoveredVisual) {
+      this.setHoverGlow(this.hoveredVisual, false);
+      this.hoveredVisual.hovered = false;
+    }
+    // Apply new hover glow.
+    if (newHovered) {
+      this.setHoverGlow(newHovered, true);
+      newHovered.hovered = true;
+    }
+    this.hoveredVisual = newHovered;
+    // Cursor feedback.
+    this.renderer.domElement.style.cursor = newHovered ? "pointer" : "default";
+  };
+
+  private onPointerLeave = (): void => {
+    if (this.hoveredVisual) {
+      this.setHoverGlow(this.hoveredVisual, false);
+      this.hoveredVisual.hovered = false;
+      this.hoveredVisual = null;
+    }
+    if (this.renderer) this.renderer.domElement.style.cursor = "default";
+  };
+
+  /** Toggle a subtle emissive glow on all child meshes of an item visual. */
+  private setHoverGlow(vis: ItemVisual, on: boolean): void {
+    vis.mesh.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+        if (on) {
+          child.material.emissive.setHex(0x16c784);
+          child.material.emissiveIntensity = 0.18;
+        } else {
+          child.material.emissive.setHex(0x000000);
+          child.material.emissiveIntensity = 0;
+        }
+      }
+    });
+  }
+
   // ── Render loop ─────────────────────────────────────────────────────────────
 
   /** Tab became visible again: throw away the delta accumulated while hidden
@@ -1527,16 +1690,18 @@ export class ZhuaDaScene {
     this.world.step(1 / 60, Math.min(rawDt, 0.1), 3);
 
     // Sync mesh transforms from bodies (skip extracting items).
+    const settleNow = performance.now();
     for (const vis of this.itemVisuals.values()) {
       if (vis.extracting) continue;
       const nearlySettled = vis.body.velocity.lengthSquared() < 0.045
         && vis.body.angularVelocity.lengthSquared() < 0.035;
       if (vis.body.sleepState === Body.SLEEPING || nearlySettled) {
-        tipUprightSideRestBody(
-          vis.body,
-          physicsProfileOf(this.themeId, vis.kind),
-          vis.id,
-        );
+        // Use the cached profile (avoids per-frame physicsProfileOf allocation)
+        // and pass timestamp for the proportional cooldown in pile-dynamics.
+        if (!settleReadableFace(vis.body, vis.profile, settleNow)
+          && !settleReadableUpright(vis.body, vis.profile, settleNow)) {
+          tipUprightSideRestBody(vis.body, vis.profile, vis.id);
+        }
       }
       vis.mesh.position.set(vis.body.position.x, vis.body.position.y, vis.body.position.z);
       vis.mesh.quaternion.set(
@@ -1552,8 +1717,19 @@ export class ZhuaDaScene {
     // Keep the box centered as the camera frame is fixed.
     this.renderer.render(this.scene, this.camera);
     if (
+      this.renderer.info.render.calls > 0
+      && this.renderer.domElement.dataset.gooseFrameReady !== "true"
+      && rafNow - this.lastFrameHealthProbeAt >= 220
+    ) {
+      this.lastFrameHealthProbeAt = rafNow;
+      const gl = this.renderer.getContext();
+      if (webglFrameHasVisibleContent(gl, gl.drawingBufferWidth, gl.drawingBufferHeight)) {
+        this.renderer.domElement.dataset.gooseFrameReady = "true";
+      }
+    }
+    if (
       import.meta.env.VITE_DEVICE_QA === "1"
-      && new URLSearchParams(window.location.search).get("deviceQa") === "1"
+      && this.deviceQaEnabled
     ) {
       window.dispatchEvent(new CustomEvent("zhuada-e:device-qa-frame", {
         detail: { frameTimeMs: rawDt * 1_000 },
@@ -1600,6 +1776,8 @@ export class ZhuaDaScene {
             pixelRatio: this.renderer.getPixelRatio(),
             canvasWidth: this.renderer.domElement.width,
             canvasHeight: this.renderer.domElement.height,
+            qualityTier: this.renderQuality.tier,
+            rendererLabel: this.rendererLabel,
           },
         }));
       }
@@ -1617,18 +1795,6 @@ export class ZhuaDaScene {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function penDimensions(level: number): { half: number; height: number } {
-  const spec = specOf(level);
-  return {
-    // boxSize 9→12 now materially expands the physical surface without moving
-    // the rim outside the mobile camera framing.
-    half: THREE.MathUtils.clamp(spec.boxSize * 0.31, 2.75, 3.75),
-    // A shallow pan is essential in the top view: the rim frames the pile but
-    // never hides the lower half of the playable objects.
-    height: 0.78 + (spec.boxSize - 9) * 0.035,
-  };
-}
 
 /** Stable pseudo-random unit used to derive rotations from the run's positions. */
 function deterministicUnit(id: number, salt: number): number {

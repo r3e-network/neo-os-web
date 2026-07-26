@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import { physicsProfileOf } from "./physics-profiles";
 import {
   initialPileEuler,
+  prefersFaceRest,
   prefersSideRest,
   resettlePileAfterSupportRemoval,
+  settleReadableFace,
+  settleReadableUpright,
   tipUprightSideRestBody,
 } from "./pile-dynamics";
 
@@ -91,5 +94,46 @@ describe("live pile support dynamics", () => {
     expect(tipUprightSideRestBody(upright, tall, 13)).toBe(true);
     expect(upright.sleepState).toBe(Body.AWAKE);
     expect(Math.hypot(upright.angularVelocity.x, upright.angularVelocity.z)).toBeGreaterThan(0.4);
+  });
+
+  it("starts thin authored faces upward and physically corrects an edge-on rest", () => {
+    const wedge = physicsProfileOf("fresh-market", 15);
+    const round = physicsProfileOf("fresh-market", 0);
+    expect(prefersFaceRest(wedge)).toBe(true);
+    expect(prefersFaceRest(round)).toBe(false);
+
+    const [x, y, z] = initialPileEuler(wedge, 0.1, 0.4, 0.9);
+    expect(Math.abs(x)).toBeLessThan(0.13);
+    expect(y).toBeCloseTo(0.4 * Math.PI * 2);
+    expect(Math.abs(z)).toBeLessThan(0.13);
+
+    const world = new World({ gravity: new Vec3(0, -10, 0) });
+    const edgeOn = new Body({ mass: 1, shape: new Box(new Vec3(0.6, 0.2, 0.45)) });
+    world.addBody(edgeOn);
+    edgeOn.quaternion.setFromEuler(Math.PI / 2, 0, 0);
+    edgeOn.sleep();
+    expect(settleReadableFace(edgeOn, wedge)).toBe(true);
+    expect(edgeOn.sleepState).toBe(Body.AWAKE);
+    expect(Math.hypot(edgeOn.angularVelocity.x, edgeOn.angularVelocity.z)).toBeGreaterThan(0.3);
+  });
+
+  it("keeps open cookware physically biased toward its authored top face", () => {
+    const kettle = physicsProfileOf("farm-kitchen", 0);
+    expect(kettle.readableRest).toBe("upright");
+
+    const [x, y, z] = initialPileEuler(kettle, 0.1, 0.4, 0.9);
+    expect(Math.abs(x)).toBeLessThan(0.15);
+    expect(y).toBeCloseTo(0.4 * Math.PI * 2);
+    expect(Math.abs(z)).toBeLessThan(0.15);
+
+    const world = new World({ gravity: new Vec3(0, -10, 0) });
+    const upsideDown = new Body({ mass: 1, shape: new Box(new Vec3(0.6, 0.4, 0.6)) });
+    world.addBody(upsideDown);
+    upsideDown.quaternion.setFromEuler(Math.PI, 0, 0);
+    upsideDown.sleep();
+
+    expect(settleReadableUpright(upsideDown, kettle)).toBe(true);
+    expect(upsideDown.sleepState).toBe(Body.AWAKE);
+    expect(Math.hypot(upsideDown.angularVelocity.x, upsideDown.angularVelocity.z)).toBeGreaterThan(0.29);
   });
 });

@@ -66,6 +66,8 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
     "package.json must expose staged:verify");
   invariant(packageJson.scripts["shims:verify"] === "node scripts/verify-vendored-shims.mjs",
     "package.json must expose shims:verify");
+  invariant(!packageJson.scripts["geese:generate"],
+    "package.json must not ship the obsolete procedural portrait generator");
   invariant(packageJson.scripts["prebuild"] === "npm run art:generate && npm run audio:generate",
     "npm run build must use the prebuild lifecycle to regenerate art/audio");
   invariant(packageJson.scripts["build"]?.startsWith("npm run assets:verify && tsc --noEmit"),
@@ -108,6 +110,7 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   invariant(manifest.description.includes("three complete themes"), "manifest must mention three complete themes");
   invariant(manifest.description.includes("7-slot tray"), "manifest must mention seven-slot tray");
   invariant(manifest.description.includes("shake your phone"), "manifest must mention phone shake");
+  invariant(manifest.description.includes("twenty-four levels"), "manifest must match the 24-level rules catalog");
   invariant(!manifest.name.includes("抓大鹅") && !manifest.name_zh.includes("抓大鹅"),
     "storefront name must not use the commercial game name");
   matches(read, "src/manifest.ts", /const simulatorQaDirectPlay =[\s\S]*import\.meta\.env\.DEV[\s\S]*get\("simQa"\) === "1"[\s\S]*directPlay: simulatorQaDirectPlay/,
@@ -116,22 +119,65 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   // Core playable-system promises from the objective.
   matches(read, "src/logic/themes.ts", /export const GAME_THEMES[\s\S]*fresh-market[\s\S]*farm-kitchen[\s\S]*night-market/,
     "must keep all three selectable themes");
-  for (const theme of ["freshItems", "farmItems", "nightItems"]) {
-    const itemBlock = read("src/logic/themes.ts").match(new RegExp(`const ${theme}:[\\s\\S]*?\\];`))?.[0] ?? "";
-    invariant((itemBlock.match(/nameKey:/g) ?? []).length === 18, `${theme} must keep exactly 18 item definitions`);
+  includes(read, "src/logic/themes.ts", "export const THEME_ITEM_COUNT = 54");
+  includes(read, "src/logic/themes.ts", "modelKind: baseKind");
+  includes(read, "src/logic/themes.ts", "assetKind: baseKind");
+  includes(read, "src/logic/themes.ts", "chipHueDeg");
+  for (const prefix of ["fresh", "farm", "night"]) {
+    const baseBlock = read("src/logic/themes.ts").match(
+      new RegExp(`const ${prefix}BaseItems:[\\s\\S]*?\\n\\];`),
+    )?.[0] ?? "";
+    const itemBlock = read("src/logic/themes.ts").match(
+      new RegExp(`const ${prefix}Items:[\\s\\S]*?\\n\\];`),
+    )?.[0] ?? "";
+    invariant((baseBlock.match(/nameKey:/g) ?? []).length === 18, `${prefix}BaseItems must keep exactly 18 authored silhouettes`);
+    invariant((baseBlock.match(/sizeBand:/g) ?? []).length === 18, `${prefix}BaseItems must keep size metadata for all 18 authored silhouettes`);
+    invariant((baseBlock.match(/silhouette:/g) ?? []).length === 18, `${prefix}BaseItems must keep silhouette metadata for all 18 authored silhouettes`);
+    invariant((baseBlock.match(/lookalikeFamily:/g) ?? []).length === 18, `${prefix}BaseItems must keep near-match family metadata for all 18 authored silhouettes`);
+    invariant((itemBlock.match(/colorVariant\(/g) ?? []).length === 36, `${prefix}Items must keep exactly 36 authored color-variant identities`);
   }
+  includes(read, "src/logic/themes.test.ts", "near-match families");
+  includes(read, "src/logic/scenes.ts", "export const SCENE_KIND_POOL_SIZE = 48");
   includes(read, "src/logic/game-rules.ts", "Logical runs grow from 18 to");
-  includes(read, "src/logic/game-rules.ts", "576 items");
-  includes(read, "src/logic/game-rules.ts", "only 40–54 live Cannon bodies");
+  includes(read, "src/logic/game-rules.ts", "1,584 items");
+  includes(read, "src/logic/game-rules.ts", "export const MAX_LOGICAL_ITEMS");
+  includes(read, "src/logic/game-rules.ts", "item-stream.ts cycles 18–45 live Cannon bodies");
+  includes(read, "src/PlayArea.tsx", 't("levelScopeValue", { kinds: levelSpec.kinds, total: levelItemTotal })');
+  includes(read, "src/ThemeItemChip.tsx", "String(safeKind).padStart(2, \"0\")");
+  includes(read, "src/ThemeItemChip.tsx", "--goose-item-hue");
+  includes(read, "src/ThemeItemChip.tsx", "data-variant-index");
+  includes(read, "src/scenes/physics-profiles.ts", "variantFactor");
+  includes(read, "src/logic/themes.ts", "baseKind * 137.508");
+  includes(read, "src/logic/themes.test.ts", "must not collapse into one palette");
+  includes(read, "scripts/generate-art.mjs", ".modulate({");
+  includes(read, "scripts/generate-art.mjs", "baseKind * 137.508");
+  includes(read, "src/scenes/farm-kitchen-models.ts", "bottle-cap-crown");
+  includes(read, "src/ThreeGameComponent.test.tsx", "uses the logical full-body colorway asset without an extra marker filter");
   includes(read, "src/logic/game-rules.ts", "randomizedSpecOf");
+  includes(read, "src/logic/game-rules.ts", "isBalancedDealComposition");
+  includes(read, "src/logic/progress.test.ts", "guarantees rich big/small, silhouette and near-colour composition for every theme");
+  includes(read, "src/logic/progress.test.ts", "keeps the tutorial subset and every full challenge order varied across replays");
   includes(read, "src/logic/item-stream.ts", "reserve");
   includes(read, "src/logic/item-stream.test.ts", "keeps hundreds of logical items while exposing only the mobile physics budget");
   includes(read, "src/logic/item-stream.test.ts", "keeps complete triple counts inside the initial pile and every refill wave");
-  includes(read, "src/logic/item-stream.test.ts", "waits for excavation, then activates one capped bottom-up batch");
+  includes(read, "src/logic/item-stream.test.ts", "opens L2 with eighteen identities, six paired near-match families, and 30 later kinds");
+  includes(read, "src/logic/item-stream.test.ts", "opens $id with eighteen identities, fourteen small, two medium and two large bodies");
+  includes(read, "src/logic/item-stream.ts", "const usedFamilies = new Set<string>()");
+  includes(read, "src/logic/item-stream.ts", "!usedFamilies.has");
+  includes(read, "src/logic/item-stream.test.ts", "reshuffles the eighteen opening identities and their treatments across fresh runs");
+  includes(read, "src/logic/item-stream.ts", "chooseOpeningTreatments");
+  includes(read, "src/logic/item-stream.test.ts", "keeps every randomized $id opening spread across broad colour families");
+  includes(read, "src/logic/item-stream.ts", "spreadOpeningPackets");
+  includes(read, "src/logic/item-stream.test.ts", "separates identical opening triples across the pile instead of spawning free clumps");
+  includes(read, "src/logic/item-stream.test.ts", "waits for a visible deep excavation, then activates one substantial bottom-up layer");
   includes(read, "src/logic/guest-engine.test.ts", "increments for every start/retry and publishes a different layout");
   includes(read, "src/logic/guest-engine.test.ts", "accepts the expanded kind catalog in resumable run snapshots");
   includes(read, "src/logic/guest-engine.ts", "Number(item.kind) < THEME_ITEM_COUNT");
-  includes(read, "src/logic/guest-engine.test.ts", "keeps a 210-item level behind a 48-body window and refills from below");
+  includes(read, "src/logic/guest-engine.test.ts", "keeps a 1,008-item level behind a dense 54-body window and refills from below");
+  includes(read, "src/logic/guest-engine.test.ts", "accepts the 1,584-item late-game reservoir but rejects oversized snapshots");
+  includes(read, "src/scenes/pile-density.test.ts", "keeps L2 challenge bodies tightly packed enough to create real overlap");
+  includes(read, "src/scenes/pile-density.test.ts", "caps late-level floor growth instead of spreading the live budget into a sparse sheet");
+  includes(read, "scripts/run-tests.mjs", "src/scenes/pile-density.test.ts");
   includes(read, "src/logic/guest-engine.test.ts", "drains every L%s reserve wave and wins only with box, reserve, tray and shelf empty");
   includes(read, "src/logic/guest-engine.test.ts", "survives twenty consecutive late-level redeals without exceeding the live-body ceiling");
   includes(read, "src/main.tsx", "if (!isPlaying.get()) guest.enter()");
@@ -170,11 +216,15 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "src/logic/motion-quality.test.ts", "keeps 3D tray flight on the same smooth handoff contract as the tray");
   includes(read, "src/AnimatedTray.test.tsx", "queues a second receipt until the first tray choreography settles");
   includes(read, "src/scenes/pick-lock.test.ts", "allows rapid different-item picks while the tray choreography queues receipts");
+  includes(read, "src/scenes/pick.ts", "visible authored surface");
+  includes(read, "src/scenes/pick-raycast.test.ts", "never lets an oversized invisible proxy steal a tap from a visible surface");
   includes(read, "src/scenes/physics-profiles.test.ts", "visible size ratio");
   includes(read, "src/scenes/physics-profiles.test.ts", "collider size ratio");
+  includes(read, "src/scenes/physics-profiles.test.ts", "matches the opening night-market colliders to the round lantern and necked bottle");
   includes(read, "src/logic/motion-quality.test.ts", "moves a tall-phone pile down into the reference composition without shifting desktop");
   includes(read, "src/scenes/ZhuaDaScene.ts", "globally lock the pile");
   includes(read, "scripts/run-tests.mjs", "src/scenes/pick-lock.test.ts");
+  includes(read, "scripts/run-tests.mjs", "src/scenes/pick-raycast.test.ts");
   includes(read, "src/logic/motion-quality.test.ts", "Math.pow(1 - e, SCENE_MOTION.panDampingPower)");
   includes(read, "src/PlayArea.scss", "--goose-tray-entry-ms: 692ms");
   includes(read, "src/PlayArea.scss", "--goose-tray-grouping-ms: 620ms");
@@ -188,39 +238,81 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "src/scenes/scene-motion.ts", "panDampingPower: 1.7");
   matches(read, "src/main.tsx", /if \(import\.meta\.env\.DEV\) \{[\s\S]*app\.actions\.register\("debugWin"[\s\S]*app\.actions\.register\("debugLose"[\s\S]*app\.actions\.register\("debugShake"/,
     "must DEV-gate playtest debug actions");
-  matches(read, "src/main.tsx", /import\.meta\.env\.DEV &&[\s\S]*get\("simQa"\) === "1"[\s\S]*app\.mode\.set\("guest"\)[\s\S]*guest\.startLevel\(progress\.get\(\)\.lastPlayedLevel \|\| 1\)/,
+  matches(read, "src/main.tsx", /const simulatorQaParams = import\.meta\.env\.DEV && typeof window !== "undefined"[\s\S]{0,180}new URLSearchParams\(window\.location\.search\)[\s\S]*if \(\s*import\.meta\.env\.DEV &&\s*simulatorQaParams\?\.get\("simQa"\) === "1"[\s\S]*app\.mode\.set\("guest"\)[\s\S]*guest\.startLevel\(progress\.get\(\)\.lastPlayedLevel \|\| 1\)/,
     "must DEV-gate simulator QA setup autostart behind ?simQa=1");
+  matches(read, "src/main.tsx", /simulatorQaParams[\s\S]*get\("simTheme"\)[\s\S]*isGameThemeId\(simulatorQaTheme\)[\s\S]*createObservable<GameThemeId>\(initialThemeId\)/,
+    "must resolve a validated simulator theme before the guest engine starts");
   matches(read, "src/PlayArea.tsx", /const debug = import\.meta\.env\.DEV &&[\s\S]*get\("debug"\) === "1"/,
     "must DEV-gate the playtest diagnostics panel");
   matches(read, "src/PlayArea.tsx", /if \(!import\.meta\.env\.DEV \|\| typeof window === "undefined"\) return;[\s\S]*simulatorQaAutoStartRef[\s\S]*get\("simQa"\) !== "1"[\s\S]*dispatch\("startLevel"/,
     "must DEV-gate simulator QA autostart behind ?simQa=1");
+  matches(read, "src/PlayArea.tsx", /get\("simTheme"\)[\s\S]*isGameThemeId\(requestedTheme\)[\s\S]*dispatch\("setTheme", \{ id: requestedTheme \}\)[\s\S]*dispatch\("startLevel"/,
+    "must validate simulator QA theme selection before autostart");
+  matches(read, "src/ThreeGameComponent.tsx", /function forcesAndroidSimulatorFallback[\s\S]*!import\.meta\.env\.DEV[\s\S]*get\("simQa"\) === "1"[\s\S]*get\("androidFallback"\) === "1"/,
+    "must DEV-gate the Android emulator fallback override");
   includes(read, "src/PlayArea.accessibility.test.tsx", "DEV simulator QA autostarts a level only behind ?simQa=1");
+  includes(read, "src/PlayArea.accessibility.test.tsx", "DEV simulator QA selects a requested theme before autostarting");
+  includes(read, "src/PlayArea.accessibility.test.tsx", "ignores invalid simulator theme ids and still starts the saved theme");
   includes(read, "src/ThreeGameComponent.tsx", "measuredStageFooterHeight");
   includes(read, "src/ThreeGameComponent.tsx", "MOBILE_FOOTER_SAFETY_PX");
   includes(read, "src/ThreeGameComponent.tsx", "ANDROID_CANVAS_SAMPLE_DELAY_MS");
   includes(read, "src/ThreeGameComponent.tsx", "isAndroidChromeRuntime");
   includes(read, "src/ThreeGameComponent.tsx", "canvasLooksBlank");
+  includes(read, "src/ThreeGameComponent.tsx", "canvas.dataset.gooseFrameReady !== \"true\"");
+  includes(read, "src/ThreeGameComponent.tsx", "canvas.dataset.gooseSoftwareRenderer === \"true\"");
+  includes(read, "src/ThreeGameComponent.tsx", "scene.resume?.()");
+  includes(read, "src/ThreeGameComponent.tsx", "Stop the hidden Three/Cannon loop");
+  includes(read, "src/scenes/ZhuaDaScene.ts", "this.renderer.domElement.dataset.gooseFrameReady = \"true\"");
+  includes(read, "src/scenes/ZhuaDaScene.ts", "gooseSoftwareRenderer");
+  includes(read, "src/scenes/ZhuaDaScene.ts", "resume(): void");
   includes(read, "src/ThreeGameComponent.tsx", "goose-android-fallback__item");
   includes(read, "src/ThreeGameComponent.test.tsx", "sizes the mobile board from measured tray and tool footer height");
   includes(read, "src/ThreeGameComponent.test.tsx", "shows a real-asset Android fallback pile when Chrome renders a blank WebGL canvas");
-  includes(read, "src/scenes/model-cache.test.ts", "keeps every production 3D item as a layered multi-material mesh with a pick proxy");
+  includes(read, "src/ThreeGameComponent.test.tsx", "keeps a healthy Android WebGL board through rapid item updates");
+  includes(read, "src/ThreeGameComponent.test.tsx", "uses the compatibility pile when Android reports a software renderer");
+  includes(read, "src/scenes/model-cache.test.ts", "keeps every production 3D item layered while merging authored parts into a mobile draw-call budget");
+  includes(read, "src/scenes/model-cache.test.ts", "mobile draw-call budget");
+  includes(read, "src/scenes/model-kit.ts", "goose-skin-v5:");
+  includes(read, "src/scenes/model-kit.ts", "surfaceSkinVariant");
+  includes(read, "src/scenes/night-market-models.ts", "geometry.setAttribute(\"uv\"");
+  includes(read, "src/scenes/model-cache.test.ts", 'finishExamples.get("glaze")!.normalScale.x');
+  includes(read, "src/scenes/models.ts", "mergeTemplateSurfaces");
+  includes(read, "src/scenes/render-quality.test.ts", "keeps full illustrated lighting on normal phone GPUs");
+  includes(read, "src/scenes/render-quality.test.ts", "uses a cheaper render path on SwiftShader without reducing gameplay bodies");
+  includes(read, "src/scenes/render-quality.test.ts", "protects real low-memory four-core phones");
+  includes(read, "src/scenes/render-quality.ts", "isSoftwareRendererLabel");
+  includes(read, "src/scenes/render-quality.ts", "android emulator openGL ES translator");
+  includes(read, "scripts/run-tests.mjs", "src/scenes/render-quality.test.ts");
   includes(read, "src/scenes/model-cache.test.ts", "keeps every visible production surface opaque so the basket never shows through");
   includes(read, "src/scenes/model-cache.test.ts", "seals every large lathe opening that used to expose the basket");
   includes(read, "src/scenes/model-cache.test.ts", "material variety");
   includes(read, "src/scenes/model-cache.test.ts", "mobile shadow budget");
+  includes(read, "src/scenes/model-cache.test.ts", "keeps the first-run night-market models faithful to their approved item art");
+  includes(read, "src/scenes/model-cache.test.ts", "builds the zongzi from layered leaf panels without marker-like cord or vein lines");
+  includes(read, "src/scenes/model-cache.test.ts", "keeps rolling night-market circular faces recognizable without painted markers");
+  includes(read, "src/scenes/model-cache.test.ts", "keeps fresh-market packages and cut food readable from both tumble faces");
+  includes(read, "src/scenes/model-cache.test.ts", "keeps authored silhouettes free of identity-marker noise");
+  includes(read, "src/scenes/model-cache.test.ts", "keeps farm-kitchen silhouettes clean after physics rolls them over");
+  includes(read, "src/scenes/pile-dynamics.ts", "settleReadableFace");
+  includes(read, "src/scenes/pile-dynamics.test.ts", "starts thin authored faces upward and physically corrects an edge-on rest");
+  includes(read, "src/scenes/pile-dynamics.ts", "settleReadableUpright");
+  includes(read, "src/scenes/pile-dynamics.test.ts", "keeps open cookware physically biased toward its authored top face");
   includes(read, "src/PlayArea.scss", ".goose-overlay__card[data-wide=\"true\"]::-webkit-scrollbar");
   includes(read, "src/PlayArea.scss", ".goose-android-fallback__basket");
+  includes(read, "src/PlayArea.scss", "goose-android-fallback-shake");
   includes(read, "src/PlayArea.scss", ".goose-android-fallback__item img");
   includes(read, "src/PlayArea.scss", "max-height: min(100%, calc(100dvh - 16px))");
   includes(read, "src/PlayArea.scss", ".goose-theme-picker__head p");
   includes(read, "src/PlayArea.scss", "flex-basis: min(45%, 142px)");
   includes(read, "src/PlayArea.scss", "[data-game-status=\"idle\"]");
   includes(read, "src/PlayArea.accessibility.test.tsx", "keeps the in-game lobby immersive");
+  includes(read, "src/PlayArea.accessibility.test.tsx", "keeps the active-run drawer visible in-stage on desktop and above mobile browser chrome");
+  includes(read, "src/PlayArea.accessibility.test.tsx", "teaches the first level in-place and dismisses each lesson from real play state");
   includes(read, "src/PlayArea.accessibility.test.tsx", "turns a recoverable full tray into an assertive last-stand prompt");
   includes(read, "src/PlayArea.accessibility.test.tsx", "names terminal tray failure directly and offers a concrete recovery action");
 
   // Resource and audio completeness.
-  includes(read, "scripts/verify-assets.mjs", "78 images");
+  includes(read, "scripts/verify-assets.mjs", "186 images");
   const assetVerifier = read("scripts/verify-assets.mjs");
   invariant((assetVerifier.match(/"ambient-/g) ?? []).length === 3,
     "verify-assets.mjs must check three ambience loops");
@@ -234,10 +326,12 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "src/logic/sound.test.ts", "dense collision bursts collapse to one land cue instead of stacking dozens of thuds");
   includes(read, "src/logic/sound.test.ts", "stops gameplay voices immediately after muting an already-created context");
   includes(read, "scripts/image-quality.test.mjs", "keeps every item icon visible, padded, transparent, and visually detailed");
-  includes(read, "scripts/image-quality.test.mjs", "54 runtime item icons unique");
+  includes(read, "scripts/image-quality.test.mjs", "162 runtime item icons unique");
   includes(read, "scripts/image-quality.test.mjs", "expected 25-68% visible subject coverage");
   includes(read, "scripts/run-tests.mjs", "scripts/image-quality.test.mjs");
-  includes(read, "README.md", "75 image");
+  includes(read, "scripts/generate-art.mjs", "Array.from({ length: 9 }");
+  includes(read, "scripts/verify-assets.mjs", "expected 23 PNG entries");
+  includes(read, "README.md", "186 image");
   includes(read, "README.md", "15 PCM");
   includes(read, "README.md", "Long levels use a streamed bottom reservoir");
   includes(read, "README.md", "`npm run build` uses npm's `prebuild` lifecycle");
@@ -359,8 +453,10 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "scripts/verify-production-bundle.mjs", "debugWin");
   includes(read, "scripts/verify-production-bundle.mjs", "html|js|css|json");
   includes(read, "scripts/verify-production-bundle.mjs", "requiredProductionFiles");
+  includes(read, "scripts/verify-production-bundle.mjs", "Array.from({ length: 9 }");
   includes(read, "scripts/verify-production-bundle.mjs", "production bundle missing required asset");
   includes(read, "scripts/verify-production-bundle.mjs", "production runtime leak");
+  includes(read, "scripts/verify-production-bundle.test.mjs", "requires all nine collection-goose portraits in a production bundle");
   includes(read, "scripts/verify-production-bundle.test.mjs", "scans production CSS so Device QA panel styles cannot leak");
   includes(read, "scripts/verify-production-bundle.test.mjs", "rejects a production dist missing any required art, audio, manifest, or notice file");
   includes(read, "scripts/run-tests.mjs", "scripts/verify-production-bundle.test.mjs");
@@ -434,10 +530,17 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "PRODUCTION-READINESS.md", "`memoryTrend=flat`, `restartSlowdown=none`, and");
   includes(read, "PRODUCTION-READINESS.md", "Do not paste a dist digest into this document");
   includes(read, "PRODUCTION-READINESS.md", "Do not preserve hard-coded test counts here");
+  includes(read, "PRODUCTION-READINESS.md", "all 24 levels draining to solved");
+  includes(read, "PRODUCTION-READINESS.md", "18–1,584 logical objects");
+  includes(read, "PRODUCTION-READINESS.md", "186 checked production images");
+  includes(read, "PRODUCTION-READINESS.md", "nine transparent goose portraits");
+  includes(read, "README.md", "18–1,584");
+  includes(read, "README.md", "all 186 image dimensions/alpha requirements");
   includes(read, "SIMULATOR-QA.md", "does not replace the physical Device QA release gate");
   includes(read, "SIMULATOR-QA.md", "npm run simulator-qa:verify");
   includes(read, "SIMULATOR-QA.md", "tray count");
-  includes(read, "SIMULATOR-QA.md", "Android-only real-asset fallback pile");
+  includes(read, "SIMULATOR-QA.md", "positive non-empty render marker");
+  includes(read, "SIMULATOR-QA.md", "emergency real-asset pile remains available for true blank boot");
   notIncludes(read, "PRODUCTION-READINESS.md", "d40bbbf67c9da54944c8ee41144519362823909383ad44b6fe2f142689384f9a");
   notIncludes(read, "PRODUCTION-READINESS.md", "22 test files / 152 tests");
   notIncludes(read, "PRODUCTION-READINESS.md", "catalog versions are all");

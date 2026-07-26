@@ -96,7 +96,7 @@ describe("tap-to-pick raycast (composed Group models)", () => {
     expect(picked).toBe(visual);
   });
 
-  it("resolves every one of the 18 logical item models (each is a multi-mesh Group)", () => {
+  it("resolves every one of the 54 logical item models (each is a multi-mesh Group)", () => {
     for (let kind = 0; kind < ITEM_DEFS.length; kind += 1) {
       const { scene, camera } = makeSceneCamera();
       const itemPos = new THREE.Vector3(0, 1.0, 0);
@@ -109,7 +109,7 @@ describe("tap-to-pick raycast (composed Group models)", () => {
     }
   });
 
-  it("resolves all 54 production theme models", () => {
+  it("resolves all 162 production theme identities", () => {
     for (const theme of GAME_THEMES) {
       for (let kind = 0; kind < theme.items.length; kind += 1) {
         const { scene, camera } = makeSceneCamera();
@@ -154,6 +154,38 @@ describe("tap-to-pick raycast (composed Group models)", () => {
 
     const picked = pickItemAt(raycastThrough(scene, camera, frontPos), roots);
     expect(picked).toBe(frontVisual);
+  });
+
+  it("never lets an oversized invisible proxy steal a tap from a visible surface", () => {
+    const frontRoot = new THREE.Group();
+    const frontMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.22, 12, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffffff }),
+    );
+    frontMesh.position.z = 0.15;
+    frontRoot.add(frontMesh);
+    frontRoot.updateMatrixWorld(true);
+
+    const hiddenRoot = new THREE.Group();
+    const hiddenProxy = interactionProxy(new THREE.SphereGeometry(0.9, 12, 8));
+    hiddenProxy.position.z = -0.35;
+    hiddenRoot.add(hiddenProxy);
+    hiddenRoot.updateMatrixWorld(true);
+
+    const frontVisual = { id: 1, kind: 2 };
+    const hiddenVisual = { id: 2, kind: 4 };
+    const roots = new Map<THREE.Object3D, typeof frontVisual>([
+      [frontRoot, frontVisual],
+      [hiddenRoot, hiddenVisual],
+    ]);
+    const raycaster = new THREE.Raycaster(
+      new THREE.Vector3(0, 0, 2),
+      new THREE.Vector3(0, 0, -1),
+    );
+
+    const rawHits = raycaster.intersectObjects([...roots.keys()], true);
+    expect(rawHits[0]!.object.userData.interactionProxy).toBe(true);
+    expect(pickItemAt(raycaster, roots)).toBe(frontVisual);
   });
 
   it("resolveItemRoot backtracks a deeply nested child Mesh to its item root", () => {

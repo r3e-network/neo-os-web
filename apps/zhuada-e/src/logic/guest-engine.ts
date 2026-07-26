@@ -27,6 +27,7 @@ import {
 import {
   COMBO_BONUS_PER_STEP,
   COMBO_WINDOW_MS,
+  MAX_LOGICAL_ITEMS,
   SCORE_PER_MATCH,
   TIME_BONUS_PER_SEC,
   TOTAL_LEVELS,
@@ -142,7 +143,11 @@ export function isStoredRunState(value: unknown): value is StoredRunState {
   if (!Number.isInteger(run.level) || Number(run.level) < 1 || Number(run.level) > TOTAL_LEVELS) return false;
   if (!isGameThemeId(run.themeId) || typeof run.timedMode !== "boolean" || typeof run.continueUsed !== "boolean") return false;
   if (!Array.isArray(run.active) || !Array.isArray(run.reserve)) return false;
-  if (run.active.length > 54 || run.active.length + run.reserve.length < 1 || run.active.length + run.reserve.length > 600) return false;
+  if (
+    run.active.length > 54
+    || run.active.length + run.reserve.length < 1
+    || run.active.length + run.reserve.length > MAX_LOGICAL_ITEMS
+  ) return false;
   if (!run.active.every(isStoredItem) || !run.reserve.every(isStoredItem)) return false;
   const ids = [...run.active, ...run.reserve].map((item) => item.id);
   if (new Set(ids).size !== ids.length) return false;
@@ -253,7 +258,11 @@ export interface GuestEngine {
 }
 
 const TIMED_KEY = "zhuada-e:timed-mode";
-const RUN_RULES_VERSION = 4;
+// v7 invalidates the six-silhouette challenge openings. Those saves may still
+// contain valid 48-kind/864-item records, but their first 54 bodies do not
+// satisfy the current twelve-silhouette mix with six paired near-match
+// families and six additional silhouettes.
+const RUN_RULES_VERSION = 7;
 const RUN_SAVE_DEBOUNCE_MS = 140;
 
 // R6 Frenzy — a combo climax. Reaching FRENZY_TRIGGER_COMBO grants
@@ -535,9 +544,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     const salt = seedSaltOverride ?? ((randomSeedSalt() ^ Math.imul(runNonce, 0x9e3779b1) ^ Date.now()) >>> 0);
     runId = `${Date.now().toString(36)}-${salt.toString(36)}-${runNonce.toString(36)}`;
     const rng = makeRng(seedFor(lvl, salt));
-    const spec = randomizedSpecOf(lvl, rng);
+    const spec = randomizedSpecOf(lvl, rng, themeId.get());
     const generated = generateItems(spec, rng);
-    const stream = createItemStream(generated, rng);
+    const stream = createItemStream(generated, rng, themeOf(themeId.get()).items);
     reserveItems = stream.reserve;
     reserveCount.set(reserveItems.length);
     refillRng = makeRng(seedFor(lvl, salt ^ 0xa511e9b3));
@@ -1026,6 +1035,8 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       if (!res.placed) return; // tray full: rescue (remove/undo) or jam, no landing
       tray.set(res.tray);
       shelf.set(res.shelf);
+      // Soft landing click for every accepted grab (match SFX layer on top below).
+      sound.play("traySlot");
       if (res.matched) {
         clearedFx.set(res.clearedTray);
         shelfClearedFx.set(res.clearedShelf);
@@ -1034,6 +1045,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         if (now - lastExtractAt <= comboWindowMs) comboCount.set(comboCount.get() + 1);
         else comboCount.set(1);
         lastExtractAt = now;
+        // Feed the combo depth to the sound engine so the match/combo SFX rise
+        // in pitch as the chain grows (handled internally by setComboStep).
+        sound.setComboStep(comboCount.get());
         const gained = Math.round(
           (SCORE_PER_MATCH + (comboCount.get() - 1) * COMBO_BONUS_PER_STEP) * (1 + goosePassive.scoreBonus),
         );
@@ -1043,7 +1057,13 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         sound.play(comboCount.get() > 1 ? "combo" : "match");
         haptics.play("match");
         if (comboTimer) clearTimeout(comboTimer);
-        comboTimer = setTimeout(() => comboCount.set(0), comboWindowMs);
+        comboTimer = setTimeout(() => {
+          comboCount.set(0);
+          // Audio feedback that the chain was lost: drop the pitch step back to
+          // base and play the soft descending break tone.
+          sound.setComboStep(0);
+          sound.play("comboBreak");
+        }, comboWindowMs);
         // Skill milestones refund power-ups mid-level (per-level thresholds —
         // see milestonesFor). `while` handles a single gain crossing several
         // steps (long combo chains on small-ceiling levels).

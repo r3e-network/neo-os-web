@@ -42,7 +42,13 @@ export function pickItemAt<T>(
   if (roots.size === 0) return null;
   const hits = raycaster.intersectObjects([...roots.keys()], true);
   if (hits.length === 0) return null;
-  return resolveItemRoot(hits[0]!.object, roots);
+  // Interaction proxies are intentionally larger than some hollow models.
+  // Their invisible surface must never sit in front of a genuinely rendered
+  // mesh from another item and make a tap select an object the player cannot
+  // see. Prefer the nearest visible authored surface; use a proxy only when
+  // the ray passed through a real hole and hit no rendered surface at all.
+  const visibleHit = hits.find((hit) => !hit.object.userData.interactionProxy);
+  return resolveItemRoot((visibleHit ?? hits[0]!).object, roots);
 }
 
 /**

@@ -1,0 +1,61 @@
+{
+  "schema": "zhuada-e-simulator-qa-v1",
+  "appVersion": "3.1.0",
+  "devUrl": "http://127.0.0.1:5175/?simQa=1",
+  "distDigest": "3125d989ff5a3babd1fe5c8c46878e54551975e85bb3f0abf5ac8ff1b619b114",
+  "verifiedAt": "2026-07-25T13:47:02+08:00",
+  "themesCovered": [
+    "fresh-market",
+    "farm-kitchen",
+    "night-market"
+  ],
+  "ios": {
+    "simulator": "iPhone 17 Pro",
+    "runtime": "iOS 26.5 Safari",
+    "screenshot": "/tmp/zhuada-device-v4-2026-07-25/ios-night-market-picked.png",
+    "themeScreenshots": {
+      "fresh-market": "/tmp/zhuada-device-v4-2026-07-25/ios-fresh-market.png",
+      "farm-kitchen": "/tmp/zhuada-device-v4-2026-07-25/ios-farm-kitchen.png",
+      "night-market": "/tmp/zhuada-device-v4-2026-07-25/ios-night-market-current.png"
+    },
+    "level": 2,
+    "activeCount": 54,
+    "reserveCount": 810,
+    "gameVisible": true,
+    "topViewVisible": true,
+    "trayVisible": true,
+    "singleTrayLayout": true
+  },
+  "android": {
+    "emulator": "onegate_api36",
+    "runtime": "Android 16/API 36 Emulator / Chrome 133.0.6943.137 / Android Emulator OpenGL ES Translator",
+    "url": "http://127.0.0.1:5175/?simQa=1",
+    "networkBridge": "adb-reverse",
+    "reverseCommand": "adb reverse tcp:5175 tcp:5175",
+    "gpuBackend": "gfxstream host GLES / lavapipe Vulkan",
+    "hostGpuObservation": "Chrome exposed WebGL and readable framebuffer pixels through the Android Emulator OpenGL ES Translator, but its compositor presented a blank board. Production runtime automatically classified that software/emulator renderer and switched to the real-asset compatibility pile with the same authoritative game state. No fatal, context-loss, or current Chromium crash line was observed.",
+    "screenshotBeforePick": "/tmp/zhuada-device-v4-2026-07-25/android-auto-fallback-v2.png",
+    "screenshotAfterPick": "/tmp/zhuada-device-v4-2026-07-25/android-auto-fallback-picked.png",
+    "themeScreenshots": {
+      "fresh-market": "/tmp/zhuada-device-v4-2026-07-25/android-fresh-market.png",
+      "farm-kitchen": "/tmp/zhuada-device-v4-2026-07-25/android-farm-kitchen.png",
+      "night-market": "/tmp/zhuada-device-v4-2026-07-25/android-auto-fallback-v2.png"
+    },
+    "level": 1,
+    "activeCountBeforePick": 18,
+    "reserveCount": 0,
+    "gameVisible": true,
+    "topViewVisible": true,
+    "trayVisible": true,
+    "singleTrayLayout": true,
+    "webglCanvasPresent": true,
+    "androidFallbackActive": true,
+    "fallbackReason": "Automatic software-renderer classification detected the Android Emulator OpenGL ES Translator after Chrome composited a blank WebGL board.",
+    "fallbackItemsAfterPick": 17,
+    "pickProof": {
+      "trayCountBefore": 0,
+      "trayCountAfter": 1,
+      "bodyTextAfterPick": "Android's primary keyboard action activated a visible real-asset compatibility-pile item, advanced the first-run lesson from 1/3 to 2/3, reduced the pile from 18 to 17, and added the exact selected asset to the tray. The emulator WebView descendants were not exposed in the current UIAutomator tree, so this is visible interaction proof rather than a UI-tree-coordinate claim."
+    }
+  }
+}

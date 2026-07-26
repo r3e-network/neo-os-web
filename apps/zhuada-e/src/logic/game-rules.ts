@@ -8,6 +8,12 @@
 
 import { TRAY_SLOTS, type LevelSpec } from "./engine-zhuada";
 import { sceneOfLevel } from "./scenes";
+import {
+  DEFAULT_THEME_ID,
+  themeItem,
+  type GameThemeId,
+  type ItemSizeBand,
+} from "./themes";
 
 export const TOTAL_LEVELS = 24;
 
@@ -16,7 +22,7 @@ export const TOTAL_LEVELS = 24;
  * scenes — Volcano / Cloud / Abyss — added 2026-07-12), difficulty shaped per
  * the parity spec G5: L1 is a forgiving visual tutorial with only three
  * recognisable kinds and an unjammable 18-item pile. L2 deliberately creates
- * the game's signature difficulty cliff (kinds 3→9, total items 18→162), then
+ * the game's signature difficulty cliff (kinds 3→48, total items 18→864), then
  * each scene ramps the
  * bottom-reserve depth while the live physics window stays mobile-safe.
  *
@@ -26,73 +32,222 @@ export const TOTAL_LEVELS = 24;
  *  - Time scales WITH item count: budget = picks × 1.5s + 12s buffer (rounded
  *    up to 5s), so a focused player wins with margin while occlusion + variety
  *    supply the challenge — never an unfair clock.
- *  - Variety starts at 3 kinds, jumps to 9 on L2, reaches 10 by L3 and 12 within
- *    each later scene. Logical runs grow from 18 to
- *    576 items (chapter 2 peak, L24); item-stream.ts keeps only 40–54 live Cannon bodies.
- *    New chapter 2 levels hold variety at the max of 12 (no L1→L2-style cliff)
+ *  - Variety starts at 3 kinds, then jumps straight to 48 on L2 and stays at
+ *    that rich logical mix. Logical runs grow from 18 to 1,584 items
+ *    (chapter 2 peak, L24); item-stream.ts cycles 18–45 live Cannon bodies
+ *    while reserve remains. Eighteen identities across twelve authored
+ *    silhouettes—six paired near-match families plus six singletons—appear in
+ *    the first 54 bodies; thirty new identities surface later from the
+ *    reservoir.
+ *    New chapter 2 levels hold variety at the max of 48 (no L1→L2-style cliff)
  *    and deepen only perKind, so a returning player steps straight into the new
  *    scenes at their existing skill level.
  */
 export const LEVEL_CURVE: LevelSpec[] = [
   // Scene 1 · Garden (safe tutorial → intentional challenge cliff)
   { level: 1, kinds: 3, perKind: 2, timeMs: 40000, boxSize: 9 },
-  { level: 2, kinds: 9, perKind: 6, timeMs: 255000, boxSize: 10 },
+  { level: 2, kinds: 48, perKind: 6, timeMs: 1310000, boxSize: 10 },
   // Scene 2 · Orchard
-  { level: 3, kinds: 10, perKind: 7, timeMs: 330000, boxSize: 10 },
-  { level: 4, kinds: 11, perKind: 8, timeMs: 410000, boxSize: 10 },
-  { level: 5, kinds: 12, perKind: 9, timeMs: 500000, boxSize: 11 },
+  { level: 3, kinds: 48, perKind: 7, timeMs: 1525000, boxSize: 10 },
+  { level: 4, kinds: 48, perKind: 7, timeMs: 1525000, boxSize: 10 },
+  { level: 5, kinds: 48, perKind: 8, timeMs: 1740000, boxSize: 11 },
   // Scene 3 · Pond
-  { level: 6, kinds: 10, perKind: 7, timeMs: 330000, boxSize: 11 },
-  { level: 7, kinds: 11, perKind: 8, timeMs: 410000, boxSize: 11 },
-  { level: 8, kinds: 12, perKind: 10, timeMs: 555000, boxSize: 12 },
+  { level: 6, kinds: 48, perKind: 7, timeMs: 1525000, boxSize: 11 },
+  { level: 7, kinds: 48, perKind: 8, timeMs: 1740000, boxSize: 11 },
+  { level: 8, kinds: 48, perKind: 9, timeMs: 1960000, boxSize: 12 },
   // Scene 4 · Farm
-  { level: 9, kinds: 10, perKind: 8, timeMs: 375000, boxSize: 11 },
-  { level: 10, kinds: 11, perKind: 9, timeMs: 460000, boxSize: 12 },
-  { level: 11, kinds: 12, perKind: 10, timeMs: 555000, boxSize: 12 },
+  { level: 9, kinds: 48, perKind: 8, timeMs: 1740000, boxSize: 11 },
+  { level: 10, kinds: 48, perKind: 9, timeMs: 1960000, boxSize: 12 },
+  { level: 11, kinds: 48, perKind: 9, timeMs: 1960000, boxSize: 12 },
   // Scene 5 · Snowfield
-  { level: 12, kinds: 11, perKind: 9, timeMs: 460000, boxSize: 12 },
-  { level: 13, kinds: 12, perKind: 11, timeMs: 610000, boxSize: 12 },
+  { level: 12, kinds: 48, perKind: 9, timeMs: 1960000, boxSize: 12 },
+  { level: 13, kinds: 48, perKind: 10, timeMs: 2175000, boxSize: 12 },
   // Scene 6 · Night market
-  { level: 14, kinds: 12, perKind: 11, timeMs: 610000, boxSize: 12 },
-  { level: 15, kinds: 12, perKind: 12, timeMs: 660000, boxSize: 12 },
+  { level: 14, kinds: 48, perKind: 10, timeMs: 2175000, boxSize: 12 },
+  { level: 15, kinds: 48, perKind: 10, timeMs: 2175000, boxSize: 12 },
   // ── Chapter 2 · Volcano (soft handoff — L16 matches L15, no cliff) ──
-  { level: 16, kinds: 12, perKind: 12, timeMs: 660000, boxSize: 12 },
-  { level: 17, kinds: 12, perKind: 13, timeMs: 715000, boxSize: 12 },
-  { level: 18, kinds: 12, perKind: 14, timeMs: 770000, boxSize: 12 }, // Volcano finale (504 items)
+  { level: 16, kinds: 48, perKind: 10, timeMs: 2175000, boxSize: 12 },
+  { level: 17, kinds: 48, perKind: 11, timeMs: 2390000, boxSize: 12 },
+  { level: 18, kinds: 48, perKind: 11, timeMs: 2390000, boxSize: 12 }, // Volcano finale (1,584 items)
   // ── Chapter 2 · Cloud (opener = previous finale, breather) ──
-  { level: 19, kinds: 12, perKind: 14, timeMs: 770000, boxSize: 12 },
-  { level: 20, kinds: 12, perKind: 15, timeMs: 825000, boxSize: 12 },
-  { level: 21, kinds: 12, perKind: 15, timeMs: 825000, boxSize: 12 }, // Cloud finale (540 items)
+  { level: 19, kinds: 48, perKind: 11, timeMs: 2390000, boxSize: 12 },
+  { level: 20, kinds: 48, perKind: 11, timeMs: 2390000, boxSize: 12 },
+  { level: 21, kinds: 48, perKind: 11, timeMs: 2390000, boxSize: 12 }, // Cloud finale (1,584 items)
   // ── Chapter 2 · Abyss (opener = previous finale, breather) ──
-  { level: 22, kinds: 12, perKind: 15, timeMs: 825000, boxSize: 12 },
-  { level: 23, kinds: 12, perKind: 16, timeMs: 880000, boxSize: 12 },
-  { level: 24, kinds: 12, perKind: 16, timeMs: 880000, boxSize: 12 }, // Abyss finale — global peak (576 items)
+  { level: 22, kinds: 48, perKind: 11, timeMs: 2390000, boxSize: 12 },
+  { level: 23, kinds: 48, perKind: 11, timeMs: 2390000, boxSize: 12 },
+  { level: 24, kinds: 48, perKind: 11, timeMs: 2390000, boxSize: 12 }, // Abyss finale — global peak (1,584 items)
 ];
 
-/** Level spec composed with its scene's themed kind pool (first `kinds`). */
+/** Upper bound accepted by interrupted-run validation for the current ruleset. */
+export const MAX_LOGICAL_ITEMS = Math.max(
+  ...LEVEL_CURVE.map((spec) => spec.kinds * spec.perKind * 3),
+);
+
+/** Deterministic level spec used by tuning and static data checks. */
 export function specOf(level: number): LevelSpec {
   const idx = Math.max(0, Math.min(TOTAL_LEVELS - 1, level - 1));
   const base = LEVEL_CURVE[idx]!;
   return { ...base, kindPool: sceneOfLevel(base.level).kindPool.slice(0, base.kinds) };
 }
 
-/**
- * Runtime deal spec with a seeded, freshly shuffled theme pool. The level
- * still controls how many match kinds exist, while every new run may draw a
- * different order from its scene's curated 12-of-18 theme series. Supplying the run RNG
- * keeps the result reproducible for tests/debugging without turning normal
- * retries into a fixed pattern.
- */
-export function randomizedSpecOf(level: number, rng: () => number): LevelSpec {
-  const base = specOf(level);
-  const pool = [...sceneOfLevel(base.level).kindPool];
-  for (let i = pool.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(rng() * (i + 1));
-    const value = pool[i]!;
-    pool[i] = pool[j]!;
-    pool[j] = value;
+export interface DealCompositionSummary {
+  sizes: Record<ItemSizeBand, number>;
+  silhouettes: number;
+  lookalikeFamilies: number;
+}
+
+/** Summarize the visible design mix of one logical kind subset. */
+export function summarizeDealComposition(
+  themeId: GameThemeId,
+  kinds: readonly number[],
+): DealCompositionSummary {
+  const sizes: Record<ItemSizeBand, number> = { small: 0, medium: 0, large: 0 };
+  const silhouettes = new Set<string>();
+  const familyColors = new Map<string, Set<number>>();
+  for (const kind of kinds) {
+    const item = themeItem(themeId, kind);
+    sizes[item.sizeBand] += 1;
+    silhouettes.add(item.silhouette);
+    const family = familyColors.get(item.lookalikeFamily) ?? new Set<number>();
+    family.add(item.color);
+    familyColors.set(item.lookalikeFamily, family);
   }
-  return { ...base, kindPool: pool.slice(0, base.kinds) };
+  return {
+    sizes,
+    silhouettes: silhouettes.size,
+    lookalikeFamilies: [...familyColors.values()].filter((family) => family.size >= 2).length,
+  };
+}
+
+/**
+ * Opening deals stay easy to read: one small, medium and large object with
+ * three distinct silhouettes and no deliberately confusing sibling pair.
+ * Challenge deals then require both size extremes, five-plus silhouettes and
+ * at least one same-family/different-colour pair. Twelve-kind deals raise those
+ * floors again so a full tray never reads as twelve near-identical blobs.
+ */
+export function isBalancedDealComposition(
+  themeId: GameThemeId,
+  kinds: readonly number[],
+): boolean {
+  const summary = summarizeDealComposition(themeId, kinds);
+  if (kinds.length <= 3) {
+    return summary.sizes.small >= 1
+      && summary.sizes.medium >= 1
+      && summary.sizes.large >= 1
+      && summary.silhouettes >= 3
+      && summary.lookalikeFamilies === 0;
+  }
+  const lateDeal = kinds.length >= 12;
+  return summary.sizes.small >= (lateDeal ? 3 : 2)
+    && summary.sizes.medium >= 1
+    && summary.sizes.large >= (lateDeal ? 3 : 2)
+    && summary.silhouettes >= (lateDeal ? 6 : 5)
+    && summary.lookalikeFamilies >= (lateDeal ? 2 : 1);
+}
+
+function compositionScore(themeId: GameThemeId, kinds: readonly number[]): number {
+  const summary = summarizeDealComposition(themeId, kinds);
+  // Cap the contribution from any one bucket: diversity wins over filling the
+  // candidate with only tiny pieces or only large anchors.
+  return summary.silhouettes * 12
+    + Math.min(summary.lookalikeFamilies, 3) * 7
+    + (
+      Math.min(summary.sizes.small, 3)
+      + Math.min(summary.sizes.medium, 3)
+      + Math.min(summary.sizes.large, 3)
+    ) * 5;
+}
+
+function combinations(values: readonly number[], take: number): number[][] {
+  const output: number[][] = [];
+  const current: number[] = [];
+  const visit = (start: number): void => {
+    if (current.length === take) {
+      output.push([...current]);
+      return;
+    }
+    const needed = take - current.length;
+    for (let index = start; index <= values.length - needed; index += 1) {
+      current.push(values[index]!);
+      visit(index + 1);
+      current.pop();
+    }
+  };
+  visit(0);
+  return output;
+}
+
+function shuffleKinds(kinds: number[], rng: () => number): number[] {
+  for (let index = kinds.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(rng() * (index + 1));
+    const value = kinds[index]!;
+    kinds[index] = kinds[swap]!;
+    kinds[swap] = value;
+  }
+  return kinds;
+}
+
+/**
+ * Balanced candidates depend only on the authored theme metadata and level
+ * pool, never on the run RNG. Cache that deterministic search so opening a
+ * fresh game/retry only performs the cheap random finalist pick and shuffle.
+ * This also keeps rapid replay and daily-challenge setup off the combinatorial
+ * hot path (15 choose 7 is 6,435 candidate summaries).
+ */
+const balancedDealFinalistsCache = new Map<string, readonly (readonly number[])[]>();
+
+function balancedDealFinalists(
+  level: number,
+  kinds: number,
+  pool: readonly number[],
+  themeId: GameThemeId,
+): readonly (readonly number[])[] {
+  // Level pools are immutable authored catalog data, so theme + level fully
+  // identifies the candidate set without serializing the pool on every run.
+  const cacheKey = themeId + level;
+  const cached = balancedDealFinalistsCache.get(cacheKey);
+  if (cached) return cached;
+
+  const candidates = combinations(pool, kinds);
+  let bestScore = Number.NEGATIVE_INFINITY;
+  let finalists: number[][] = [];
+  for (const candidate of candidates) {
+    if (!isBalancedDealComposition(themeId, candidate)) continue;
+    const score = compositionScore(themeId, candidate);
+    if (score > bestScore) {
+      bestScore = score;
+      finalists = [candidate];
+    } else if (score === bestScore) {
+      finalists.push(candidate);
+    }
+  }
+  // Catalog tests make this fallback unreachable, but keeping it deterministic
+  // prevents a future metadata mistake from blocking the player at startup.
+  finalists = finalists.length ? finalists : candidates;
+  balancedDealFinalistsCache.set(cacheKey, finalists);
+  return finalists;
+}
+
+/**
+ * Runtime deal spec with a seeded, freshly selected theme pool. Each scene
+ * offers 48 of the theme's 54 item identities; the level selects 3–48 from it.
+ * Selection is random among the highest-quality balanced compositions, then
+ * shuffled again so neither the subset nor generation order becomes a fixed
+ * retry pattern. Supplying the run RNG keeps daily/debug runs reproducible.
+ */
+export function randomizedSpecOf(
+  level: number,
+  rng: () => number,
+  themeId: GameThemeId = DEFAULT_THEME_ID,
+): LevelSpec {
+  const base = specOf(level);
+  const pool = sceneOfLevel(base.level).kindPool;
+  const finalists = balancedDealFinalists(base.level, base.kinds, pool, themeId);
+  const selectedIndex = Math.floor(rng() * finalists.length);
+  const selected = [...finalists[selectedIndex]!];
+  return { ...base, kindPool: shuffleKinds(selected, rng) };
 }
 
 // ── Tuning overrides (dev playtest) ─────────────────────────────────────────
@@ -163,7 +318,7 @@ export interface MilestonePlan {
  *    as anti-correlated with need: fast chains mean you least need time; an
  *    information resource keeps the chain going instead).
  *
- * Reachability across all 15 levels is asserted by game-rules.test.ts and the
+ * Reachability across all 24 levels is asserted by game-rules.test.ts and the
  * economy table is printed by scripts/tune.mjs (milestone economy check).
  */
 /**

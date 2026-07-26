@@ -2,6 +2,7 @@
 import type { CSSProperties } from "react";
 import { SCENES, type GooseVariant } from "./logic/scenes";
 import { colorToCss } from "./logic/themes";
+import { publicAssetUrl } from "./logic/public-asset-url";
 
 export interface GooseChipProps {
   variant: GooseVariant;
@@ -20,7 +21,7 @@ function sameVariant(left: GooseVariant, right: GooseVariant): boolean {
 export function collectionPortraitFor(variant: GooseVariant): string {
   const sceneId = SCENES.findIndex(({ goose }) => sameVariant(goose, variant));
   const id = String(sceneId >= 0 ? sceneId : 0).padStart(2, "0");
-  return `./art/geese/goose-${id}.webp`;
+  return publicAssetUrl(`./art/geese/goose-${id}.webp`);
 }
 
 export function GooseChip({ variant, locked = false, size = 44 }: GooseChipProps) {

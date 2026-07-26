@@ -383,7 +383,7 @@ export function parseProgressResult(
 
   try {
     const data: unknown = JSON.parse(raw);
-    if (!isRecord(data)) throw new Error("progress is not an object");
+    if (!isRecord(data)) throw 0;
     const rawVersion = data.v;
 
     if (
@@ -467,9 +467,7 @@ export function isProgressReadOnly(progress: GooseProgress): boolean {
 
 export function serializeProgress(progress: GooseProgress): string {
   if (isProgressReadOnly(progress)) {
-    throw new Error(
-      `Cannot overwrite progress schema v${progress.sourceVersion ?? "future"}`,
-    );
+    throw Error();
   }
   const normalized = normalizeRuntimeProgress(progress);
   const persisted: PersistedProgressV3 = {

@@ -101,7 +101,20 @@ const appMessages = {
   scoreTray: { en: "Tray", zh: "托盘" },
   levelProgressLabel: { en: "Level clear progress", zh: "本关清理进度" },
   levelProgressValue: { en: "Cleared {percent}%", zh: "已清理 {percent}%" },
+  levelScopeValue: { en: "{kinds} kinds · {total} items", zh: "{kinds} 类 · {total} 件" },
   levelReserveValue: { en: "{count} below", zh: "底藏 {count} 件" },
+  tutorialPick: {
+    en: "Tap one top item and watch it fly into the tray",
+    zh: "先点一件最上层物品，看它飞入托盘",
+  },
+  tutorialMatch: {
+    en: "Keep tapping: three of a kind group and clear automatically",
+    zh: "继续点选：凑齐 3 个同款会自动归组消除",
+  },
+  tutorialShake: {
+    en: "Try Shake to uncover the pile; phone motion is available from the lobby",
+    zh: "试试「晃一晃」翻开下层；大厅可开启甩手机",
+  },
 
   controlsHint: { en: "Tap an item to pull it out", zh: "点物品即可捞出" },
   boardLabel: { en: "Goose pen", zh: "鹅栏" },
@@ -263,8 +276,9 @@ const appMessages = {
   soundDisableAction: { en: "Mute sound", zh: "关闭音效" },
   hapticsEnableAction: { en: "Enable vibration", zh: "开启振动" },
   hapticsDisableAction: { en: "Disable vibration", zh: "关闭振动" },
+  itemColorway: { en: "{name} · color {variant}", zh: "{name} · 配色{variant}" },
 
-  // Fresh Market catalog (logical kind ids 0..17).
+  // Fresh Market catalog: 18 authored silhouettes + 36 near-match treatments.
   freshApple: { en: "Green apple", zh: "青苹果" },
   freshOrange: { en: "Orange", zh: "橙子" },
   freshLemon: { en: "Lemon", zh: "柠檬" },
@@ -284,7 +298,7 @@ const appMessages = {
   freshFlowerPot: { en: "Daisy flowerpot", zh: "雏菊花盆" },
   freshJuice: { en: "Pear juice carton", zh: "青梨果汁盒" },
 
-  // Farm Kitchen atlas.
+  // Farm Kitchen atlas: every silhouette has two separate near matches.
   farmKettle: { en: "Enamel kettle", zh: "搪瓷水壶" },
   farmMilk: { en: "Milk bottle", zh: "牛奶瓶" },
   farmBowl: { en: "Blue bowl", zh: "蓝陶碗" },
@@ -304,7 +318,7 @@ const appMessages = {
   farmRooster: { en: "Rooster figurine", zh: "公鸡摆件" },
   farmYarn: { en: "Wool yarn", zh: "羊毛线团" },
 
-  // Lantern Night atlas.
+  // Lantern Night atlas: every silhouette has two separate near matches.
   nightLantern: { en: "Paper lantern", zh: "红纸灯笼" },
   nightBun: { en: "Steamed bun", zh: "蒸包" },
   nightSoda: { en: "Citrus soda", zh: "青橘汽水" },

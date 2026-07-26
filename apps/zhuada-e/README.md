@@ -3,9 +3,26 @@
 Production mini-game built with React, Three.js, and cannon-es. It uses an
 original three-match extraction rule set, three selectable art themes, local
 progress, optional timed play, generated sound effects, and an opt-in phone
-motion pan-toss gesture. Long levels use a streamed bottom reservoir: 18–432
-logical items back a run while only 40–54 real Cannon bodies are live, and
-complete-triple refill waves emerge from under the pile as space is cleared.
+motion pan-toss gesture. Long levels use a streamed bottom reservoir: 18–1,584
+logical items back a run while deep-excavation waves cycle 18–45 real Cannon bodies after the
+challenge curve begins, and
+twenty-seven-item complete-triple layers emerge from under the pile after the pan visibly clears.
+Each theme ships 54 match identities: 18 original authored model/icon recipes
+and two independently matchable colour treatments for every silhouette. Every
+scene offers a different 48-of-54 themed series. L1 randomly selects a balanced
+three-kind tutorial; L2 immediately jumps to all 48 scene kinds and 864 logical
+items. Its first 54 bodies expose 12 authored silhouettes: six paired
+near-match families plus six additional silhouettes, for 18 complete-triple
+match identities. Another 30 genuinely new identities surface later from the
+reservoir. Size-family and exact-silhouette guardrails keep replays varied
+without turning the opening into a fixed layout, a six-prop clone pile, or an
+easy broad-shape search.
+
+The 54-body mobile pile keeps the authored multi-part silhouettes but merges
+same-material parts into 2–7 runtime surfaces per item. Normal phone GPUs retain
+the full illustrated lighting; software renderers and low-memory four-core
+phones switch to a constrained render tier without removing items, physics
+bodies, collisions, materials, picking, refill waves, or game rules.
 
 ## Local workflow
 
@@ -18,7 +35,7 @@ npm run dev
 
 `npm run build` uses npm's `prebuild` lifecycle to regenerate every runtime
 image and audio file from the checked-in sources before the build script itself
-verifies all 75 image dimensions/alpha requirements and all 15 PCM audio
+verifies all 186 image dimensions/alpha requirements and all 15 PCM audio
 headers/durations, then type-checks and bundles. This makes a clean checkout
 fail loudly if an approved source asset is missing or malformed.
 
@@ -73,8 +90,8 @@ slow-frame burst at or below 2 frames.
 
 - Pointer/touch selects objects; Enter or Space selects the highest available
   object for keyboard access.
-- Level 3 contains 210 total items but opens with 48 live bodies. After roughly
-  two triples are excavated, a mixed nine-item refill wave surfaces from the
+- Level 3 contains 1,008 total items but opens with 54 live bodies. After three
+  items are excavated down to 18 live bodies, a mixed twenty-seven-item refill layer surfaces from the
   reserve. The live-body ceiling remains 54 on every level.
 - Phone motion is disabled until the player presses the visible Enable button.
 - Motion samples are processed in memory inside the current page. They are not
