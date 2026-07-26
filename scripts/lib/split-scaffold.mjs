@@ -502,7 +502,8 @@ export function renderAppRepoFiles(repoName, kind, apps) {
     },
   });
 
-  files["vitest.config.ts"] = `import { dirname, resolve } from "node:path";
+  files["vitest.config.ts"] = `import { realpathSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
@@ -522,6 +523,34 @@ export default defineConfig({
       "@framework": resolve(repoRoot, "node_modules/${FRAMEWORK_PKG}"),
       "@shared": resolve(repoRoot, "node_modules/${SHARED_PKG}"),
       phaser: resolve(repoRoot, "node_modules/phaser/dist/phaser.esm.js"),
+      // React must resolve to exactly one copy. The SDK packages declare react
+      // as a peer, but an installer that gives them their own nested copy makes
+      // components render against a different React than the test does, and
+      // every hook then fails with "Cannot read properties of null (reading
+      // 'useCallback')" - the dispatcher of the copy that is not rendering.
+      react: resolve(repoRoot, "node_modules/react"),
+      "react-dom": resolve(repoRoot, "node_modules/react-dom"),
+      "react/jsx-runtime": resolve(repoRoot, "node_modules/react/jsx-runtime.js"),
+      "react/jsx-dev-runtime": resolve(repoRoot, "node_modules/react/jsx-dev-runtime.js"),
+    },
+    dedupe: ["react", "react-dom"],
+  },
+  server: {
+    fs: {
+      // realpath matters: during development the SDK packages are workspace
+      // links, so the file Vite actually opens lives outside node_modules.
+      allow: [
+        repoRoot,
+        resolve(repoRoot, "node_modules"),
+        ...["${FRAMEWORK_PKG}", "${SHARED_PKG}"].flatMap((pkg) => {
+          const linked = resolve(repoRoot, "node_modules", pkg);
+          try {
+            return [linked, realpathSync(linked)];
+          } catch {
+            return [linked];
+          }
+        }),
+      ],
     },
   },
   test: {
@@ -655,7 +684,13 @@ function findAppsWithTests() {
 
 function runSuite(app) {
   return new Promise((resolve) => {
-    const child = spawn("npm", ["test", "--silent"], { cwd: app.dir, stdio: ["ignore", "pipe", "pipe"] });
+    // --passWithNoTests: some apps declare a test script while their suites live
+    // in the repo-level tests/unit directory, and an empty vitest run exits
+    // non-zero, which is not a failure here.
+    const child = spawn("npm", ["test", "--silent", "--", "--passWithNoTests"], {
+      cwd: app.dir,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     const chunks = [];
     child.stdout.on("data", (d) => chunks.push(d));
     child.stderr.on("data", (d) => chunks.push(d));

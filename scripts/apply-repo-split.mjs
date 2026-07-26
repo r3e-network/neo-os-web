@@ -258,7 +258,16 @@ function buildAppRepo(repoName) {
       testFiles += 1;
     }
 
-    for (const contract of app.contracts) contractFiles += copyTracked(contract, (rel) => rel);
+    for (const contract of app.contracts) {
+      contractFiles += copyTracked(contract, (rel) => rel);
+      // The compiled .nef/.manifest.json are tracked in the platform repo and
+      // read by production-safety tests to pin the client against the deployed
+      // ABI. They travel with the contract that produced them.
+      const projectName = contract.split("/").pop();
+      for (const ext of [".nef", ".manifest.json"]) {
+        contractFiles += copyTracked(`contracts/build/${projectName}${ext}`, (rel) => rel);
+      }
+    }
     for (const contractTest of app.contractTests) {
       copyFile(contractTest, contractTest);
       contractTestFiles += 1;
