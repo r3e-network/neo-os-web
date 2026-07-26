@@ -86,10 +86,15 @@ const appMessages = {
   scoreCombo: { en: "Combo", zh: "连击" },
   frenzyLabel: { en: "Frenzy", zh: "狂潮" },
   frenzyBurst: { en: "FRENZY!", zh: "狂潮来袭!" },
+  comboBreak: { en: "Combo lost", zh: "连击中断" },
+  milestoneHint: { en: "+1 Hint earned!", zh: "获得 +1 提示！" },
+  milestoneRemove: { en: "+1 Remove earned!", zh: "获得 +1 移出！" },
+  milestoneUndo: { en: "+1 Undo earned!", zh: "获得 +1 撤回！" },
 
   // ── R4 Daily challenge + sign-in streak ──
   dailyTitle: { en: "Daily reward", zh: "每日奖励" },
   dailyStreak: { en: "Streak {streak} day", zh: "连签 {streak} 天" },
+  dailyStreakPlural: { en: "Streak {streak} days", zh: "连签 {streak} 天" },
   dailyBest: { en: "Best {best}", zh: "最佳 {best}" },
   dailyClaim: { en: "Claim day {streak}", zh: "领取第 {streak} 天" },
   dailyClaimed: { en: "Today's reward claimed", zh: "今日奖励已领取" },
@@ -102,6 +107,7 @@ const appMessages = {
   levelProgressLabel: { en: "Level clear progress", zh: "本关清理进度" },
   levelProgressValue: { en: "Cleared {percent}%", zh: "已清理 {percent}%" },
   levelScopeValue: { en: "{kinds} kinds · {total} items", zh: "{kinds} 类 · {total} 件" },
+  levelScopeValueSingular: { en: "{kinds} kinds · 1 item", zh: "{kinds} 类 · 1 件" },
   levelReserveValue: { en: "{count} below", zh: "底藏 {count} 件" },
   tutorialPick: {
     en: "Tap one top item and watch it fly into the tray",

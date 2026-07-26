@@ -209,22 +209,79 @@ class SoundEngine {
     return this._muted;
   }
 
+  private fadeTimer: ReturnType<typeof setInterval> | null = null;
+
   setTheme(name: Ambience): void {
     if (this.ambienceName === name && this.ambience) return;
     this.ambienceName = name;
-    this.ambience?.pause();
+
+    // Clear any in-progress fade from a rapid theme switch.
+    if (this.fadeTimer !== null) {
+      clearInterval(this.fadeTimer);
+      this.fadeTimer = null;
+    }
+
+    const oldAmbience = this.ambience;
     this.ambience = null;
-    if (typeof Audio === "undefined") return;
-    try {
-      const audio = new Audio(AMBIENCE_ASSET_URLS[name]);
-      audio.loop = true;
-      audio.preload = "auto";
-      audio.volume = 0.14;
-      audio.muted = this._muted;
-      this.ambience = audio;
-      this.applyAmbienceState();
-    } catch {
-      this.ambience = null;
+
+    if (typeof Audio === "undefined") {
+      oldAmbience?.pause();
+      return;
+    }
+
+    const AMBIENCE_VOLUME = 0.14;
+    const FADE_MS = 400;
+    const STEP_MS = 20;
+    const steps = FADE_MS / STEP_MS;
+
+    const startNew = (): void => {
+      try {
+        const audio = new Audio(AMBIENCE_ASSET_URLS[name]);
+        audio.loop = true;
+        audio.preload = "auto";
+        audio.volume = 0;
+        audio.muted = this._muted;
+        this.ambience = audio;
+        this.applyAmbienceState();
+
+        // Fade in: 0 → 0.14 over 400ms.
+        let step = 0;
+        this.fadeTimer = setInterval(() => {
+          step += 1;
+          const vol = AMBIENCE_VOLUME * (step / steps);
+          if (this.ambience === audio) audio.volume = Math.min(vol, AMBIENCE_VOLUME);
+          if (step >= steps) {
+            if (this.ambience === audio) audio.volume = AMBIENCE_VOLUME;
+            if (this.fadeTimer !== null) {
+              clearInterval(this.fadeTimer);
+              this.fadeTimer = null;
+            }
+          }
+        }, STEP_MS);
+      } catch {
+        this.ambience = null;
+      }
+    };
+
+    if (oldAmbience) {
+      // Fade out: 0.14 → 0 over 400ms, then swap.
+      let step = 0;
+      this.fadeTimer = setInterval(() => {
+        step += 1;
+        const vol = AMBIENCE_VOLUME * (1 - step / steps);
+        oldAmbience.volume = Math.max(0, vol);
+        if (step >= steps) {
+          oldAmbience.volume = 0;
+          oldAmbience.pause();
+          if (this.fadeTimer !== null) {
+            clearInterval(this.fadeTimer);
+            this.fadeTimer = null;
+          }
+          startNew();
+        }
+      }, STEP_MS);
+    } else {
+      startNew();
     }
   }
 
