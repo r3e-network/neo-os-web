@@ -360,6 +360,20 @@ function buildAppRepo(repoName) {
       '  const frameworkDir = path.resolve(rootDir, "..", "framework");',
       `  const frameworkDir = path.dirname(require.resolve("${FRAMEWORK_PKG}/package.json"));`,
     ],
+    // One React copy for both bundling and tests. The SDK packages declare react
+    // as a peer; a nested copy makes components render against a different React
+    // than the caller - every hook then fails on a null dispatcher - and a
+    // production bundle would ship React twice.
+    [
+      "    resolve: {\n      alias: [",
+      '    resolve: {\n      dedupe: ["react", "react-dom"],\n      alias: [',
+    ],
+    [
+      '        { find: "@", replacement: path.resolve(appDir, "src") },',
+      '        { find: /^react$/, replacement: path.dirname(require.resolve("react/package.json", { paths: [rootDir] })) },\n' +
+        '        { find: /^react-dom$/, replacement: path.dirname(require.resolve("react-dom/package.json", { paths: [rootDir] })) },\n' +
+        '        { find: "@", replacement: path.resolve(appDir, "src") },',
+    ],
   ]);
 
   const tsconfigsRepointed = replaceLiterals("apps", [".json"], [
