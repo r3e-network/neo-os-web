@@ -6,6 +6,7 @@
  */
 
 import { formatClock as fleetFormatClock } from "@framework/fmt-surface";
+import { createDifficultyRuleSelector } from "@framework/game-rules";
 import { formatGas } from "@framework/utils/format";
 
 export const ENTRY_MEMO = "miniapp-aim-master:entry";
@@ -55,16 +56,7 @@ const HARD_RULE: DifficultyRule = {
 
 export const DIFFICULTY_RULES: readonly DifficultyRule[] = [EASY_RULE, MEDIUM_RULE, HARD_RULE];
 
-export function ruleOf(difficulty: number): DifficultyRule {
-  switch (difficulty) {
-    case 1:
-      return MEDIUM_RULE;
-    case 2:
-      return HARD_RULE;
-    default:
-      return EASY_RULE;
-  }
-}
+export const ruleOf = createDifficultyRuleSelector(DIFFICULTY_RULES);
 
 /**
  * Payout based on accuracy: ringsHit / targetAccuracy fraction of reward.

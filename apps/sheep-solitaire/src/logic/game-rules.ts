@@ -4,6 +4,7 @@
  * lockstep with the contract (getConfig() exposes the live values for cross-checks).
  */
 import { formatClock as fleetFormatClock } from "@framework/fmt-surface";
+import { createDifficultyRuleSelector } from "@framework/game-rules";
 import { formatGas } from "@framework/utils/format";
 
 export const ENTRY_MEMO = "miniapp-sheep-solitaire:entry";
@@ -61,16 +62,7 @@ const HARD_RULE: DifficultyRule = {
 
 export const DIFFICULTY_RULES: readonly DifficultyRule[] = [EASY_RULE, MEDIUM_RULE, HARD_RULE];
 
-export function ruleOf(difficulty: number): DifficultyRule {
-  switch (difficulty) {
-    case 1:
-      return MEDIUM_RULE;
-    case 2:
-      return HARD_RULE;
-    default:
-      return EASY_RULE;
-  }
-}
+export const ruleOf = createDifficultyRuleSelector(DIFFICULTY_RULES);
 
 export function rewardPctAfterUndos(undos: number): number {
   const clamped = Math.max(0, Math.min(MAX_UNDOS, undos));

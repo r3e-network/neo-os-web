@@ -116,6 +116,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       aria-label={t("gameAriaLabel")}
       aria-busy={movePending || undefined}
     >
+      <p className="screw-sort-intro">{t("appSubtitle")}</p>
       <PhaserGameComponent
         className="screw-sort-game"
         config={GAME_CONFIG}

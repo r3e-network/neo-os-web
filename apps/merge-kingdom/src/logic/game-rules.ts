@@ -1,6 +1,7 @@
 /**
  * Game rules constants for Merge Kingdom (tile-merging puzzle).
  */
+import { createDifficultyRuleSelector } from "@framework/game-rules";
 
 export const ENTRY_MEMO = "miniapp-merge-kingdom:entry";
 export const FUND_MEMO = "miniapp-merge-kingdom:fund";
@@ -85,11 +86,7 @@ export const GUEST_DIFFICULTY_RULES: DifficultyRule[] = [
   { difficulty: 2, entry: 0, reward: 0, limitMs: 90_000, minSolveMs: 0, targetTile: 128 },
 ];
 
-export function ruleOf(difficulty: number): DifficultyRule {
-  const r = DIFFICULTY_RULES.find(d => d.difficulty === difficulty);
-  if (!r) throw new Error(`unknown difficulty ${difficulty}`);
-  return r;
-}
+export const ruleOf = createDifficultyRuleSelector(DIFFICULTY_RULES, { strict: true });
 
 export function guestRuleOf(difficulty: number): DifficultyRule {
   const rule = GUEST_DIFFICULTY_RULES.find((candidate) => candidate.difficulty === difficulty);

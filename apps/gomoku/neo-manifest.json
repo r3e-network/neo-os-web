@@ -1,0 +1,72 @@
+{
+    "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+    "category": "games",
+    "category_name": "Games",
+    "category_name_zh": "游戏",
+    "createdAt": "2026-07-25T00:00:00Z",
+    "default_network": "neo-n3-testnet",
+    "description": "A polished local Gomoku (Five-in-a-Row) game with three AI difficulty levels, minimax AI with alpha-beta pruning, undo, pause, restart, timer, win-line highlight, and an off-chain practice leaderboard.",
+    "description_zh": "精致的本地五子棋游戏，包含三档 AI 难度、带 Alpha-Beta 剪枝的极小化极大 AI、悔棋、暂停、重开、计时器、胜利连线和离线练习榜。",
+    "developer": {
+        "email": "dev@r3e.network",
+        "name": "Yiwu",
+        "website": "https://neomini.app"
+    },
+    "featured": false,
+    "features": {
+        "deeplink": "neomainapp://gomoku",
+        "offlineSupport": true,
+        "stateless": false
+    },
+    "id": "miniapp-gomoku",
+    "name": "Gomoku Arena",
+    "name_zh": "五子棋竞技场",
+    "permissions": [],
+    "platform": {
+        "analytics": true,
+        "comments": true,
+        "ratings": true,
+        "transactions": false
+    },
+    "supported_networks": [
+        "neo-n3-testnet"
+    ],
+    "tags": [
+        "gomoku",
+        "five-in-a-row",
+        "board-game",
+        "ai",
+        "offline",
+        "practice",
+        "game"
+    ],
+    "technologies": {
+        "aa": {
+            "description": "Wallet access is not required for the active local game mode.",
+            "enabled": false
+        },
+        "oracle": {
+            "description": "No oracle is used in the local game.",
+            "enabled": false
+        },
+        "tee": {
+            "description": "No TEE is used in the local game.",
+            "enabled": false
+        },
+        "platform": {
+            "enabled": true,
+            "description": "Uses platform-game engine (shared mode) for session and leaderboard infrastructure."
+        }
+    },
+    "updatedAt": "2026-07-25T00:00:00Z",
+    "urls": {
+        "banner": "/miniapps/gomoku/banner.webp",
+        "entry": "/miniapps/gomoku/index.html",
+        "icon": "/miniapps/gomoku/logo.webp"
+    },
+    "version": "1.0.0",
+    "moduleId": "platform-game",
+    "mode": "shared",
+    "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+    "engine": "0xc75b181b4561462903bb27d8d9e0b32b637bec12"
+}

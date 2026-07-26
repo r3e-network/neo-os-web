@@ -59,5 +59,4 @@ export const manifest: MiniAppManifest = {
     confidential: false,
     oracle: false,
   },
-  contract: { mode: "custom" },
 };

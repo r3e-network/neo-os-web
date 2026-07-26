@@ -31,6 +31,7 @@ import {
 import { clampDifficulty } from "@framework/game-rules";
 import type { Observable as Obs } from "@framework/reactive";
 import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
+import { newPet, stepPet, type PetAction, type PetStats } from "./pet-engine";
 
 interface LocalStore {
   get<T>(key: string, fallback?: T | null): T | null;
@@ -71,8 +72,6 @@ export interface GuestEngine {
 const GUEST_GAME_ID = "guest";
 const GUEST_PROFILE_KEY = "guest:profile";
 const GUEST_ACTIVE_RUN_KEY = "guest:pet-potion:active-run:v1";
-
-type PetStats = { happiness: number; hunger: number; energy: number };
 
 interface GuestProfile {
   bestHappiness: number;
@@ -119,43 +118,13 @@ function clampStat(value: number): number {
 
 /** Matches the reviewed Morpheus pet engine's deterministic starting state. */
 function seedStats(): PetStats {
-  return { happiness: 20, hunger: 40, energy: 60 };
+  return newPet();
 }
 
 /** Resolve exactly the same care deltas as engines/pet.js (hunger means satiety). */
 export function applyCare(stats: PetStats, action: string): PetStats {
-  const next = { ...stats };
-  switch (action) {
-    case "feed": {
-      const hungerGap = 100 - next.hunger;
-      next.happiness += Math.min(8, Math.round(hungerGap / 8));
-      next.hunger += 30;
-      break;
-    }
-    case "play": {
-      const canPlay = Math.min(next.hunger, next.energy);
-      next.happiness += canPlay >= 20 ? 12 : Math.round(canPlay / 4);
-      next.hunger -= 20;
-      next.energy -= 20;
-      break;
-    }
-    case "pet":
-      next.happiness += 4;
-      next.energy -= 3;
-      break;
-    case "rest":
-      next.energy += 30;
-      next.happiness += 2;
-      next.hunger -= 10;
-      break;
-    default:
-      return stats;
-  }
-  return {
-    happiness: clampStat(next.happiness),
-    hunger: clampStat(next.hunger),
-    energy: clampStat(next.energy),
-  };
+  if (!(["feed", "play", "pet", "rest"] as string[]).includes(action)) return stats;
+  return stepPet(stats, action as PetAction);
 }
 
 export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
