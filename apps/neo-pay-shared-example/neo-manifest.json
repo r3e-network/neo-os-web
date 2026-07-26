@@ -2,19 +2,19 @@
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
   "id": "miniapp-neo-pay-shared-example",
   "name": "NeoPay Stream Studio",
-  "name_zh": "NeoPay 流支付工作台",
-  "name_ja": "NeoPay ストリームスタジオ",
-  "name_ko": "NeoPay 스트림 스튜디오",
-  "version": "1.1.0",
+  "name_zh": "NeoPay \u6d41\u652f\u4ed8\u5de5\u4f5c\u53f0",
+  "name_ja": "NeoPay \u30b9\u30c8\u30ea\u30fc\u30e0\u30b9\u30bf\u30b8\u30aa",
+  "name_ko": "NeoPay \uc2a4\ud2b8\ub9bc \uc2a4\ud29c\ub514\uc624",
+  "version": "1.1.1",
   "description": "A focused workstation for creating and managing canonical GAS or NEO payment streams while preserving shared-runtime composition metadata.",
-  "description_zh": "专注创建与管理官方 GAS 或 NEO 流式支付的工作台，同时保留共享运行时组合元数据。",
-  "description_ja": "共有ランタイム構成メタデータを維持しながら、公式 GAS / NEO 支払いストリームを作成・管理するワークステーションです。",
-  "description_ko": "공유 런타임 구성 메타데이터를 유지하면서 공식 GAS 또는 NEO 결제 스트림을 만들고 관리하는 워크스테이션입니다.",
+  "description_zh": "\u4e13\u6ce8\u521b\u5efa\u4e0e\u7ba1\u7406\u5b98\u65b9 GAS \u6216 NEO \u6d41\u5f0f\u652f\u4ed8\u7684\u5de5\u4f5c\u53f0\uff0c\u540c\u65f6\u4fdd\u7559\u5171\u4eab\u8fd0\u884c\u65f6\u7ec4\u5408\u5143\u6570\u636e\u3002",
+  "description_ja": "\u5171\u6709\u30e9\u30f3\u30bf\u30a4\u30e0\u69cb\u6210\u30e1\u30bf\u30c7\u30fc\u30bf\u3092\u7dad\u6301\u3057\u306a\u304c\u3089\u3001\u516c\u5f0f GAS / NEO \u652f\u6255\u3044\u30b9\u30c8\u30ea\u30fc\u30e0\u3092\u4f5c\u6210\u30fb\u7ba1\u7406\u3059\u308b\u30ef\u30fc\u30af\u30b9\u30c6\u30fc\u30b7\u30e7\u30f3\u3067\u3059\u3002",
+  "description_ko": "\uacf5\uc720 \ub7f0\ud0c0\uc784 \uad6c\uc131 \uba54\ud0c0\ub370\uc774\ud130\ub97c \uc720\uc9c0\ud558\uba74\uc11c \uacf5\uc2dd GAS \ub610\ub294 NEO \uacb0\uc81c \uc2a4\ud2b8\ub9bc\uc744 \ub9cc\ub4e4\uace0 \uad00\ub9ac\ud558\ub294 \uc6cc\ud06c\uc2a4\ud14c\uc774\uc158\uc785\ub2c8\ub2e4.",
   "category": "finance",
   "category_name": "Finance",
-  "category_name_zh": "金融",
-  "category_name_ja": "金融",
-  "category_name_ko": "금융",
+  "category_name_zh": "\u91d1\u878d",
+  "category_name_ja": "\u91d1\u878d",
+  "category_name_ko": "\uae08\uc735",
   "tags": [
     "neopay",
     "payment-streams",
@@ -119,11 +119,17 @@
         "allowed_runtime_mode": "shared",
         "active": true,
         "module_refs": [
-          { "binding": "vault" },
-          { "binding": "stream" }
+          {
+            "binding": "vault"
+          },
+          {
+            "binding": "stream"
+          }
         ],
         "operation_schema": {
-          "actions": ["createStream"]
+          "actions": [
+            "createStream"
+          ]
         },
         "compatibility_metadata": {
           "app_id": "miniapp-neo-pay"
@@ -138,7 +144,10 @@
           "risk_profile": "custody",
           "active": true,
           "compatibility_metadata": {
-            "accepted_assets": ["NEO", "GAS"]
+            "accepted_assets": [
+              "NEO",
+              "GAS"
+            ]
           }
         },
         {
@@ -163,15 +172,44 @@
         "binding": "stream",
         "method": "createStream",
         "args": [
-          { "source": "instance.instanceId", "type": "String" },
-          { "source": "wallet.address", "type": "Hash160" },
-          { "source": "input.beneficiary", "type": "Hash160" },
-          { "source": "input.asset", "type": "Hash160" },
-          { "source": "input.totalAmount", "type": "Integer", "scale": 8 },
-          { "source": "input.rateAmount", "type": "Integer", "scale": 8 },
-          { "source": "input.intervalSeconds", "type": "Integer" },
-          { "source": "input.title", "type": "String" },
-          { "source": "input.notes", "type": "String" }
+          {
+            "source": "instance.instanceId",
+            "type": "String"
+          },
+          {
+            "source": "wallet.address",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.beneficiary",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.asset",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.totalAmount",
+            "type": "Integer",
+            "scale": 8
+          },
+          {
+            "source": "input.rateAmount",
+            "type": "Integer",
+            "scale": 8
+          },
+          {
+            "source": "input.intervalSeconds",
+            "type": "Integer"
+          },
+          {
+            "source": "input.title",
+            "type": "String"
+          },
+          {
+            "source": "input.notes",
+            "type": "String"
+          }
         ]
       }
     ]

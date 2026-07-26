@@ -98,6 +98,18 @@ describe("/play/[id] standalone surface", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
+  it("sizes the surface in viewport units, not by inset alone", () => {
+    // The host's page wrapper animates `transform`, which makes it the
+    // containing block for fixed descendants. Relying on `inset-0` alone
+    // collapsed this surface to the wrapper's zero height in production.
+    render(<PlayPage {...PROPS} />);
+
+    const surface = screen.getByTestId("standalone-miniapp-frame").parentElement!;
+    expect(surface).toHaveClass("h-screen");
+    expect(surface).toHaveClass("w-screen");
+    expect(surface).toHaveStyle({ height: "100dvh" });
+  });
+
   it("keeps the opaque-origin sandbox the embedded surface uses", () => {
     render(<PlayPage {...PROPS} />);
 

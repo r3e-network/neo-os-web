@@ -25,9 +25,14 @@ export function MiniAppBundleLoader({
   const standalone = variant === "standalone";
   return (
     <div
+      // The standalone variant is sized in viewport units, not by `inset-0`
+      // alone: the host's page wrapper animates `transform`, which makes it the
+      // containing block for fixed descendants and would otherwise collapse
+      // this overlay to the wrapper's zero height.
       className={`grid place-items-center bg-[#faf9f7] px-6 text-center ${
-        standalone ? "fixed inset-0 z-10" : "absolute inset-0"
+        standalone ? "fixed inset-0 z-10 h-screen w-screen" : "absolute inset-0"
       }`}
+      style={standalone ? { height: "100dvh" } : undefined}
       data-testid={testId}
       role="status"
       aria-live="polite"

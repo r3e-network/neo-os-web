@@ -1,6 +1,25 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+/**
+ * Origin serving MiniApp and MiniGame bundles. Frames pointing at it have to be
+ * allowed explicitly: `frame-src 'self' blob:` covers only bundles this host
+ * serves itself, so once delivery moved to the CDN every embed would be blocked
+ * at the CSP layer with nothing in the UI to explain it.
+ */
+function miniAppCdnOrigin(): string | null {
+  const raw = (
+    process.env.MINIAPP_CDN_BASE_URL ||
+    process.env.NEXT_PUBLIC_MINIAPP_CDN_BASE_URL ||
+    "https://meshmini.app"
+  ).trim();
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return null;
+  }
+}
+
 function randomNonce(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -59,6 +78,10 @@ export function buildCSP(
     "https://control.meshmini.app",
     "https://neoxt4seed1.ngd.network",
   );
+  const cdnOrigin = miniAppCdnOrigin();
+  if (cdnOrigin && !connectSources.includes(cdnOrigin)) {
+    connectSources.push(cdnOrigin);
+  }
   const auth0Issuer = (process.env.AUTH0_ISSUER_BASE_URL || "").trim();
   if (auth0Issuer) {
     connectSources.push(auth0Issuer);
@@ -106,7 +129,7 @@ export function buildCSP(
 
   const frameSrc =
     options.allowMiniAppEmbedding || options.allowMiniAppFrames
-      ? "frame-src 'self' blob:"
+      ? `frame-src 'self' blob:${cdnOrigin ? ` ${cdnOrigin}` : ""}`
       : "frame-src 'none'";
 
   const csp = [
@@ -220,6 +243,12 @@ export function middleware(req: NextRequest) {
     Boolean(detailRewriteId) || pathname.startsWith("/miniapp-detail/");
   const isMiniAppRuntimeAsset =
     pathname.startsWith("/miniapps/") && !detailRewriteId;
+  // The chrome-free launch surface OneGate opens. It is a host page, but unlike
+  // every other host page it must be embeddable by the wallets in the
+  // frame-ancestors allowlist, and it frames a CDN bundle itself - so it needs
+  // the miniapp policy on both axes, and no X-Frame-Options (which cannot
+  // express an allowlist and would override frame-ancestors in older browsers).
+  const isStandalonePlaySurface = pathname === "/play" || pathname.startsWith("/play/");
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
@@ -252,13 +281,13 @@ export function middleware(req: NextRequest) {
   res.headers.set(
     "Content-Security-Policy",
     buildCSP(nonce, {
-      allowMiniAppEmbedding: isMiniAppRuntimeAsset,
-      allowMiniAppFrames: isMiniAppDetailHostPage,
+      allowMiniAppEmbedding: isMiniAppRuntimeAsset || isStandalonePlaySurface,
+      allowMiniAppFrames: isMiniAppDetailHostPage || isStandalonePlaySurface,
       allowNativeWalletEval: isOneGateVaultHtmlPath(pathname),
     }),
   );
   setSecurityHeaders(res, {
-    frameOptions: isMiniAppRuntimeAsset ? null : "DENY",
+    frameOptions: isMiniAppRuntimeAsset || isStandalonePlaySurface ? null : "DENY",
   });
   if (isOneGateVaultHtmlPath(pathname)) {
     res.headers.set("Cache-Control", "no-store, max-age=0, must-revalidate");
