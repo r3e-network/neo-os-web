@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <Compile Include="../MiniApp.DevPack/MiniAppCreditLedger.cs" Link="MiniAppCreditLedger.cs" />
     <Compile Include="../MiniApp.DevPack/MiniAppHouseGameBase.cs" Link="MiniAppHouseGameBase.cs" />
     <Compile Include="../MiniApp.DevPack/MiniAppHouseGameBase.Settle.cs" Link="MiniAppHouseGameBase.Settle.cs" />
   </ItemGroup>

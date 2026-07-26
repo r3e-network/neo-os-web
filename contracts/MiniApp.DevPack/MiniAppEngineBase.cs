@@ -47,19 +47,15 @@ namespace NeoMiniAppPlatform.Contracts
 
         /// <summary>appId + prefix: per-tenant scalars and counters.</summary>
         protected static byte[] AppKey(string appId, byte[] prefix) =>
-            (byte[])Helper.Concat((ByteString)appId, (ByteString)prefix);
+            MiniAppStorageKeys.AppKey(appId, prefix);
 
         /// <summary>appId + prefix + BigInteger id: indexed tenant records.</summary>
         protected static byte[] AppKey(string appId, byte[] prefix, BigInteger id) =>
-            (byte[])Helper.Concat(
-                (ByteString)AppKey(appId, prefix),
-                (ByteString)id.ToByteArray());
+            MiniAppStorageKeys.AppKey(appId, prefix, id);
 
         /// <summary>appId + prefix + UInt160 addr: per-account tenant data.</summary>
         protected static byte[] AppKey(string appId, byte[] prefix, UInt160 addr) =>
-            (byte[])Helper.Concat(
-                (ByteString)AppKey(appId, prefix),
-                (ByteString)(byte[])addr);
+            MiniAppStorageKeys.AppKey(appId, prefix, addr);
 
         #endregion
 
@@ -161,10 +157,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         /// <summary>Prepaid credit of one payer under one tenant.</summary>
         protected static BigInteger TenantCreditOf(string appId, UInt160 payer)
-        {
-            ByteString raw = Storage.Get(Storage.CurrentContext, AppKey(appId, PREFIX_TENANT_CREDIT, payer));
-            return raw == null ? 0 : (BigInteger)raw;
-        }
+            => MiniAppCreditLedger.Read((ByteString)AppKey(appId, PREFIX_TENANT_CREDIT, payer));
 
         /// <summary>
         /// Sum of all outstanding credits under one tenant — the solvency
@@ -178,35 +171,20 @@ namespace NeoMiniAppPlatform.Contracts
 
         /// <summary>Credit a payer and bump the tenant liability counter.</summary>
         protected static void AddTenantCredit(string appId, UInt160 payer, BigInteger amount)
-        {
-            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
-            Storage.Put(Storage.CurrentContext,
-                AppKey(appId, PREFIX_TENANT_CREDIT, payer),
-                TenantCreditOf(appId, payer) + amount);
-            Storage.Put(Storage.CurrentContext,
-                AppKey(appId, PREFIX_TENANT_LIABILITY),
-                TenantCreditLiability(appId) + amount);
-        }
+            => MiniAppCreditLedger.Credit(
+                (ByteString)AppKey(appId, PREFIX_TENANT_CREDIT, payer),
+                (ByteString)AppKey(appId, PREFIX_TENANT_LIABILITY),
+                amount);
 
         /// <summary>
         /// Debit a payer and the tenant liability counter together; asserts
         /// the balance covers the debit and the counter cannot underflow.
         /// </summary>
         protected static void ConsumeTenantCredit(string appId, UInt160 payer, BigInteger amount)
-        {
-            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
-            BigInteger balance = TenantCreditOf(appId, payer);
-            ExecutionEngine.Assert(balance >= amount, "insufficient credit");
-            BigInteger next = balance - amount;
-            byte[] creditKey = AppKey(appId, PREFIX_TENANT_CREDIT, payer);
-            if (next == 0) Storage.Delete(Storage.CurrentContext, creditKey);
-            else Storage.Put(Storage.CurrentContext, creditKey, next);
-            BigInteger liability = TenantCreditLiability(appId) - amount;
-            ExecutionEngine.Assert(liability >= 0, "credit liability underflow");
-            byte[] liabilityKey = AppKey(appId, PREFIX_TENANT_LIABILITY);
-            if (liability == 0) Storage.Delete(Storage.CurrentContext, liabilityKey);
-            else Storage.Put(Storage.CurrentContext, liabilityKey, liability);
-        }
+            => MiniAppCreditLedger.Debit(
+                (ByteString)AppKey(appId, PREFIX_TENANT_CREDIT, payer),
+                (ByteString)AppKey(appId, PREFIX_TENANT_LIABILITY),
+                amount);
 
         #endregion
 

@@ -84,6 +84,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(amount <= pool.MaxClaimAmount, "claim above maximum");
             ExecutionEngine.Assert(amount <= pool.RemainingAmount, "insufficient pool");
 
+            AcquireSocialLock();
             Put(claimerKey, amount);
 
             pool.ClaimedCount += 1;
@@ -107,6 +108,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 GAS.Transfer(Runtime.ExecutingScriptHash, claimer, amount),
                 "claim payout failed");
             EnsureGasCreditSolvent();
+            ReleaseSocialLock();
 
             OnRangeGasPoolClaimed(appId, poolId, claimer, amount, pool.RemainingAmount, remainingClaims);
             if (remainingClaims == 0)
@@ -166,12 +168,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger refund = pool.RemainingAmount;
             pool.RemainingAmount = 0;
             pool.Active = false;
+            AcquireSocialLock();
             StoreRangeGasPool(appId, poolId, pool);
 
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, pool.Creator, refund),
                 "refund failed");
             EnsureGasCreditSolvent();
+            ReleaseSocialLock();
 
             OnRangeGasPoolRefunded(appId, poolId, pool.Creator, refund);
             return refund;

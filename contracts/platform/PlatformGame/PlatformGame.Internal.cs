@@ -63,7 +63,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// Assert that the given appId has been registered.
         /// Every mutating method must call this before touching state.
         /// </summary>
-        private static void RequireRegistered(string appId)
+        private static new void RequireRegistered(string appId)
         {
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "appId required");
             ByteString val = Storage.Get(Storage.CurrentContext,
@@ -111,24 +111,6 @@ namespace NeoMiniAppPlatform.Contracts
         {
             BigInteger actual = GetGameType(appId);
             ExecutionEngine.Assert(actual == expectedType, "wrong game type for appId");
-        }
-
-        /// <summary>
-        /// Extract appId from a "appId:..." memo string.
-        /// </summary>
-        private static string ExtractAppId(string memo)
-        {
-            int colonPos = -1;
-            for (int i = 0; i < memo.Length; i++)
-            {
-                if (memo[i] == ':')
-                {
-                    colonPos = i;
-                    break;
-                }
-            }
-            if (colonPos <= 0) return memo;
-            return memo.Substring(0, colonPos);
         }
 
         /// <summary>

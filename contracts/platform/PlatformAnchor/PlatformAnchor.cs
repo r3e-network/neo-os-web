@@ -64,11 +64,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_GAS_CREDIT = new byte[] { 0x24 };
         private static readonly byte[] PREFIX_TOTAL_GAS_CREDIT = new byte[] { 0x25 };
         private static readonly byte[] PREFIX_REWARD_REMAINDER = new byte[] { 0x26 };
+        private static readonly byte[] PREFIX_APP_NEO_CREDIT = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_APP_GAS_CREDIT = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_APP_TOTAL_NEO_CREDIT = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_APP_TOTAL_GAS_CREDIT = new byte[] { 0x2A };
 
         private static readonly byte[] PREFIX_AGENT_ACCOUNT = new byte[] { 0x30 };
         private static readonly byte[] PREFIX_AGENT_CANDIDATE = new byte[] { 0x31 };
         private static readonly byte[] PREFIX_AGENT_SCRIPT_HASH = new byte[] { 0x32 };
         private static readonly byte[] PREFIX_AGENT_ACTIVE = new byte[] { 0x35 };
+        private static readonly byte[] PREFIX_REENTRANCY = new byte[] { 0x36 };
 
         [DisplayName("AnchorAppRegistered")]
         public static event AnchorAppRegisteredHandler OnAnchorAppRegistered;

@@ -113,7 +113,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static UInt160 Registry()
         {
-            ByteString val = Storage.Get(Storage.CurrentContext, PREFIX_REGISTRY);
+            ByteString val = Storage.Get(Storage.CurrentContext, PREFIX_GAME_REGISTRY);
             return val == null ? UInt160.Zero : (UInt160)val;
         }
 
@@ -162,7 +162,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ValidateAddress(registry);
-            Storage.Put(Storage.CurrentContext, PREFIX_REGISTRY, registry);
+            Storage.Put(Storage.CurrentContext, PREFIX_GAME_REGISTRY, registry);
         }
 
         /// <summary>Emergency pause the entire contract. Admin only.</summary>

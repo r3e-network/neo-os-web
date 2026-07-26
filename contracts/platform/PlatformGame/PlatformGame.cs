@@ -67,7 +67,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer", "vote", "balanceOf", "getAccountState")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer", "balanceOf")]
     [ContractPermission("*", "transfer", "onNEP17Payment", "onNEP11Payment", "requestFromCallback", "getSelectedCandidate", "submitMiniAppRequestFromIntegration", "isPaused")]
-    public partial class PlatformGameContract : SmartContract
+    public partial class PlatformGameContract : MiniAppEngineBase
     {
         // ---------------------------------------------------------------
         //  Game type enum
@@ -83,7 +83,7 @@ namespace NeoMiniAppPlatform.Contracts
         // ---------------------------------------------------------------
         private static readonly byte[] PREFIX_ADMIN             = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_ORACLE            = new byte[] { 0x02 };
-        private static readonly byte[] PREFIX_REGISTRY          = new byte[] { 0x03 };
+        private static readonly byte[] PREFIX_GAME_REGISTRY     = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_PAUSED            = new byte[] { 0x04 };
         // Audit fix H2: timelocked, hash-pinned self-upgrade schedule
         // (ported from PlatformRegistry.Governance.cs).

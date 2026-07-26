@@ -49,15 +49,11 @@ namespace NeoMiniAppPlatform.Contracts
             }
 
             ExecutionEngine.Assert(from != null && from.IsValid && from != UInt160.Zero, "invalid payer");
-            string memo = ReadPaymentMemo(data);
-            string appId = ExtractAppId(memo);
+            string appId = MiniAppCreditLedger.RequireCreditAppId(data);
             ValidateAppIdFormat(appId);
-            ExecutionEngine.Assert(memo == appId + ":credit", "invalid payment memo");
 
             ByteString key = CreditKey(appId, from);
-            BigInteger balance = (BigInteger)Storage.Get(Storage.CurrentContext, key);
-            Storage.Put(Storage.CurrentContext, key, balance + amount);
-            Storage.Put(Storage.CurrentContext, PREFIX_CREDIT_LIABILITY, TotalCreditLiability() + amount);
+            MiniAppCreditLedger.Credit(key, (ByteString)PREFIX_CREDIT_LIABILITY, amount);
             OnCredited(appId, from, amount);
         }
 
@@ -116,38 +112,15 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void DebitCredit(string appId, UInt160 payer, BigInteger amount)
         {
-            ByteString key = CreditKey(appId, payer);
-            BigInteger balance = (BigInteger)Storage.Get(Storage.CurrentContext, key);
-            ExecutionEngine.Assert(balance >= amount, "insufficient credit");
-            BigInteger next = balance - amount;
-            if (next == 0) Storage.Delete(Storage.CurrentContext, key);
-            else Storage.Put(Storage.CurrentContext, key, next);
-            BigInteger liability = TotalCreditLiability() - amount;
-            ExecutionEngine.Assert(liability >= 0, "credit liability underflow");
-            if (liability == 0) Storage.Delete(Storage.CurrentContext, PREFIX_CREDIT_LIABILITY);
-            else Storage.Put(Storage.CurrentContext, PREFIX_CREDIT_LIABILITY, liability);
+            MiniAppCreditLedger.Debit(
+                CreditKey(appId, payer),
+                (ByteString)PREFIX_CREDIT_LIABILITY,
+                amount);
         }
 
         private static void AccrueFees(BigInteger amount)
         {
             Storage.Put(Storage.CurrentContext, PREFIX_ACCRUED_FEES, AccruedFees() + amount);
-        }
-
-        private static string ReadPaymentMemo(object data)
-        {
-            if (data == null) return "";
-            if (data is string text) return text ?? "";
-            if (data is ByteString byteString) return (string)byteString;
-            return "";
-        }
-
-        private static string ExtractAppId(string memo)
-        {
-            for (int i = 0; i < memo.Length; i++)
-            {
-                if (memo[i] == ':') return memo.Substring(0, i);
-            }
-            return memo;
         }
 
         private static ByteString CreditKey(string appId, UInt160 payer) =>

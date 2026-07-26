@@ -41,10 +41,13 @@ namespace NeoMiniAppPlatform.Contracts
         //  escapeExecute — the credible-exit hatch.
         //
         //  App-admin witnessed, usable ONLY once a registry-reported global
-        //  pause has lasted the full escape window, so a bricked or captured
-        //  registry can never permanently trap the treasury. Destination is
-        //  the stored app admin (role-bound). Pause-immune by design: the
-        //  local paused flag never gates this exit (anchor invariant).
+        //  pause has lasted the full escape window, so a bricked or abandoned
+        //  registry cannot permanently trap the treasury. A captured platform
+        //  admin remains a documented bound: the admin can keep the registry
+        //  from entering a fresh escape window while registry lanes remain
+        //  subject to their governance controls (see library section 4.1).
+        //  Destination is the stored app admin (role-bound). Pause-immune by
+        //  design: the local paused flag never gates this exit (anchor invariant).
         // ===================================================================
         public static void EscapeExecute(UInt160 asset, BigInteger amount)
         {

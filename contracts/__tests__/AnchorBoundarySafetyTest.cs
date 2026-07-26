@@ -31,6 +31,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("memo.StartsWith(\"stake:\")", code);
             Assert.Contains("StakeFromCredit(appId, from, amount)", code);
             Assert.Contains("private static void StakeFromCredit(string appId, UInt160 user, BigInteger amount)", code);
+            Assert.Contains("appStakeId = ExtractAppMemo(data, \"appstake:\")", code);
+            Assert.Contains("AddAppNeoCredit(appStakeId, from, amount)", code);
+            Assert.Contains("StakeFromAppCreditCore(appStakeId, from, amount)", code);
             Assert.DoesNotContain("if (data is string)", code);
             Assert.DoesNotContain("StdLib.Deserialize(payload)", code);
         }
@@ -58,6 +61,35 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("ConsumeGasCredit(user, amount)", code);
             Assert.Contains("NEO.Transfer(Runtime.ExecutingScriptHash, user, amount)", code);
             Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, user, amount)", code);
+        }
+
+        [Fact]
+        public void PlatformAnchorLocksExternalAssetAndVotePaths()
+        {
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
+
+            Assert.Contains("PREFIX_REENTRANCY", code);
+            Assert.Contains("AcquireAnchorLock();", code);
+            Assert.Contains("ReleaseAnchorLock();", code);
+        }
+
+        [Fact]
+        public void PlatformAnchorTracksAppScopedCreditLiabilities()
+        {
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
+
+            Assert.Contains("public static BigInteger GetAppCredit(string appId, UInt160 user, string asset)", code);
+            Assert.Contains("public static BigInteger GetAppTotalNeoCredit(string appId)", code);
+            Assert.Contains("public static BigInteger GetAppTotalGasCredit(string appId)", code);
+            Assert.Contains("public static void StakeFromAppCredit(string appId, UInt160 user, BigInteger amount)", code);
+            Assert.Contains("public static void FundRewardsFromAppCredit(string appId, UInt160 funder, BigInteger amount)", code);
+            Assert.Contains("public static void WithdrawAppCredit(string appId, UInt160 user, string asset, BigInteger amount)", code);
+            Assert.Contains("AppKey(appId, PREFIX_APP_NEO_CREDIT, user)", code);
+            Assert.Contains("AppKey(appId, PREFIX_APP_GAS_CREDIT, user)", code);
+            Assert.Contains("AppKey(appId, PREFIX_APP_TOTAL_NEO_CREDIT)", code);
+            Assert.Contains("AppKey(appId, PREFIX_APP_TOTAL_GAS_CREDIT)", code);
+            Assert.Contains("ConsumeAppNeoCredit(appId, user, amount)", code);
+            Assert.Contains("ConsumeAppGasCredit(appId, user, amount)", code);
         }
 
         [Fact]

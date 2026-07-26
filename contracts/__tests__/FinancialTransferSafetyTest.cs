@@ -167,6 +167,16 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
+        public void PlatformSocialLocksBusinessPayoutPaths()
+        {
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformSocial");
+
+            Assert.Contains("PREFIX_REENTRANCY", code);
+            Assert.Equal(10, code.Split("AcquireSocialLock();").Length - 1);
+            Assert.Equal(10, code.Split("ReleaseSocialLock();").Length - 1);
+        }
+
+        [Fact]
         public void PlatformSocialBusinessPayoutsPreserveDirectCreditSolvency()
         {
             string envelope = ContractSourceAssertions.ReadSourcesByPattern("PlatformSocial.Envelope*.cs", "contracts", "platform", "PlatformSocial");

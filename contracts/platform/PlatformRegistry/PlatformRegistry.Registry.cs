@@ -27,6 +27,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             RequireNotGloballyPaused();
             ValidateAppIdFormat(appId);
+            ValidatePermissionlessAppId(appId);
             ValidateAddress(appAdmin);
             ExecutionEngine.Assert(Runtime.CheckWitness(appAdmin), "app admin witness required");
             ConsumeCredit(appId, appAdmin, FEE_LITE_REGISTRATION);
@@ -58,6 +59,10 @@ namespace NeoMiniAppPlatform.Contracts
             RequireAppAdmin(appId);
             ExecutionEngine.Assert(engineId != null && engineId.Length > 0, "engineId required");
             ExecutionEngine.Assert(EngineIdOf(appId) != engineId, "engine already attached");
+            RequireActiveEngineForEngine(engineId);
+            RequireAbstractAccountCoreForEngine(engineId);
+            UInt160 accountHash = EnsureAbstractAccount(appId, AppAdminOf(appId));
+            ExecutionEngine.Assert(accountHash != UInt160.Zero, "abstract account not created");
             AttachEngineCore(appId, engineId, AppAdminOf(appId), null);
         }
 
@@ -66,14 +71,18 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(
                 Storage.Get(Storage.CurrentContext, AppKey(PREFIX_APP_ADMIN, appId)) == null,
                 "appId already registered");
+            RequireActiveEngineForEngine(engineId);
+            RequireAbstractAccountCoreForEngine(engineId);
             Storage.Put(Storage.CurrentContext, AppKey(PREFIX_APP_ADMIN, appId), appAdmin);
             // No payout destination is seeded (finding 1): a compromised
             // app-admin key must not be an instantly-spendable payout target.
             // A distinct payout address is installed explicitly through the
             // 24h-timelocked ProposePayoutAddress/ExecutePayoutAddress pair
             // before any spend lane works.
+            UInt160 accountHash = EnsureAbstractAccount(appId, appAdmin);
             if (engineId != null && engineId.Length > 0)
             {
+                ExecutionEngine.Assert(accountHash != UInt160.Zero, "abstract account not created");
                 AttachEngineCore(appId, engineId, appAdmin, descriptor);
             }
             else
@@ -82,8 +91,22 @@ namespace NeoMiniAppPlatform.Contracts
                     descriptor == null || descriptor.Keys.Length == 0,
                     "descriptor requires an engine");
             }
-            EnsureAbstractAccount(appId, appAdmin);
-            OnAppRegistered(appId, engineId == null ? "" : engineId, appAdmin, UInt160.Zero);
+            OnAppRegistered(appId, engineId == null ? "" : engineId, appAdmin, accountHash);
+        }
+
+        private static void RequireActiveEngineForEngine(string engineId)
+        {
+            if (engineId != null && engineId.Length > 0)
+            {
+                EngineRow row = GetEngineRow(engineId);
+                ExecutionEngine.Assert(row != null && row.Active, "engine not active");
+            }
+        }
+
+        private static void RequireAbstractAccountCoreForEngine(string engineId)
+        {
+            if (engineId != null && engineId.Length > 0)
+                ExecutionEngine.Assert(AbstractAccountCore() != UInt160.Zero, "abstract account core not set");
         }
 
         // Resolves the engine row, records the attachment, persists namespaced

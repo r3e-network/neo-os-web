@@ -15,7 +15,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (core != UInt160.Zero)
             {
                 ValidateAddress(core);
-                ExecutionEngine.Assert(ContractManagement.GetContract(core) != null, "abstract account core not deployed");
+                RequireReciprocalRegistrar(core);
             }
             ExecutionEngine.Assert(core != AbstractAccountCore(), "abstract account core unchanged");
             BigInteger executeAfter = Runtime.Time + TIMELOCK_DELAY_MS;
@@ -34,6 +34,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.Time >= (BigInteger)eta, "timelock active");
             UInt160 previous = AbstractAccountCore();
             UInt160 core = (UInt160)pending;
+            if (core != UInt160.Zero) RequireReciprocalRegistrar(core);
             if (core == UInt160.Zero)
                 Storage.Delete(Storage.CurrentContext, PREFIX_ABSTRACT_ACCOUNT_CORE);
             else
@@ -94,6 +95,22 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [Safe]
+        public static object[] GetPredictedAbstractAccount(string appId)
+        {
+            RequireRegistered(appId);
+            UInt160 storedCore = AbstractAccountCoreOf(appId);
+            UInt160 storedAccountId = AbstractAccountIdOf(appId);
+            if (storedCore != UInt160.Zero && storedAccountId != UInt160.Zero)
+                return new object[] { storedCore, storedAccountId, true };
+
+            UInt160 core = AbstractAccountCore();
+            ExecutionEngine.Assert(core != UInt160.Zero, "abstract account core not set");
+            RequireReciprocalRegistrar(core);
+            UInt160 accountId = ComputeAbstractAccountId(appId, core);
+            return new object[] { core, accountId, false };
+        }
+
+        [Safe]
         public static string AppIdOfAbstractAccount(UInt160 core, UInt160 accountId)
         {
             ByteString value = Storage.Get(
@@ -113,18 +130,11 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static UInt160 CreateAbstractAccount(string appId, UInt160 appAdmin, UInt160 core)
         {
-            ByteString appBinding = Helper.Concat((ByteString)Runtime.ExecutingScriptHash, (ByteString)appId);
-            UInt160 accountId = (UInt160)Contract.Call(
-                core,
-                "computePlatformAccountId",
-                CallFlags.ReadOnly,
-                appBinding,
-                appAdmin,
-                DEFAULT_ABSTRACT_ACCOUNT_TIMELOCK_SECONDS);
-            ExecutionEngine.Assert(accountId != UInt160.Zero, "invalid abstract account id");
+            ByteString appBinding = AbstractAccountBinding(appId);
+            UInt160 accountId = ComputeAbstractAccountId(appId, core);
             Contract.Call(
                 core,
-                "registerPlatformAccount",
+                "registerStablePlatformAccount",
                 CallFlags.All,
                 accountId,
                 appBinding,
@@ -140,6 +150,21 @@ namespace NeoMiniAppPlatform.Contracts
             return accountId;
         }
 
+        private static UInt160 ComputeAbstractAccountId(string appId, UInt160 core)
+        {
+            UInt160 accountId = (UInt160)Contract.Call(
+                core,
+                "computeStablePlatformAccountId",
+                CallFlags.ReadOnly,
+                AbstractAccountBinding(appId),
+                DEFAULT_ABSTRACT_ACCOUNT_TIMELOCK_SECONDS);
+            ExecutionEngine.Assert(accountId != UInt160.Zero, "invalid abstract account id");
+            return accountId;
+        }
+
+        private static ByteString AbstractAccountBinding(string appId) =>
+            Helper.Concat((ByteString)Runtime.ExecutingScriptHash, (ByteString)appId);
+
         private static UInt160 AbstractAccountIdOf(string appId)
         {
             ByteString value = Storage.Get(Storage.CurrentContext, AppKey(PREFIX_APP_ABSTRACT_ACCOUNT_ID, appId));
@@ -150,6 +175,18 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ByteString value = Storage.Get(Storage.CurrentContext, AppKey(PREFIX_APP_ABSTRACT_ACCOUNT_CORE, appId));
             return value == null ? UInt160.Zero : (UInt160)value;
+        }
+
+        private static void RequireReciprocalRegistrar(UInt160 core)
+        {
+            ExecutionEngine.Assert(ContractManagement.GetContract(core) != null, "abstract account core not deployed");
+            UInt160 registrar = (UInt160)Contract.Call(
+                core,
+                "getPlatformRegistrar",
+                CallFlags.ReadOnly);
+            ExecutionEngine.Assert(
+                registrar == Runtime.ExecutingScriptHash,
+                "abstract account core registrar mismatch");
         }
 
         private static ByteString AbstractAccountKey(byte[] prefix, UInt160 core, UInt160 accountId) =>

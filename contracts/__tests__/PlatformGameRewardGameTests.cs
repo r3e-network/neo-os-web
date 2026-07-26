@@ -167,6 +167,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
                 engine.SetTransactionSigners(engine.ValidatorsAddress);
                 var registry = engine.Deploy<PlatformRegistryContract>(regNef, regManifest);
                 game.setRegistry(registry.Hash);
+                EnsureAbstractAccountCore(engine, registry);
                 registry.proposeEngine(RG_ENGINE_ID, game.Hash, 1);
                 AdvanceMs(engine, TIMELOCK_MS + 1_000);
                 registry.registerEngine(RG_ENGINE_ID);

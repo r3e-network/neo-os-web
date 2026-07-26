@@ -66,6 +66,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             new object[] { "MiniAppTipJar", "MiniAppTipJar/MiniAppTipJar.cs" },
             new object[] { "PlatformRegistry", "platform/PlatformRegistry/PlatformRegistry.Credit.cs" },
             new object[] { "PlatformSocial", "platform/PlatformSocial/PlatformSocial.Credit.cs" },
+            new object[] { "PlatformVesting", "platform/PlatformVesting/PlatformVesting.Streams.cs" },
+            new object[] { "PlatformEscrow", "platform/PlatformEscrow/PlatformEscrow.Funds.cs" },
         };
 
         // Reviewed exceptions: contracts that DO move funds inside OnNEP17Payment by

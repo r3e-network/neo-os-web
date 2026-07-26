@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text;
 using Neo;
 using Neo.SmartContract.Testing;
 using Xunit;
@@ -43,6 +44,21 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             AssertRevert("only GAS accepted", () => ctx.Registry.onNEP17Payment(ctx.PlatformAdmin, 1, "credit-app:credit"));
             ctx.Registry.setGlobalPaused(true);
             AssertRevert("registry paused", () => ctx.Registry.onNEP17Payment(ctx.PlatformAdmin, 1, "credit-app:credit"));
+        }
+
+        [Fact]
+        public void Credit_ByteArrayMemoUsesSharedPaymentRouter()
+        {
+            var ctx = Deploy();
+            AsAdmin(ctx);
+            Assert.True(ctx.Engine.Native.GAS.Transfer(
+                ctx.PlatformAdmin,
+                ctx.Registry.Hash,
+                GAS_UNIT,
+                Encoding.UTF8.GetBytes("byte-credit-app:credit")) == true);
+
+            Assert.Equal(new BigInteger(GAS_UNIT), ctx.Registry.creditOf("byte-credit-app", ctx.PlatformAdmin));
+            Assert.Equal(new BigInteger(GAS_UNIT), ctx.Registry.totalCreditLiability());
         }
 
         [Fact]
@@ -125,8 +141,12 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             AssertRevert("invalid appId", () => ctx.Registry.registerApp("bad\"quote", "", appAdmin, null));
             AssertRevert("invalid appId", () => ctx.Registry.registerApp("", "", appAdmin, null));
 
-            // A lite registration cannot carry descriptor entries.
+            AssertRevert("appId reserved for platform registration",
+                () => ctx.Registry.registerApp("miniapp-reserved", "", appAdmin, null));
             AsAdmin(ctx);
+            ctx.Registry.registerAppByPlatform("miniapp-reserved", "", appAdmin, null);
+
+            // A lite registration cannot carry descriptor entries.
             AssertRevert("descriptor requires an engine",
                 () => ctx.Registry.registerAppByPlatform("gate-app", "", appAdmin, VmMap(("x:y", 1))));
 
@@ -225,6 +245,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(appAdmin, ctx.EngineMock.activatedAdminOf("engine-app"));
             Assert.Equal(BigInteger.One, ctx.EngineMock.activationDescriptorKeysOf("engine-app"));
             Assert.Equal(EngineId, ctx.Registry.engineOf("engine-app"));
+            object[] account = ctx.Registry.getAppAbstractAccount("engine-app")!;
+            Assert.NotEqual(UInt160.Zero, AsHash(account[1]));
+            Assert.True(AsBool(account[2]));
             var row = ctx.Registry.getApp("engine-app")!;
             Assert.Equal(ctx.EngineMock.Hash, AsHash(row[1]));
 
@@ -251,6 +274,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             ctx.Registry.attachEngine("lite-then-engine", EngineId);
             Assert.Equal(EngineId, ctx.Registry.engineOf("lite-then-engine"));
             Assert.Equal(BigInteger.One, ctx.EngineMock.activationCountOf("lite-then-engine"));
+            object[] account = ctx.Registry.getAppAbstractAccount("lite-then-engine")!;
+            Assert.NotEqual(UInt160.Zero, AsHash(account[1]));
+            Assert.True(AsBool(account[2]));
 
             // Re-attaching the same engine row is refused.
             AssertRevert("engine already attached", () => ctx.Registry.attachEngine("lite-then-engine", EngineId));

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Numerics;
+using System.Text;
 using Neo;
 using Neo.SmartContract;
 using Neo.SmartContract.Manifest;
@@ -204,6 +205,25 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(rec.won, recAfter.won);
             Assert.Equal(rec.payout, recAfter.payout);
             AssertRevert("bet already settled", () => dice.settle(betId!.Value));
+        }
+
+        [Fact]
+        public void ByteArrayMemoCreditsTheSharedHouseGameLedger()
+        {
+            var engine = new TestEngine(true);
+            var (nef, manifest) = Load("MiniAppDiceGameV2");
+            var dice = engine.Deploy<DiceGameV2Contract>(nef, manifest);
+            var player = TestEngine.GetNewSigner().Account;
+            FundGas(engine, player, 2L * GAS);
+
+            engine.SetTransactionSigners(player);
+            Assert.True(engine.Native.GAS.Transfer(
+                player,
+                dice.Hash,
+                2L * GAS,
+                Encoding.UTF8.GetBytes(BET_MEMO)) == true);
+
+            Assert.Equal(new BigInteger(2L * GAS), dice.creditOf(player));
         }
 
         [Fact]

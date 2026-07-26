@@ -25,30 +25,28 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         /// <summary>Length-delimited encoding of a variable-length BigInteger id segment.</summary>
         private static ByteString IdSegment(BigInteger id)
         {
-            byte[] raw = id.ToByteArray();
-            ExecutionEngine.Assert(raw.Length <= 255, "id segment too large");
-            return Helper.Concat((ByteString)new byte[] { (byte)raw.Length }, (ByteString)raw);
+            return MiniAppStorageKeys.LengthDelimitedId(id);
         }
 
         /// <summary>Build an app-scoped key: sha256(appId) + prefix.</summary>
         private static ByteString AppKey(string appId, byte[] prefix) =>
-            Helper.Concat(AppScope(appId), (ByteString)prefix);
+            MiniAppStorageKeys.HashedAppKey(appId, prefix);
 
         /// <summary>Build an app-scoped key: sha256(appId) + prefix + BigInteger id (trailing, unambiguous).</summary>
         private static ByteString AppKey(string appId, byte[] prefix, BigInteger id) =>
-            Helper.Concat(AppKey(appId, prefix), (ByteString)id.ToByteArray());
+            MiniAppStorageKeys.HashedAppKey(appId, prefix, id);
 
         /// <summary>Build an app-scoped key: sha256(appId) + prefix + address (fixed 20 bytes).</summary>
         private static ByteString AppKey(string appId, byte[] prefix, UInt160 addr) =>
-            Helper.Concat(AppKey(appId, prefix), (ByteString)(byte[])addr);
+            MiniAppStorageKeys.HashedAppKey(appId, prefix, addr);
 
         /// <summary>Build an app-scoped key: sha256(appId) + prefix + len-delimited id + address.</summary>
         private static ByteString AppKey(string appId, byte[] prefix, BigInteger id, UInt160 addr) =>
-            Helper.Concat(Helper.Concat(AppKey(appId, prefix), IdSegment(id)), (ByteString)(byte[])addr);
+            MiniAppStorageKeys.HashedAppKey(appId, prefix, id, addr);
 
         /// <summary>Build an app-scoped key: sha256(appId) + prefix + len-delimited id1 + id2 (trailing).</summary>
         private static ByteString AppKey(string appId, byte[] prefix, BigInteger id1, BigInteger id2) =>
-            Helper.Concat(Helper.Concat(AppKey(appId, prefix), IdSegment(id1)), (ByteString)id2.ToByteArray());
+            MiniAppStorageKeys.HashedAppKey(appId, prefix, id1, id2);
 
         #endregion
 
@@ -71,6 +69,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static void Delete(ByteString key) =>
             Storage.Delete(Storage.CurrentContext, key);
+
+        private static void AcquireSocialLock()
+        {
+            ByteString held = Storage.Get(Storage.CurrentContext, PREFIX_REENTRANCY);
+            ExecutionEngine.Assert(held == null || (BigInteger)held == 0, "reentrancy");
+            Storage.Put(Storage.CurrentContext, PREFIX_REENTRANCY, 1);
+        }
+
+        private static void ReleaseSocialLock() =>
+            Storage.Delete(Storage.CurrentContext, PREFIX_REENTRANCY);
 
         #endregion
 

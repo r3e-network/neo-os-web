@@ -13,6 +13,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
     public abstract class PlatformRegistryContract : SmartContract
     {
         protected PlatformRegistryContract(SmartContractInitialize initialize) : base(initialize) { }
+        public delegate void AppRegisteredEvent(string appId, string engineId, UInt160 appAdmin, UInt160 accountHash);
+        [System.ComponentModel.DisplayName("AppRegistered")]
+        public event AppRegisteredEvent? OnAppRegistered;
         // governance
         public abstract UInt160? admin();
         public abstract void proposeAdmin(UInt160 newAdmin);
@@ -59,6 +62,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract BigInteger? abstractAccountCoreAvailableAt();
         public abstract UInt160? materializeAbstractAccount(string appId);
         public abstract object[]? getAppAbstractAccount(string appId);
+        public abstract object[]? getPredictedAbstractAccount(string appId);
         public abstract string? appIdOfAbstractAccount(UInt160 core, UInt160 accountId);
         // descriptor
         public abstract void setDescriptor(string appId, string key, object? value);
@@ -123,7 +127,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
     {
         protected AbstractAccountCoreMockContract(SmartContractInitialize initialize) : base(initialize) { }
         public abstract void setRegistrar(UInt160 registrar);
+        public abstract UInt160? getPlatformRegistrar();
         public abstract UInt160? computePlatformAccountId(byte[] appBinding, UInt160 backupOwner, uint escapeTimelock);
+        public abstract UInt160? computeStablePlatformAccountId(byte[] appBinding, uint escapeTimelock);
+        public abstract void rotatePlatformAccountOwner(UInt160 accountId, byte[] appBinding, UInt160 newBackupOwner);
         public abstract UInt160? getBackupOwner(UInt160 accountId);
     }
 
@@ -204,9 +211,29 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.True(ok == true, "credit deposit transfer should succeed");
         }
 
+        public static void EnsureAbstractAccountCore(Ctx ctx) =>
+            EnsureAbstractAccountCore(ctx.Engine, ctx.Registry);
+
+        public static void EnsureAbstractAccountCore(TestEngine engine, PlatformRegistryContract registry)
+        {
+            UInt160? configuredCore = registry.abstractAccountCore();
+            if (configuredCore != null && configuredCore != UInt160.Zero)
+                return;
+
+            engine.SetTransactionSigners(engine.ValidatorsAddress);
+            var (nef, manifest) = Load("AbstractAccountCoreMockFixture");
+            AbstractAccountCoreMockContract core = engine.Deploy<AbstractAccountCoreMockContract>(nef, manifest);
+            core.setRegistrar(registry.Hash);
+            registry.proposeAbstractAccountCore(core.Hash);
+            engine.PersistingBlock.Advance(TimeSpan.FromMilliseconds(TIMELOCK_MS + 1_000));
+            registry.setAbstractAccountCore();
+            Assert.Equal(core.Hash, registry.abstractAccountCore());
+        }
+
         // Timelocked engine registration: propose -> advance -> execute.
         public static void RegisterEngine(Ctx ctx, string engineId, UInt160 engineHash, long schemaVersion = 1)
         {
+            EnsureAbstractAccountCore(ctx);
             AsAdmin(ctx);
             ctx.Registry.proposeEngine(engineId, engineHash, schemaVersion);
             AdvanceMs(ctx, TIMELOCK_MS + 1_000);
