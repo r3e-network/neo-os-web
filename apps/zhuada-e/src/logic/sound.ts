@@ -15,12 +15,15 @@
  */
 
 import { gameStorage } from "./game-storage";
+import { publicAssetUrl } from "./public-asset-url";
 
 export type Sfx =
   | "land" // item settles in the pen (velocity-scaled thud)
   | "pick" // player pulls an item out
   | "match" // three-of-a-kind clears
   | "combo" // match inside the combo window
+  | "comboBreak" // combo window expired (soft descending tone)
+  | "traySlot" // item lands in a tray slot (soft click)
   | "win" // pen emptied, goose caught
   | "fail" // tray jammed / time up
   | "powerup" // hint / add-time used
@@ -44,17 +47,17 @@ export interface SoundQaSnapshot {
 /** Every cue name — kept in sync with `Sfx` (compile-checked below) so tests
  * can assert cue-table completeness without duplicating the union. */
 export const SFX_NAMES = [
-  "land", "pick", "match", "combo", "win", "fail", "powerup", "shuffle", "click", "tick", "unlock", "shake",
+  "land", "pick", "match", "combo", "comboBreak", "traySlot", "win", "fail", "powerup", "shuffle", "click", "tick", "unlock", "shake",
 ] as const satisfies readonly Sfx[];
 
 export const SFX_ASSET_URLS = Object.fromEntries(
-  SFX_NAMES.map((name) => [name, `./audio/${name}.wav`]),
+  SFX_NAMES.map((name) => [name, publicAssetUrl(`./audio/${name}.wav`)]),
 ) as Record<Sfx, string>;
 
 export const AMBIENCE_ASSET_URLS: Record<Ambience, string> = {
-  garden: "./audio/ambient-garden.wav",
-  kitchen: "./audio/ambient-kitchen.wav",
-  night: "./audio/ambient-night.wav",
+  garden: publicAssetUrl("./audio/ambient-garden.wav"),
+  kitchen: publicAssetUrl("./audio/ambient-kitchen.wav"),
+  night: publicAssetUrl("./audio/ambient-night.wav"),
 };
 
 /** Compile-time exhaustiveness: a new `Sfx` member missing from SFX_NAMES
@@ -68,6 +71,9 @@ const MASTER_GAIN = 0.5;
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  /** Simple 1-tap feedback delay for spatial depth (45ms, 0.22 feedback). */
+  private delay: DelayNode | null = null;
+  private delayGain: GainNode | null = null;
   private _muted = false;
   private lastLandAt = 0;
   private buffers = new Map<Sfx, AudioBuffer>();
@@ -76,6 +82,12 @@ class SoundEngine {
   private ambience: HTMLAudioElement | null = null;
   private ambiencePlaying = false;
   private pageVisible = typeof document === "undefined" || !document.hidden;
+  /**
+   * Current combo chain depth. Match/combo cues pitch-shift upward by
+   * `comboStep * 40Hz` per step, making chains feel progressively more
+   * powerful. Reset to 0 when the combo window expires.
+   */
+  private comboStep = 0;
 
   constructor() {
     try {
@@ -117,10 +129,21 @@ class SoundEngine {
       this.master = this.ctx.createGain();
       this.master.gain.value = this._muted ? 0 : MASTER_GAIN;
       this.master.connect(this.ctx.destination);
+      // Feedback delay for spatial depth: 45ms tap, 0.22 feedback.
+      // Adds a subtle room-like echo without muddying fast SFX sequences.
+      this.delay = this.ctx.createDelay(0.1);
+      this.delay.delayTime.value = 0.045;
+      this.delayGain = this.ctx.createGain();
+      this.delayGain.gain.value = 0.22;
+      this.delay.connect(this.delayGain);
+      this.delayGain.connect(this.delay); // feedback loop
+      this.delayGain.connect(this.master); // output tap
       return true;
     } catch {
       this.ctx = null;
       this.master = null;
+      this.delay = null;
+      this.delayGain = null;
       return false;
     }
   }
@@ -130,6 +153,15 @@ class SoundEngine {
     if (!this.ensure()) return;
     if (this.ctx && this.ctx.state === "suspended") void this.ctx.resume();
     this.preloadSamples();
+  }
+
+  /**
+   * Set the current combo chain depth. Called by the guest engine on each
+   * match (increment) and on combo expiry (reset to 0). Match/combo cues
+   * pitch-shift upward by `step * 40Hz`, making chains feel escalating.
+   */
+  setComboStep(step: number): void {
+    this.comboStep = Math.max(0, Math.min(12, step));
   }
 
   get muted(): boolean {
@@ -213,7 +245,10 @@ class SoundEngine {
     g.gain.setValueAtTime(0.0001, start);
     g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), start + 0.012);
     g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    osc.connect(g).connect(this.master);
+    osc.connect(g);
+    g.connect(this.master);
+    // Send a portion through the feedback delay for spatial depth.
+    if (this.delay) g.connect(this.delay);
     osc.start(start);
     osc.stop(start + dur + 0.02);
   }
@@ -246,7 +281,7 @@ class SoundEngine {
       this.loading.add(name);
       void fetch(SFX_ASSET_URLS[name])
         .then((response) => {
-          if (!response.ok) throw new Error(`SFX ${name} returned ${response.status}`);
+          if (!response.ok) throw 0;
           return response.arrayBuffer();
         })
         .then((bytes) => this.ctx?.decodeAudioData(bytes))
@@ -303,13 +338,28 @@ class SoundEngine {
         break;
       }
       case "match": {
-        // Bright C-major arpeggio.
-        [523.25, 659.25, 783.99].forEach((f, i) => this.tone(f, t + i * 0.06, 0.18, "sine", 0.2));
+        // Bright C-major arpeggio, pitch-shifted up by combo depth.
+        const shift = this.comboStep * 40;
+        [523.25 + shift, 659.25 + shift, 783.99 + shift].forEach((f, i) => this.tone(f, t + i * 0.06, 0.18, "sine", 0.2));
         break;
       }
       case "combo": {
-        // Ascending sparkle for chained clears.
-        [659.25, 830.61, 987.77, 1318.5].forEach((f, i) => this.tone(f, t + i * 0.05, 0.14, "triangle", 0.16));
+        // Ascending sparkle for chained clears — pitch escalates with depth.
+        const shift = this.comboStep * 40;
+        [659.25 + shift, 830.61 + shift, 987.77 + shift, 1318.5 + shift].forEach((f, i) => this.tone(f, t + i * 0.05, 0.14, "triangle", 0.16));
+        break;
+      }
+      case "comboBreak": {
+        // Soft descending tone when the combo window expires — communicates
+        // "chain lost" without being punishing.
+        this.tone(440, t, 0.12, "sine", 0.1);
+        this.tone(330, t + 0.08, 0.16, "sine", 0.08);
+        break;
+      }
+      case "traySlot": {
+        // Soft click for item landing in a tray slot — lighter than "pick".
+        this.tone(880, t, 0.04, "sine", 0.1);
+        this.tone(1100, t + 0.02, 0.03, "triangle", 0.06);
         break;
       }
       case "win": {

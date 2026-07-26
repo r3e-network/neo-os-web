@@ -8,7 +8,7 @@ const simulatorQaDirectPlay =
 export const manifest: MiniAppManifest = {
   name: "Goose Basket Shuffle",
   description:
-    "An original physics-driven find-and-clear game with three complete player-selectable themes. Pull objects into a 7-slot tray, match three of a kind, shake the real phone to turn the basket, and clear fifteen levels. Relaxed play is untimed by default, timed challenge is optional, and personal progress stays on this device.",
+    "An original physics-driven find-and-clear game with three complete player-selectable themes. Pull objects into a 7-slot tray, match three of a kind, shake the real phone to turn the basket, and clear twenty-four levels. Relaxed play is untimed by default, timed challenge is optional, and personal progress stays on this device.",
   icon: "bird",
   category: "game",
   shell: "game",
@@ -29,14 +29,27 @@ export const manifest: MiniAppManifest = {
     // (eyebrow badge + shared guest-only subtitle tail) and a hint that says
     // nothing about what the panel opens into. `startHint` previews the
     // actual rule and stays inside GameHomePage's 56-char shortHint budget.
-    featuresEyebrowKey: "startHint",
-    featuresTitleKey: "rulesTitle",
+    // The launcher already opens `docs[type=steps]` as the dedicated rules
+    // preview. Keep this lower showcase about the three complete art
+    // directions instead of printing the same long rules copy a second time.
+    featuresEyebrowKey: "trustThemesBadge",
+    featuresTitleKey: "themePickerTitle",
     features: [
       {
-        titleKey: "rulesTitle",
-        descKey: "rulesCopy",
+        titleKey: "themeFreshName",
+        descKey: "themeFreshDescription",
         large: true,
-        gradient: "linear-gradient(135deg, #FEF3C7 0%, #FCD34D 44%, #F59E0B 100%)",
+        gradient: "linear-gradient(135deg, #F1F5D9 0%, #B9D88D 48%, #5B9B68 100%)",
+      },
+      {
+        titleKey: "themeFarmName",
+        descKey: "themeFarmDescription",
+        gradient: "linear-gradient(135deg, #FFF0D2 0%, #E7AE68 52%, #A8472F 100%)",
+      },
+      {
+        titleKey: "themeNightName",
+        descKey: "themeNightDescription",
+        gradient: "linear-gradient(135deg, #252A49 0%, #573A66 52%, #F2B640 100%)",
       },
     ],
     ctaTitleKey: "lobbyTitle",

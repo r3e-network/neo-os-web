@@ -175,6 +175,64 @@ describe("PlayArea accessibility contract", () => {
     expect(view.queryByText("untimedHud")).toBeNull();
   });
 
+  it("teaches the first level in-place and dismisses each lesson from real play state", () => {
+    const items = [{ id: 1, kind: 0, px: 0, py: 1, pz: 0 }];
+    const view = render(<PlayArea {...props({
+      gameStatus: "dealt",
+      level: 1,
+      items,
+      score: 0,
+      tray: Array(7).fill(null),
+      shakeNonce: 0,
+    })} />);
+
+    const pickCoach = view.getByRole("note");
+    expect(pickCoach.textContent).toContain("tutorialPick");
+    expect(pickCoach.getAttribute("data-step")).toBe("pick");
+    expect(view.getByText("levelScopeValue")).toBeTruthy();
+    expect(view.queryByText("levelReserveValue")).toBeNull();
+
+    view.rerender(<PlayArea {...props({
+      gameStatus: "dealt",
+      level: 1,
+      items,
+      score: 0,
+      tray: [0, null, null, null, null, null, null],
+      shakeNonce: 0,
+    })} />);
+    expect(view.getByRole("note").textContent).toContain("tutorialMatch");
+
+    view.rerender(<PlayArea {...props({
+      gameStatus: "dealt",
+      level: 1,
+      items,
+      score: 10,
+      tray: Array(7).fill(null),
+      shakeNonce: 0,
+      reserveCount: 3,
+    })} />);
+    expect(view.getByRole("note").textContent).toContain("tutorialShake");
+    expect(view.getByText("levelReserveValue")).toBeTruthy();
+
+    view.rerender(<PlayArea {...props({
+      gameStatus: "dealt",
+      level: 1,
+      items,
+      score: 10,
+      shakeNonce: 1,
+    })} />);
+    expect(view.queryByRole("note")).toBeNull();
+
+    view.rerender(<PlayArea {...props({
+      gameStatus: "dealt",
+      level: 2,
+      items,
+      score: 0,
+      shakeNonce: 0,
+    })} />);
+    expect(view.queryByRole("note")).toBeNull();
+  });
+
   it("turns a recoverable full tray into an assertive last-stand prompt", () => {
     const view = render(<PlayArea {...props({
       gameStatus: "dealt",
@@ -221,6 +279,21 @@ describe("PlayArea accessibility contract", () => {
     expect(playAreaStyles).toMatch(/data-game-status="idle"[\s\S]*?mx2-stage__scene[\s\S]*?padding-top:\s*0/);
   });
 
+  it("keeps the active-run drawer visible in-stage on desktop and above mobile browser chrome", () => {
+    expect(playAreaStyles).toMatch(
+      /goose-playarea \.goose-ingame-drawer[\s\S]*?position:\s*absolute[\s\S]*?top:\s*56px/,
+    );
+    expect(playAreaStyles).toContain("max-height: calc(100% - 70px)");
+    expect(playAreaStyles).toMatch(
+      /@media \(max-width: 760px\)[\s\S]*?goose-ingame-drawer[\s\S]*?position:\s*absolute/,
+    );
+    expect(playAreaStyles).toContain("top: auto");
+    expect(playAreaStyles).toContain("bottom: max(6px, env(safe-area-inset-bottom, 0px))");
+    expect(playAreaStyles).toContain("max-height: min(");
+    expect(playAreaStyles).toContain("overflow-y: auto");
+    expect(playAreaStyles).toContain("overscroll-behavior: contain");
+  });
+
   it("DEV simulator QA autostarts a level only behind ?simQa=1", async () => {
     const dispatch = vi.fn(async () => undefined);
     window.history.pushState({}, "", "/?simQa=1");
@@ -228,5 +301,41 @@ describe("PlayArea accessibility contract", () => {
     render(<PlayArea {...props({ progress: { ...EMPTY_PROGRESS, lastPlayedLevel: 4 } }, dispatch)} />);
 
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("startLevel", { level: 4 }));
+  }, 15_000);
+
+  it("DEV simulator QA selects a requested theme before autostarting", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    window.history.pushState({}, "", "/?simQa=1&simTheme=night-market");
+
+    const { rerender } = render(
+      <PlayArea {...props({ themeId: "farm-kitchen" }, dispatch)} />,
+    );
+
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith(
+      "setTheme",
+      { id: "night-market" },
+    ));
+    expect(dispatch).not.toHaveBeenCalledWith("startLevel", expect.anything());
+
+    dispatch.mockClear();
+    rerender(<PlayArea {...props({ themeId: "night-market" }, dispatch)} />);
+
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith(
+      "startLevel",
+      { level: 1 },
+    ));
+  }, 15_000);
+
+  it("ignores invalid simulator theme ids and still starts the saved theme", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    window.history.pushState({}, "", "/?simQa=1&simTheme=not-a-theme");
+
+    render(<PlayArea {...props({ themeId: "farm-kitchen" }, dispatch)} />);
+
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith(
+      "startLevel",
+      { level: 1 },
+    ));
+    expect(dispatch).not.toHaveBeenCalledWith("setTheme", expect.anything());
   }, 15_000);
 });

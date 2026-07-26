@@ -8,7 +8,9 @@
   --goose-motion-quick: cubic-bezier(0.2, 0.82, 0.24, 1);
   --goose-motion-loop: cubic-bezier(0.45, 0, 0.55, 1);
   --goose-motion-celebrate: cubic-bezier(0.2, 0.9, 0.2, 1.25);
-  --goose-tray-entry-ms: 692ms;
+  /* Spring overshoot for tray compaction — tokens slightly overshoot then settle. */
+  --goose-motion-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --goose-tray-entry-ms: 750ms;
   --goose-tray-grouping-ms: 620ms;
   --goose-tray-highlight-ms: 240ms;
   --goose-tray-clear-ms: 420ms;
@@ -55,6 +57,62 @@
   user-select: none;
   -webkit-user-select: none;
   overscroll-behavior: contain;
+}
+
+.goose-first-run-coach {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: max-content;
+  max-width: calc(100% - 34px);
+  min-height: 38px;
+  padding: 7px 12px 7px 8px;
+  border: 1px solid color-mix(in srgb, white 46%, var(--goose-border));
+  border-radius: 999px;
+  color: var(--goose-text);
+  background: color-mix(in srgb, var(--goose-surface-strong) 90%, transparent);
+  box-shadow:
+    0 8px 22px color-mix(in srgb, var(--goose-shadow) 42%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 72%, transparent);
+  font: 800 11px/1.25 system-ui, sans-serif;
+  text-wrap: balance;
+  text-align: left;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: goose-coach-in 360ms var(--goose-motion-pop) both;
+}
+
+.goose-first-run-coach > svg {
+  flex: 0 0 auto;
+  color: var(--goose-accent-strong);
+}
+
+.goose-first-run-coach__step {
+  display: grid;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--goose-accent-strong);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes goose-coach-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
 }
 
 // The WebGL canvas element itself should also swallow touch gestures.
@@ -309,6 +367,18 @@
   pointer-events: none;
 }
 
+.goose-android-fallback__pile[data-shaking="true"] {
+  animation: goose-android-fallback-shake 820ms var(--goose-motion-celebrate) both;
+}
+
+@keyframes goose-android-fallback-shake {
+  0% { transform: rotate(0deg) translate3d(0, 0, 0); }
+  18% { transform: rotate(-4deg) translate3d(-2px, 1px, 0); }
+  42% { transform: rotate(4.5deg) translate3d(3px, -1px, 0); }
+  68% { transform: rotate(-2.5deg) translate3d(-1px, 1px, 0); }
+  100% { transform: rotate(0deg) translate3d(0, 0, 0); }
+}
+
 .goose-android-fallback__item {
   position: absolute;
   width: clamp(46px, 14vw, 72px);
@@ -415,10 +485,21 @@
 }
 
 .goose-level-progress__copy {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   gap: 8px;
   margin-bottom: 5px;
+}
+
+.goose-level-progress__copy > :last-child {
+  text-align: right;
+}
+
+.goose-level-progress__scope {
+  color: var(--goose-text, #3f332a);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
 .goose-level-progress__track {
@@ -494,6 +575,38 @@
     0 0 0 3px rgba(255, 177, 92, 0.42),
     0 8px 22px rgba(126, 38, 24, 0.28);
   animation: goose-tray-jam-shake 0.48s var(--goose-motion-quick) 2;
+}
+
+/* Progressive tray tension: caution at 5/7, danger at 6/7. */
+.goose-tray-row[data-tray-warning="1"] .goose-tray {
+  box-shadow:
+    inset 0 0 0 1.5px rgba(245, 158, 11, 0.6),
+    0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.goose-tray-row[data-tray-warning="1"] .goose-tray__slot:nth-child(n+5) {
+  animation: goose-slot-caution-pulse 1.2s ease-in-out infinite;
+}
+
+.goose-tray-row[data-tray-warning="2"] .goose-tray {
+  box-shadow:
+    inset 0 0 0 2px rgba(239, 68, 68, 0.7),
+    0 0 0 3px rgba(239, 68, 68, 0.25),
+    0 4px 16px rgba(127, 29, 29, 0.2);
+}
+
+.goose-tray-row[data-tray-warning="2"] .goose-tray__slot:nth-child(n+5) {
+  animation: goose-slot-danger-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes goose-slot-caution-pulse {
+  0%, 100% { background: rgba(245, 158, 11, 0.08); }
+  50% { background: rgba(245, 158, 11, 0.22); }
+}
+
+@keyframes goose-slot-danger-pulse {
+  0%, 100% { background: rgba(239, 68, 68, 0.1); }
+  50% { background: rgba(239, 68, 68, 0.28); }
 }
 
 .goose-powerbar[data-jammed="true"] .goose-powerbar__btn[data-rescue="true"] {
@@ -581,7 +694,7 @@
 }
 
 .goose-tray[data-motion-phase="compacting"] .goose-tray__item {
-  transition: transform var(--goose-tray-compact-ms) var(--goose-motion-natural);
+  transition: transform var(--goose-tray-compact-ms) var(--goose-motion-spring);
 }
 
 // Side shelf: 3 parked slots shown as a compact floating chip over the play
@@ -810,6 +923,43 @@
   color: #f59e0b;
   text-shadow: 0 0 18px rgba(245, 158, 11, 0.55), 0 2px 0 rgba(255, 255, 255, 0.6);
   transform: rotate(-3deg);
+}
+
+// Hint feedback stays in the HUD layer. The scene's authored object provides
+// the actual lift/glow; this copy makes the action readable when that object
+// is partly covered without adding a slash, cross, arrow, or identity stamp.
+.goose-hint-feedback {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  max-width: calc(100% - 28px);
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, white 56%, var(--goose-border));
+  border-radius: 999px;
+  color: var(--goose-text);
+  background: color-mix(in srgb, var(--goose-surface-strong) 94%, transparent);
+  box-shadow:
+    0 8px 22px color-mix(in srgb, var(--goose-shadow) 42%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 72%, transparent);
+  font: 800 11px/1.2 system-ui, sans-serif;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: goose-hint-feedback 260ms var(--goose-motion-pop) both;
+}
+
+.goose-hint-feedback > svg {
+  color: var(--goose-accent-strong);
+  flex: 0 0 auto;
+}
+
+@keyframes goose-hint-feedback {
+  from { opacity: 0; transform: translate(-50%, -6px) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 
 /* ── R4 Daily sign-in / streak (lobby) ── */
@@ -1217,7 +1367,7 @@
   width: 100%;
   display: flex;
   // A level catalog is wide, not tall: keep the primary Start/motion controls
-  // visible on a phone instead of making the player scroll past all 15 levels.
+  // visible on a phone instead of making the player scroll past all 24 levels.
   // Scene cards form a touch-friendly horizontal rail with two cards peeking
   // at once, so the remaining journey is discoverable without blocking play.
   flex-direction: row;
@@ -1815,11 +1965,13 @@
 }
 
 .goose-theme-item {
+  --goose-item-hue: 0deg;
   display: block;
   width: 30px;
   height: 30px;
   object-fit: contain;
   border-radius: 9px;
+  filter: hue-rotate(var(--goose-item-hue)) saturate(1.06);
   box-shadow: 0 2px 7px color-mix(in srgb, var(--goose-shadow) 38%, transparent);
 }
 
@@ -2685,12 +2837,65 @@
   letter-spacing: 1px;
 }
 
+// Keep More as an in-stage drawer at every viewport width. The old desktop
+// rule left it in normal document flow after the tray and tools, so clicking
+// the visible HUD button appeared to do nothing until the player manually
+// scrolled below the game. This anchored panel stays visible, scrolls its own
+// long rules copy and does not move the live pile underneath the pointer.
+.goose-playarea .goose-ingame-drawer {
+  position: absolute;
+  top: 56px;
+  right: 12px;
+  z-index: 10;
+  width: min(380px, calc(100% - 24px));
+  max-width: none;
+  max-height: calc(100% - 70px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--goose-border);
+  box-shadow:
+    0 18px 42px color-mix(in srgb, var(--goose-shadow) 72%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, white 38%, transparent);
+}
+
 @media (max-width: 760px) {
   .goose-playarea .goose-stage-hud__metric,
   .goose-playarea .goose-stage-hud__sound,
   .goose-playarea .goose-stage-hud__drawer {
     background: color-mix(in srgb, var(--goose-surface-strong) 92%, transparent);
     backdrop-filter: none;
+  }
+
+  // Safari's collapsing bottom toolbar reduces the visual viewport without
+  // changing the layout viewport quickly enough for an in-flow drawer. Keep
+  // active-run actions inside the stage instead of appending them below the
+  // tool row where Retry / Exit become hidden behind browser chrome.
+  .goose-playarea .goose-ingame-drawer {
+    position: absolute;
+    top: auto;
+    right: max(6px, env(safe-area-inset-right, 0px));
+    bottom: max(6px, env(safe-area-inset-bottom, 0px));
+    left: max(6px, env(safe-area-inset-left, 0px));
+    z-index: 10;
+    width: auto;
+    max-width: none;
+    max-height: min(
+      68%,
+      calc(
+        100dvh
+        - env(safe-area-inset-top, 0px)
+        - env(safe-area-inset-bottom, 0px)
+        - 24px
+      )
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 14px max(14px, env(safe-area-inset-bottom, 0px));
+    border: 1px solid var(--goose-border);
+    box-shadow:
+      0 18px 42px color-mix(in srgb, var(--goose-shadow) 72%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, white 38%, transparent);
   }
 }
 

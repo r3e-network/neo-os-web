@@ -11,7 +11,7 @@ export const SCENE_MOTION = Object.freeze({
   popBurstMs: 560,
   failRunMs: 900,
   winBobMs: 2_400,
-  hintPulseMs: 1_600,
+  hintPulseMs: 2_000,
   cameraShakeAmplitude: 0.1,
   panRollAmplitude: 0.105,
   panPitchAmplitude: 0.065,

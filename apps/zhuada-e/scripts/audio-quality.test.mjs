@@ -12,7 +12,9 @@ const cues = {
   pick: 0.19,
   match: 0.46,
   combo: 0.58,
-  win: 1.08,
+  comboBreak: 0.35,
+  traySlot: 0.12,
+  win: 1.28,
   fail: 0.78,
   powerup: 0.5,
   shuffle: 0.5,
@@ -30,13 +32,16 @@ function readPcm(name) {
   assert.equal(bytes.toString("ascii", 0, 4), "RIFF", `${name}: missing RIFF header`);
   assert.equal(bytes.toString("ascii", 8, 12), "WAVE", `${name}: missing WAVE header`);
   assert.equal(bytes.readUInt16LE(20), 1, `${name}: expected PCM format`);
-  assert.equal(bytes.readUInt16LE(22), 1, `${name}: expected mono`);
-  assert.equal(bytes.readUInt32LE(24), 22050, `${name}: expected 22.05kHz sample rate`);
+  assert.equal(bytes.readUInt16LE(22), 2, `${name}: expected stereo`);
+  assert.equal(bytes.readUInt32LE(24), 44100, `${name}: expected 44.1kHz sample rate`);
   assert.equal(bytes.readUInt16LE(34), 16, `${name}: expected 16-bit samples`);
-  const sampleCount = bytes.readUInt32LE(40) / 2;
-  const samples = new Float32Array(sampleCount);
-  for (let i = 0; i < sampleCount; i += 1) {
-    samples[i] = bytes.readInt16LE(44 + i * 2) / 32768;
+  const dataBytes = bytes.readUInt32LE(40);
+  const frameCount = dataBytes / 4; // 2 channels * 2 bytes per sample
+  const samples = new Float32Array(frameCount);
+  for (let i = 0; i < frameCount; i += 1) {
+    const l = bytes.readInt16LE(44 + i * 4) / 32768;
+    const r = bytes.readInt16LE(44 + i * 4 + 2) / 32768;
+    samples[i] = (l + r) / 2; // mono mixdown for analysis
   }
   return samples;
 }
@@ -56,7 +61,7 @@ function analyze(samples) {
     if (sign !== 0 && previous !== 0 && sign !== previous) zeroCrossings += 1;
     if (sign !== 0) previous = sign;
   }
-  const duration = samples.length / 22050;
+  const duration = samples.length / 44100;
   return {
     duration,
     rms: Math.sqrt(sumSquares / samples.length),

@@ -3,9 +3,38 @@ import type { ItemPhysicsProfile } from "./physics-profiles";
 
 const LOCAL_UP = new Vec3(0, 1, 0);
 const worldAxis = new Vec3();
+const faceCorrectionAxis = new Vec3();
 const SIDE_REST_TIP_SPEED = 0.48;
+/**
+ * Proportional gain for face/upright corrections. The actual angular velocity
+ * applied is `gain * errorAngle`, clamped to the max speed. This prevents the
+ * old constant-speed approach from overshooting on small errors and
+ * oscillating every frame.
+ */
+const FACE_REST_PROPORTIONAL_GAIN = 2.4;
+const FACE_REST_MAX_SPEED = 0.42;
+const UPRIGHT_REST_PROPORTIONAL_GAIN = 2.2;
+const UPRIGHT_REST_MAX_SPEED = 0.38;
 const SUPPORT_WAKE_MARGIN = 0.42;
 const SUPPORT_BELOW_MARGIN = 0.24;
+/**
+ * Minimum interval (ms) between settle corrections for the same body.
+ * Prevents the correction from firing every frame (60fps = 16.7ms) which
+ * caused perpetual micro-oscillation. A 300ms cooldown lets the solver
+ * respond to the previous correction before applying the next one.
+ */
+const SETTLE_CORRECTION_COOLDOWN_MS = 300;
+
+/**
+ * Per-body cooldown tracker. Keyed by CannonBody.id → last correction
+ * timestamp. Entries are pruned when bodies are removed from the world.
+ */
+const lastCorrectionAt = new Map<number, number>();
+
+/** Call when a body is removed from the world to prevent map leaks. */
+export function clearSettleCooldown(bodyId: number): void {
+  lastCorrectionAt.delete(bodyId);
+}
 
 export interface LivePileBody {
   body: CannonBody;
@@ -20,6 +49,15 @@ export interface LivePileBody {
  * pile look artificially arranged.
  */
 export function prefersSideRest(profile: ItemPhysicsProfile): boolean {
+  const { xExtent, yExtent, zExtent } = colliderExtents(profile);
+  return yExtent > Math.max(xExtent, zExtent) * 1.04;
+}
+
+function colliderExtents(profile: ItemPhysicsProfile): {
+  xExtent: number;
+  yExtent: number;
+  zExtent: number;
+} {
   let xExtent = 0;
   let yExtent = 0;
   let zExtent = 0;
@@ -42,7 +80,18 @@ export function prefersSideRest(profile: ItemPhysicsProfile): boolean {
     }
   }
 
-  return yExtent > Math.max(xExtent, zExtent) * 1.04;
+  return { xExtent, yExtent, zExtent };
+}
+
+/**
+ * Thin cards, trays, wedges and wrapped packets need their broad authored face
+ * readable from the overhead camera. They still tumble and collide normally;
+ * this only identifies colliders whose local Y axis is materially thinner than
+ * both horizontal axes.
+ */
+export function prefersFaceRest(profile: ItemPhysicsProfile): boolean {
+  const { xExtent, yExtent, zExtent } = colliderExtents(profile);
+  return yExtent < Math.min(xExtent, zExtent) * 0.68;
 }
 
 /**
@@ -56,6 +105,20 @@ export function initialPileEuler(
   unitY: number,
   unitZ: number,
 ): readonly [x: number, y: number, z: number] {
+  if (profile.readableRest === "upright") {
+    return [
+      (unitX - 0.5) * 0.34,
+      unitY * Math.PI * 2,
+      (unitZ - 0.5) * 0.34,
+    ];
+  }
+  if (prefersFaceRest(profile)) {
+    return [
+      (unitX - 0.5) * 0.3,
+      unitY * Math.PI * 2,
+      (unitZ - 0.5) * 0.3,
+    ];
+  }
   if (!prefersSideRest(profile)) {
     return [unitX * Math.PI, unitY * Math.PI, unitZ * Math.PI];
   }
@@ -64,6 +127,85 @@ export function initialPileEuler(
     unitY * Math.PI * 2,
     (unitZ - 0.5) * 0.24,
   ];
+}
+
+/**
+ * Open bowls, mugs, pots and kettles carry semantic information on their
+ * authored +Y face. Correct a nearly sleeping underside/edge view with a
+ * gentle angular velocity so the real solver and neighbouring contacts still
+ * decide whether the object can roll. This never snaps or locks orientation.
+ *
+ * Uses a proportional controller (speed ∝ error angle) with a per-body
+ * cooldown to prevent the old constant-speed-per-frame oscillation.
+ */
+export function settleReadableUpright(
+  body: CannonBody,
+  profile: ItemPhysicsProfile,
+  nowMs?: number,
+): boolean {
+  if (profile.readableRest !== "upright" || body.mass <= 0 || body.world == null) return false;
+  body.quaternion.vmult(LOCAL_UP, worldAxis);
+  if (worldAxis.y >= 0.72) return false;
+
+  // Cooldown: skip if we corrected this body too recently.
+  const now = nowMs ?? performance.now();
+  const last = lastCorrectionAt.get(body.id) ?? 0;
+  if (now - last < SETTLE_CORRECTION_COOLDOWN_MS) return false;
+
+  worldAxis.cross(LOCAL_UP, faceCorrectionAxis);
+  let length = faceCorrectionAxis.length();
+  if (length < 0.001) {
+    // Exactly upside-down has no unique cross-product axis. A fixed, restrained
+    // roll is deterministic and lets the next solver steps choose either side.
+    faceCorrectionAxis.set(1, 0, 0);
+    length = 1;
+  }
+  // Proportional: error angle ≈ acos(worldAxis.y) mapped through the cross
+  // product magnitude (sin of the angle). Scale by gain, clamp to max speed.
+  const errorAngle = Math.acos(Math.min(1, Math.max(-1, worldAxis.y)));
+  const speed = Math.min(UPRIGHT_REST_MAX_SPEED, UPRIGHT_REST_PROPORTIONAL_GAIN * errorAngle);
+  faceCorrectionAxis.scale(speed / length, faceCorrectionAxis);
+  body.angularVelocity.x += faceCorrectionAxis.x;
+  body.angularVelocity.z += faceCorrectionAxis.z;
+  body.wakeUp();
+  lastCorrectionAt.set(body.id, now);
+  return true;
+}
+
+/**
+ * Give an almost-sleeping thin object one restrained correcting roll when it
+ * is caught edge-on. This is a physical angular nudge, not a quaternion snap:
+ * neighbouring bodies can resist it, and Shake can still overturn the object.
+ *
+ * Uses proportional control + cooldown (same pattern as settleReadableUpright).
+ */
+export function settleReadableFace(
+  body: CannonBody,
+  profile: ItemPhysicsProfile,
+  nowMs?: number,
+): boolean {
+  if (!prefersFaceRest(profile) || body.mass <= 0 || body.world == null) return false;
+  body.quaternion.vmult(LOCAL_UP, worldAxis);
+  if (Math.abs(worldAxis.y) >= 0.72) return false;
+
+  // Cooldown: skip if we corrected this body too recently.
+  const now = nowMs ?? performance.now();
+  const last = lastCorrectionAt.get(body.id) ?? 0;
+  if (now - last < SETTLE_CORRECTION_COOLDOWN_MS) return false;
+
+  worldAxis.cross(LOCAL_UP, faceCorrectionAxis);
+  const length = faceCorrectionAxis.length();
+  if (length < 0.001) return false;
+  // Proportional: error from face-flat is acos(|worldAxis.y|).
+  // At edge-on (|y|=0) error = π/2; at threshold (|y|=0.72) error ≈ 0.77 rad.
+  const errorAngle = Math.acos(Math.min(1, Math.abs(worldAxis.y)));
+  const speed = Math.min(FACE_REST_MAX_SPEED, FACE_REST_PROPORTIONAL_GAIN * errorAngle);
+  faceCorrectionAxis.scale(speed / length, faceCorrectionAxis);
+  body.angularVelocity.x += faceCorrectionAxis.x;
+  body.angularVelocity.z += faceCorrectionAxis.z;
+  body.wakeUp();
+  lastCorrectionAt.set(body.id, now);
+  return true;
 }
 
 /**

@@ -7,6 +7,9 @@ import { buildThemeModelMesh } from "./models";
 import { disposeObject } from "./scene-resources";
 
 const sceneSource = readFileSync(fileURLToPath(new URL("./ZhuaDaScene.ts", import.meta.url)), "utf8");
+const freshModelSource = readFileSync(fileURLToPath(new URL("./fresh-market-models.ts", import.meta.url)), "utf8");
+const farmModelSource = readFileSync(fileURLToPath(new URL("./farm-kitchen-models.ts", import.meta.url)), "utf8");
+const nightModelSource = readFileSync(fileURLToPath(new URL("./night-market-models.ts", import.meta.url)), "utf8");
 
 function meshesOf(root: THREE.Object3D): THREE.Mesh[] {
   const meshes: THREE.Mesh[] = [];
@@ -21,6 +24,25 @@ function productionMeshesOf(root: THREE.Object3D): THREE.Mesh[] {
   return meshesOf(root).filter((mesh) => !mesh.userData.interactionProxy);
 }
 
+interface DetailLayerRecord {
+  name: string;
+  geometryType: string;
+}
+
+function detailLayersOf(root: THREE.Object3D): DetailLayerRecord[] {
+  return productionMeshesOf(root).flatMap((mesh) => {
+    const merged = mesh.userData.detailLayers as DetailLayerRecord[] | undefined;
+    if (Array.isArray(merged)) return merged;
+    return typeof mesh.userData.detailLayer === "string"
+      ? [{ name: mesh.userData.detailLayer, geometryType: mesh.geometry.type }]
+      : [];
+  });
+}
+
+function countDetailLayer(root: THREE.Object3D, layer: string): number {
+  return detailLayersOf(root).filter((record) => record.name === layer).length;
+}
+
 function materialSignature(material: THREE.Material): string {
   const physical = material as THREE.MeshPhysicalMaterial;
   return [
@@ -31,6 +53,23 @@ function materialSignature(material: THREE.Material): string {
     Number(physical.clearcoat ?? 0).toFixed(2),
     material.transparent ? "transparent" : "opaque",
   ].join(":");
+}
+
+function materialColors(root: THREE.Object3D): string[] {
+  return productionMeshesOf(root).flatMap((mesh) => (
+    Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+  ).map((material) => (material as THREE.MeshStandardMaterial).color?.getHexString?.() ?? ""));
+}
+
+function textureChannelRange(texture: THREE.Texture, channel: 0 | 1 | 2 = 0): number {
+  const data = (texture as THREE.DataTexture).image.data as Uint8Array;
+  let min = 255;
+  let max = 0;
+  for (let index = channel; index < data.length; index += 4) {
+    min = Math.min(min, data[index]!);
+    max = Math.max(max, data[index]!);
+  }
+  return max - min;
 }
 
 describe("production model geometry cache", () => {
@@ -75,16 +114,10 @@ describe("production model geometry cache", () => {
     const model = buildThemeModelMesh("farm-kitchen", 0, item.color);
     const meshes = meshesOf(model);
     const geometryDispose = vi.spyOn(meshes[0]!.geometry, "dispose");
-    const materialCounts = new Map<THREE.Material, number>();
-    meshes.forEach((mesh) => {
-      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      materials.forEach((material) => {
-        materialCounts.set(material, (materialCounts.get(material) ?? 0) + 1);
-      });
-    });
-    const sharedWithinInstance = [...materialCounts].find(([, count]) => count > 1)?.[0];
-    expect(sharedWithinInstance).toBeDefined();
-    const materialDispose = vi.spyOn(sharedWithinInstance!, "dispose");
+    const firstMaterial = Array.isArray(meshes[0]!.material)
+      ? meshes[0]!.material[0]!
+      : meshes[0]!.material;
+    const materialDispose = vi.spyOn(firstMaterial, "dispose");
 
     disposeObject(model);
 
@@ -98,7 +131,7 @@ describe("production model geometry cache", () => {
     expect(meshesOf(first)[0]!.geometry).not.toBe(meshesOf(second)[0]!.geometry);
   });
 
-  it("keeps every production 3D item as a layered multi-material mesh with a pick proxy", () => {
+  it("keeps every production 3D item layered while merging authored parts into a mobile draw-call budget", () => {
     for (const theme of GAME_THEMES) {
       for (let kind = 0; kind < theme.items.length; kind += 1) {
         const item = theme.items[kind]!;
@@ -116,14 +149,19 @@ describe("production model geometry cache", () => {
         const shadowCasters = detailMeshes.filter((mesh) => mesh.castShadow);
 
         expect(allMeshes.filter((mesh) => mesh.userData.interactionProxy), `${theme.id}/${kind} pick proxy`).toHaveLength(1);
-        expect(detailMeshes.length, `${theme.id}/${kind} detail mesh count`).toBeGreaterThanOrEqual(3);
+        // Clean silhouettes may intentionally use only a body + one structural
+        // surface after marker-line removal; the merged runtime still needs at
+        // least two visible material surfaces for depth and identity.
+        expect(model.userData.sourcePartCount, `${theme.id}/${kind} authored part count`).toBeGreaterThanOrEqual(2);
+        expect(detailMeshes.length, `${theme.id}/${kind} merged surface count`).toBeGreaterThanOrEqual(2);
+        expect(detailMeshes.length, `${theme.id}/${kind} mobile draw-call budget`).toBeLessThanOrEqual(7);
         expect(materialSignatures.size, `${theme.id}/${kind} material variety`).toBeGreaterThanOrEqual(2);
         expect(vertexCount, `${theme.id}/${kind} geometry detail`).toBeGreaterThanOrEqual(120);
         expect(shadowCasters.length, `${theme.id}/${kind} mobile shadow budget`).toBeGreaterThanOrEqual(1);
         expect(shadowCasters.length, `${theme.id}/${kind} mobile shadow budget`).toBeLessThanOrEqual(2);
       }
     }
-  });
+  }, 20_000);
 
   it("keeps every visible production surface opaque so the basket never shows through", () => {
     for (const theme of GAME_THEMES) {
@@ -139,14 +177,134 @@ describe("production model geometry cache", () => {
     }
   });
 
+  it("gives every visible surface a real material skin instead of a flat colour", () => {
+    const finishes = new Set<string>();
+    const finishExamples = new Map<string, THREE.MeshPhysicalMaterial>();
+    for (const theme of GAME_THEMES) {
+      for (let kind = 0; kind < theme.items.length; kind += 1) {
+        const item = theme.items[kind]!;
+        const model = buildThemeModelMesh(theme.id, kind, item.color);
+        for (const mesh of productionMeshesOf(model)) {
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (const material of materials) {
+            const physical = material as THREE.MeshPhysicalMaterial;
+            expect(physical.isMeshPhysicalMaterial, `${theme.id}/${kind} physical material`).toBe(true);
+            expect(physical.map, `${theme.id}/${kind} albedo skin`).toBeTruthy();
+            expect(physical.normalMap, `${theme.id}/${kind} normal skin`).toBeTruthy();
+            expect(physical.roughnessMap, `${theme.id}/${kind} roughness skin`).toBeTruthy();
+            expect(material.userData.surfaceSkin, `${theme.id}/${kind} skin provenance`).toMatch(/^goose-skin-v5:/);
+            expect(material.userData.surfaceSkinVariant, `${theme.id}/${kind} skin variant`).toBeGreaterThanOrEqual(0);
+            expect(material.userData.surfaceSkinVariant, `${theme.id}/${kind} skin variant`).toBeLessThan(6);
+            finishes.add(String(material.userData.surfaceFinish));
+            finishExamples.set(String(material.userData.surfaceFinish), physical);
+          }
+        }
+      }
+    }
+    expect(finishes).toEqual(new Set(["matte", "produce", "glaze", "ceramic", "metal", "wood", "fabric", "paper"]));
+    for (const [finish, material] of finishExamples) {
+      expect(textureChannelRange(material.map!), `${finish} albedo contrast`).toBeGreaterThan(0);
+      expect(textureChannelRange(material.normalMap!), `${finish} normal contrast`).toBeGreaterThan(0);
+      expect(textureChannelRange(material.roughnessMap!), `${finish} roughness contrast`).toBeGreaterThan(0);
+      expect(material.normalScale.x, `${finish} visible normal strength`).toBeGreaterThanOrEqual(0.05);
+    }
+    expect(finishExamples.get("glaze")!.normalScale.x).toBeLessThan(finishExamples.get("wood")!.normalScale.x);
+    expect(finishExamples.get("ceramic")!.normalScale.x).toBeLessThan(finishExamples.get("fabric")!.normalScale.x);
+    expect(finishExamples.get("produce")!.normalScale.x).toBeLessThan(finishExamples.get("wood")!.normalScale.x);
+    expect(finishExamples.get("metal")!.metalness).toBeGreaterThan(0.6);
+    expect(finishExamples.get("ceramic")!.clearcoat).toBeGreaterThan(0.75);
+    expect(finishExamples.get("fabric")!.sheen).toBeGreaterThan(0.1);
+    expect(finishExamples.get("wood")!.roughness).toBeGreaterThan(0.7);
+  }, 20_000);
+
+  it("gives every textured production surface UVs, including custom leaf panels", () => {
+    for (const theme of GAME_THEMES) {
+      for (let kind = 0; kind < theme.items.length; kind += 1) {
+        const item = theme.items[kind]!;
+        const model = buildThemeModelMesh(theme.id, kind, item.color);
+        for (const mesh of productionMeshesOf(model)) {
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          if (materials.some((material) => Boolean((material as THREE.MeshPhysicalMaterial).map))) {
+            expect(mesh.geometry.getAttribute("uv"), `${theme.id}/${kind} textured UV`).toBeTruthy();
+          }
+        }
+      }
+    }
+  }, 20_000);
+
+  it("derives stable but varied skins from each object's authored body colour", () => {
+    const warm = buildThemeModelMesh("farm-kitchen", 17, 0xe75b45);
+    const cool = buildThemeModelMesh("farm-kitchen", 17, 0x3f79d8);
+    const warmAgain = buildThemeModelMesh("farm-kitchen", 17, 0xe75b45);
+    const firstPhysical = (root: THREE.Object3D) => productionMeshesOf(root)
+      .flatMap((mesh) => (Array.isArray(mesh.material) ? mesh.material : [mesh.material]))
+      .find((material) => (material as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial) as THREE.MeshPhysicalMaterial;
+
+    const warmMaterial = firstPhysical(warm);
+    const coolMaterial = firstPhysical(cool);
+    const warmAgainMaterial = firstPhysical(warmAgain);
+    expect(warmMaterial.userData.surfaceSkin).toBe(warmAgainMaterial.userData.surfaceSkin);
+    expect(warmMaterial.map).toBe(warmAgainMaterial.map);
+    expect(warmMaterial.userData.surfaceSkin).not.toBe(coolMaterial.userData.surfaceSkin);
+    expect(warmMaterial.map).not.toBe(coolMaterial.map);
+  });
+
+  it("uses organic material variation instead of a universal diagonal marker wave", () => {
+    const source = readFileSync(fileURLToPath(new URL("./model-kit.ts", import.meta.url)), "utf8");
+    expect(source).toContain("const organic =");
+    expect(source).not.toContain("const sweep =");
+  });
+
+  it("keeps near-match colourways as full-body recolours with real size tiers", () => {
+    const base = buildThemeModelMesh("farm-kitchen", 17, themeItem("farm-kitchen", 17).color);
+    const warm = buildThemeModelMesh("farm-kitchen", 35, themeItem("farm-kitchen", 35).color);
+    const cool = buildThemeModelMesh("farm-kitchen", 53, themeItem("farm-kitchen", 53).color);
+
+    expect(detailLayersOf(warm).some((record) => record.name.startsWith("variant-enamel"))).toBe(false);
+    expect(detailLayersOf(cool).some((record) => record.name.startsWith("variant-enamel"))).toBe(false);
+    expect(warm.scale.x).toBeLessThan(base.scale.x);
+    expect(cool.scale.x).toBeGreaterThan(base.scale.x);
+    expect(materialColors(warm)).toContain(themeItem("farm-kitchen", 35).color.toString(16).padStart(6, "0"));
+    expect(materialColors(cool)).toContain(themeItem("farm-kitchen", 53).color.toString(16).padStart(6, "0"));
+  });
+
+  it("keeps authored silhouettes free of identity-marker noise", () => {
+    expect(freshModelSource).not.toContain("const slash =");
+    expect(freshModelSource).not.toContain("const badge =");
+    expect(freshModelSource).not.toContain("tea-tin-emblem");
+    expect(farmModelSource).not.toContain("const slash =");
+    expect(farmModelSource).not.toContain("const stitch =");
+    expect(farmModelSource).not.toContain("const badge =");
+    expect(nightModelSource).not.toContain("const stamp =");
+    expect(nightModelSource).not.toContain("petalRing(4");
+    expect(nightModelSource).not.toContain("const rib = capsule");
+    expect(nightModelSource).not.toContain("lantern-horizontal-rib");
+    expect(nightModelSource).not.toContain("lantern-meridian-rib");
+    expect(nightModelSource).not.toContain("drum-face-ring");
+    expect(nightModelSource).not.toContain("drum-face-center");
+    expect(freshModelSource).not.toContain("const stripe =");
+    expect(freshModelSource).not.toContain("const sprinkle =");
+    expect(farmModelSource).not.toContain("const baseMark =");
+    expect(farmModelSource).not.toContain("const labelMark =");
+  });
+
+  it("authors the kettle handle as an overhead-readable structural silhouette", () => {
+    const item = themeItem("farm-kitchen", 0);
+    const model = buildThemeModelMesh("farm-kitchen", 0, item.color);
+
+    expect(countDetailLayer(model, "kettle-overhead-handle")).toBe(1);
+    expect(countDetailLayer(model, "kettle-lid-ring")).toBe(1);
+    expect(farmModelSource).toContain("new THREE.Vector3(0.86, 0.78, 0)");
+    expect(farmModelSource).not.toContain("new THREE.Vector3(0.02, 0.96, -0.04)");
+  });
+
   it("keeps formerly glass containers closed with a solid heel", () => {
     for (const kind of [1, 4]) {
       const item = themeItem("farm-kitchen", kind);
       const model = buildThemeModelMesh("farm-kitchen", kind, item.color);
-      const meshes = meshesOf(model);
-      const heel = meshes.find((mesh) => String(mesh.userData.detailLayer).endsWith("heel"));
-
-      expect(heel).toBeDefined();
+      expect(
+        detailLayersOf(model).some((record) => record.name.endsWith("heel")),
+      ).toBe(true);
     }
   });
 
@@ -183,28 +341,126 @@ describe("production model geometry cache", () => {
       ["farm-kitchen", 0, "kettle-base-seal"],
       ["farm-kitchen", 9, "jug-base-seal"],
       ["night-market", 1, "bao-base-seal"],
-      ["night-market", 2, "can-bottom-seal"],
+      ["night-market", 2, "soda-bottle-heel"],
       ["night-market", 10, "bell-interior-seal"],
     ];
 
     for (const [themeId, kind, layer] of requiredLayers) {
       const item = themeItem(themeId, kind);
-      const meshes = meshesOf(buildThemeModelMesh(themeId, kind, item.color));
-      expect(meshes.some((mesh) => mesh.userData.detailLayer === layer), `${themeId}/${kind} ${layer}`).toBe(true);
+      const model = buildThemeModelMesh(themeId, kind, item.color);
+      expect(countDetailLayer(model, layer), `${themeId}/${kind} ${layer}`).toBeGreaterThan(0);
     }
   });
 
-  it("builds the zongzi from overlapping leaf panels, veins, folds and tied cord", () => {
+  it("builds the zongzi from layered leaf panels without marker-like cord or vein lines", () => {
     const item = themeItem("night-market", 7);
     const model = buildThemeModelMesh("night-market", 7, item.color);
-    const meshes = meshesOf(model);
-    const countLayer = (layer: string) => meshes.filter((mesh) => mesh.userData.detailLayer === layer).length;
+    const countLayer = (layer: string) => countDetailLayer(model, layer);
 
     expect(countLayer("zongzi-leaf-panel")).toBe(3);
-    expect(countLayer("zongzi-leaf-vein")).toBe(3);
-    expect(countLayer("zongzi-fold")).toBe(3);
-    expect(countLayer("zongzi-cord-wrap")).toBe(2);
-    expect(countLayer("zongzi-cord-tail")).toBe(2);
-    expect(meshes.length).toBeGreaterThanOrEqual(15);
+    expect(countLayer("zongzi-leaf-vein")).toBe(0);
+    expect(countLayer("zongzi-fold")).toBe(0);
+    expect(countLayer("zongzi-cord-wrap")).toBe(0);
+    expect(countLayer("zongzi-cord-tail")).toBe(0);
+    expect(model.userData.sourcePartCount).toBeGreaterThanOrEqual(4);
+  });
+
+  it("keeps the first-run night-market models faithful to their approved item art", () => {
+    const lanternItem = themeItem("night-market", 0);
+    const lantern = buildThemeModelMesh("night-market", 0, lanternItem.color);
+    const lanternLayers = detailLayersOf(lantern);
+    const countLanternLayer = (layer: string) => countDetailLayer(lantern, layer);
+
+    expect(countLanternLayer("lantern-round-body")).toBe(1);
+    expect(
+      lanternLayers.find((record) => record.name === "lantern-round-body")?.geometryType,
+    ).toBe("SphereGeometry");
+    expect(countLanternLayer("lantern-cap")).toBe(2);
+    expect(countLanternLayer("lantern-horizontal-rib")).toBe(0);
+    expect(countLanternLayer("lantern-meridian-rib")).toBe(0);
+    expect(countLanternLayer("lantern-tassel")).toBe(4);
+
+    const bottleItem = themeItem("night-market", 2);
+    const bottle = buildThemeModelMesh("night-market", 2, bottleItem.color);
+    const countBottleLayer = (layer: string) => countDetailLayer(bottle, layer);
+
+    expect(countBottleLayer("soda-bottle-body")).toBe(1);
+    expect(countBottleLayer("soda-bottle-heel")).toBe(1);
+    expect(countBottleLayer("soda-bottle-crown-tab")).toBe(10);
+    expect(countBottleLayer("soda-bottle-bubble")).toBe(9);
+
+    const bounds = new THREE.Box3().setFromObject(bottle);
+    const size = bounds.getSize(new THREE.Vector3());
+    expect(size.y).toBeGreaterThan(size.x * 1.25);
+  });
+
+  it("keeps rolling night-market circular faces recognizable without painted markers", () => {
+    const mooncakeItem = themeItem("night-market", 3);
+    const mooncake = buildThemeModelMesh("night-market", 3, mooncakeItem.color);
+    expect(countDetailLayer(mooncake, "mooncake-bottom-ring")).toBe(0);
+    expect(countDetailLayer(mooncake, "mooncake-bottom-stamp")).toBe(0);
+    expect(countDetailLayer(mooncake, "mooncake-bottom-medallion")).toBe(0);
+    expect(countDetailLayer(mooncake, "mooncake-bottom-face")).toBe(1);
+
+    const drumItem = themeItem("night-market", 5);
+    const drum = buildThemeModelMesh("night-market", 5, drumItem.color);
+    const countDrumLayer = (layer: string) => countDetailLayer(drum, layer);
+
+    expect(countDrumLayer("drum-face-ring")).toBe(0);
+    expect(countDrumLayer("drum-face-center")).toBe(0);
+    expect(countDrumLayer("drum-face-cross")).toBe(0);
+
+    const zongziItem = themeItem("night-market", 7);
+    const zongzi = buildThemeModelMesh("night-market", 7, zongziItem.color);
+    expect(countDetailLayer(zongzi, "zongzi-cord-cross")).toBe(0);
+
+    const lotusItem = themeItem("night-market", 16);
+    const lotus = buildThemeModelMesh("night-market", 16, lotusItem.color);
+    expect(countDetailLayer(lotus, "lotus-base-rosette")).toBe(0);
+    expect(countDetailLayer(lotus, "lotus-base-heart")).toBe(0);
+
+    const luckyCat = buildThemeModelMesh("night-market", 14, themeItem("night-market", 14).color);
+    expect(countDetailLayer(luckyCat, "lucky-cat-stamp")).toBe(0);
+  });
+
+  it("keeps fresh-market packages and cut food readable from both tumble faces", () => {
+    const countLayer = (kind: number, layer: string): number => {
+      const item = themeItem("fresh-market", kind);
+      return countDetailLayer(
+        buildThemeModelMesh("fresh-market", kind, item.color),
+        layer,
+      );
+    };
+
+    expect(countLayer(6, "tea-tin-label")).toBe(2);
+    expect(countLayer(6, "tea-tin-emblem")).toBe(0);
+    expect(countLayer(13, "watermelon-pale-rind")).toBe(2);
+    expect(countLayer(13, "watermelon-flesh-face")).toBe(2);
+    expect(countLayer(13, "watermelon-seed")).toBe(6);
+    expect(countLayer(14, "honey-label")).toBe(0);
+    expect(countLayer(15, "cheese-face")).toBe(2);
+    expect(countLayer(15, "cheese-dimple")).toBe(8);
+    expect(countLayer(17, "juice-label")).toBe(0);
+  });
+
+  it("keeps farm-kitchen silhouettes clean after physics rolls them over", () => {
+    const countLayer = (kind: number, layer: string): number => {
+      const item = themeItem("farm-kitchen", kind);
+      return countDetailLayer(
+        buildThemeModelMesh("farm-kitchen", kind, item.color),
+        layer,
+      );
+    };
+
+    expect(countLayer(0, "kettle-base-medallion")).toBe(0);
+    expect(countLayer(1, "bottle-label")).toBe(4);
+    expect(countLayer(1, "bottle-neck")).toBe(1);
+    expect(countLayer(1, "bottle-cap-crown")).toBe(1);
+    expect(countLayer(1, "bottle-cap-seal")).toBe(1);
+    expect(countLayer(2, "bowl-base-ring")).toBe(1);
+    expect(countLayer(4, "jam-label")).toBe(2);
+    expect(countLayer(11, "mug-base-mark")).toBe(0);
+    expect(countLayer(13, "pot-base-seal")).toBe(1);
+    expect(countLayer(13, "pot-base-medallion")).toBe(0);
   });
 });

@@ -16,7 +16,7 @@
 
 export type GeometryKind = "sphere" | "box" | "cylinder" | "cone" | "torus" | "icosa";
 
-/** Visual model used by the low-poly scene (see scenes/models.ts). */
+  /** Visual model used by the scene (see scenes/models.ts). */
 export type ModelKind =
   | "tomato" | "carrot" | "corn" | "eggplant" | "apple"
   | "broccoli" | "mushroom" | "onion" | "pepper" | "melon"
@@ -33,8 +33,9 @@ export interface ItemDef {
   color: number;
 }
 
-/** 18 logical kind ids shared by every selectable theme. Runtime 2D art comes
- * from optimized ImageGen atlases and 3D art from the matching model catalog. */
+/** 54 logical kind ids shared by every selectable theme. The first 18 own
+ * authored recipes; ids +18 and +36 are separate near-match identities that
+ * map back to the same silhouette with different material/icon treatments. */
 export const ITEM_DEFS: ItemDef[] = [
   { id: 0, name: "Tomato", nameZh: "番茄", geometry: "sphere", model: "tomato", color: 0xef4444 },
   { id: 1, name: "Carrot", nameZh: "胡萝卜", geometry: "cone", model: "carrot", color: 0xf59e0b },
@@ -54,6 +55,42 @@ export const ITEM_DEFS: ItemDef[] = [
   { id: 15, name: "Wedge", nameZh: "楔形物", geometry: "box", model: "corn", color: 0xf2c84b },
   { id: 16, name: "Keepsake", nameZh: "摆件", geometry: "icosa", model: "broccoli", color: 0xc86f4a },
   { id: 17, name: "Carton", nameZh: "纸盒", geometry: "box", model: "eggplant", color: 0xf0d78a },
+  { id: 18, name: "Crimson round", nameZh: "绯红圆果", geometry: "sphere", model: "tomato", color: 0xd94c52 },
+  { id: 19, name: "Blush round", nameZh: "粉彩圆果", geometry: "sphere", model: "apple", color: 0xe6675f },
+  { id: 20, name: "Lime oval", nameZh: "青绿椭果", geometry: "sphere", model: "egg", color: 0x78b84c },
+  { id: 21, name: "Blue stem", nameZh: "蓝顶柄物", geometry: "cylinder", model: "mushroom", color: 0x6f8fc2 },
+  { id: 22, name: "Rye long", nameZh: "黑麦长物", geometry: "cylinder", model: "corn", color: 0x8b5a33 },
+  { id: 23, name: "Berry vessel", nameZh: "莓色容器", geometry: "cylinder", model: "onion", color: 0xb66a8d },
+  { id: 24, name: "Red box", nameZh: "红色盒物", geometry: "box", model: "eggplant", color: 0xb54b43 },
+  { id: 25, name: "Yellow wide", nameZh: "黄色宽物", geometry: "box", model: "fish", color: 0xe0ad3a },
+  { id: 26, name: "Mint wrap", nameZh: "薄荷包物", geometry: "sphere", model: "pepper", color: 0x54bca1 },
+  { id: 27, name: "Golden oval", nameZh: "金黄椭果", geometry: "sphere", model: "melon", color: 0xc7b94a },
+  { id: 28, name: "Cocoa ring", nameZh: "可可圆环", geometry: "cylinder", model: "egg", color: 0x9f6948 },
+  { id: 29, name: "Speckled oval", nameZh: "斑点椭圆", geometry: "box", model: "fish", color: 0xe5d8ba },
+  { id: 30, name: "Rose berry", nameZh: "玫红莓果", geometry: "sphere", model: "tomato", color: 0xc83f4b },
+  { id: 31, name: "Dark slice", nameZh: "深绿切片", geometry: "cylinder", model: "melon", color: 0x467f52 },
+  { id: 32, name: "Amber jar", nameZh: "琥珀罐", geometry: "cylinder", model: "mushroom", color: 0xc68d24 },
+  { id: 33, name: "Pale wedge", nameZh: "浅黄楔物", geometry: "box", model: "corn", color: 0xe3b947 },
+  { id: 34, name: "Terracotta keepsake", nameZh: "陶土摆件", geometry: "icosa", model: "broccoli", color: 0xa95d42 },
+  { id: 35, name: "Apple carton", nameZh: "苹果纸盒", geometry: "box", model: "eggplant", color: 0xd6bc6d },
+  { id: 36, name: "Olive round", nameZh: "橄榄圆果", geometry: "sphere", model: "tomato", color: 0x78963a },
+  { id: 37, name: "Tangerine long", nameZh: "蜜橘长物", geometry: "cone", model: "carrot", color: 0xe77f26 },
+  { id: 38, name: "Golden cylinder", nameZh: "金黄柱物", geometry: "cylinder", model: "corn", color: 0xe8cc3c },
+  { id: 39, name: "Chestnut cap", nameZh: "栗色帽物", geometry: "icosa", model: "eggplant", color: 0xa87358 },
+  { id: 40, name: "Honey round", nameZh: "蜜色圆果", geometry: "sphere", model: "apple", color: 0xc9823f },
+  { id: 41, name: "Ivory cluster", nameZh: "象牙白簇物", geometry: "icosa", model: "broccoli", color: 0xe6dcc9 },
+  { id: 42, name: "Olive stem", nameZh: "橄榄柄物", geometry: "cylinder", model: "mushroom", color: 0x5e7b4f },
+  { id: 43, name: "Teal oval", nameZh: "青蓝椭果", geometry: "sphere", model: "onion", color: 0x2d718f },
+  { id: 44, name: "Rose tapered", nameZh: "玫粉尖物", geometry: "cone", model: "pepper", color: 0xd98ca0 },
+  { id: 45, name: "Yellow melon", nameZh: "黄绿圆瓜", geometry: "sphere", model: "melon", color: 0xb6c448 },
+  { id: 46, name: "Caramel oval", nameZh: "焦糖椭圆", geometry: "cylinder", model: "egg", color: 0xbf845a },
+  { id: 47, name: "Cream fish", nameZh: "奶油小鱼", geometry: "box", model: "fish", color: 0xece4d6 },
+  { id: 48, name: "Ruby berry", nameZh: "宝石红莓果", geometry: "sphere", model: "tomato", color: 0xb93f48 },
+  { id: 49, name: "Striped slice", nameZh: "条纹切片", geometry: "cylinder", model: "melon", color: 0x568d50 },
+  { id: 50, name: "Golden jar", nameZh: "金色罐子", geometry: "cylinder", model: "mushroom", color: 0xd49a28 },
+  { id: 51, name: "Butter wedge", nameZh: "黄油楔物", geometry: "box", model: "corn", color: 0xe8c043 },
+  { id: 52, name: "Clay keepsake", nameZh: "赤陶摆件", geometry: "icosa", model: "broccoli", color: 0xb96546 },
+  { id: 53, name: "Pear carton", nameZh: "青梨纸盒", geometry: "box", model: "eggplant", color: 0xe3ca79 },
 ];
 
 export const TRAY_SLOTS = 7;
@@ -114,8 +151,8 @@ export interface LevelSpec {
   timeMs: number;
   boxSize: number;
   /**
-   * Ordered ITEM_DEFS ids this level draws from (scene theming, G4). The first
-   * `kinds` entries are used; omitted → identity mapping 0..kinds-1.
+   * Ordered ITEM_DEFS ids selected for this deal (scene theming, G4). All
+   * entries are used; omitted → identity mapping 0..kinds-1.
    */
   kindPool?: number[];
 }

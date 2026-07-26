@@ -20,6 +20,16 @@ function fixtureRoot() {
 }
 
 describe("production bundle verifier", () => {
+  it("requires all nine collection-goose portraits in a production bundle", () => {
+    assert.deepEqual(
+      requiredProductionFiles.filter((file) => file.startsWith("art/geese/")),
+      Array.from(
+        { length: 9 },
+        (_, index) => `art/geese/goose-${String(index).padStart(2, "0")}.webp`,
+      ),
+    );
+  });
+
   it("scans production CSS so Device QA panel styles cannot leak", () => {
     const root = fixtureRoot();
     fs.writeFileSync(path.join(root, "dist", "assets", "index.css"), ".device-qa{display:block}/* Device QA */");

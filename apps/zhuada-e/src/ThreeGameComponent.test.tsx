@@ -1,12 +1,13 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GameBridge } from "@framework/phaser/GameBridge";
 import {
   ThreeGameComponent,
   type ThreeSceneController,
 } from "./ThreeGameComponent";
+import { ThemeItemChip } from "./ThemeItemChip";
 
 class ResizeObserverStub implements ResizeObserver {
   readonly root = null;
@@ -19,21 +20,26 @@ class ResizeObserverStub implements ResizeObserver {
   takeRecords(): ResizeObserverEntry[] { return []; }
 }
 
-function sceneController(options: { failMount?: boolean } = {}) {
+function sceneController(options: { failMount?: boolean; markRendered?: boolean } = {}) {
   const activatePrimary = vi.fn();
   const unmount = vi.fn();
   const pause = vi.fn();
+  const resume = vi.fn();
+  const mount = vi.fn((host: HTMLElement, bridge: GameBridge) => {
+    if (options.failMount) throw new Error("WebGL unavailable");
+    const canvas = document.createElement("canvas");
+    if (options.markRendered) canvas.dataset.gooseFrameReady = "true";
+    host.append(canvas);
+    bridge.notifyReady();
+  });
   const scene: ThreeSceneController = {
-    mount(host: HTMLElement, bridge: GameBridge) {
-      if (options.failMount) throw new Error("WebGL unavailable");
-      host.append(document.createElement("canvas"));
-      bridge.notifyReady();
-    },
+    mount,
     activatePrimary,
     pause,
+    resume,
     unmount,
   };
-  return { activatePrimary, pause, scene, unmount };
+  return { activatePrimary, mount, pause, resume, scene, unmount };
 }
 
 describe("ThreeGameComponent accessibility", () => {
@@ -60,6 +66,7 @@ describe("ThreeGameComponent accessibility", () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -215,13 +222,14 @@ describe("ThreeGameComponent accessibility", () => {
       } as unknown as CanvasRenderingContext2D;
     });
     const dispatch = vi.fn(async () => undefined);
-    const { scene } = sceneController();
+    const { pause, scene } = sceneController();
     const view = render(
       <ThreeGameComponent
         scene={scene}
         state={{
           gameStatus: "dealt",
           themeId: "fresh-market",
+          shakeNonce: 1,
           items: [{ id: 41, kind: 2 }],
         }}
         dispatch={dispatch}
@@ -230,13 +238,162 @@ describe("ThreeGameComponent accessibility", () => {
     );
 
     const fallback = await view.findByTestId("android-canvas-fallback", undefined, { timeout: 5_000 });
+    expect(pause).toHaveBeenCalledTimes(1);
+    expect(fallback.querySelector(".goose-android-fallback__pile")?.getAttribute("data-shaking")).toBe("true");
     expect(fallback.querySelector(".goose-android-fallback__basket")?.getAttribute("src"))
       .toBe("./art/container-fresh-market.webp");
     const item = view.getByRole("button", { name: "Pick item 3" });
     expect(item.querySelector("img")?.getAttribute("src")).toBe("./art/items/fresh-market/item-02.webp");
+    expect(item.getAttribute("style")).toContain("scale(0.");
 
     fireEvent.click(item);
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("extract", { itemId: 41 }));
     getContextSpy.mockRestore();
+  });
+
+  it("allows an explicit DEV-only simulator fallback when the emulator GPU process is unstable", async () => {
+    window.history.replaceState(null, "", "/?simQa=1&androidFallback=1");
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value: "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/133.0 Mobile Safari/537.36",
+    });
+    const { mount, scene, unmount } = sceneController({ markRendered: true });
+    const view = render(
+      <ThreeGameComponent
+        scene={scene}
+        state={{
+          gameStatus: "dealt",
+          themeId: "farm-kitchen",
+          items: [{ id: 7, kind: 6 }],
+        }}
+        dispatch={vi.fn()}
+        ariaLabel="Goose pen"
+      />,
+    );
+
+    expect(await view.findByTestId("android-canvas-fallback")).toBeTruthy();
+    expect(mount).not.toHaveBeenCalled();
+
+    view.rerender(
+      <ThreeGameComponent
+        scene={scene}
+        state={{
+          gameStatus: "dealt",
+          themeId: "farm-kitchen",
+          items: [{ id: 8, kind: 12 }, { id: 9, kind: 6 }],
+        }}
+        dispatch={vi.fn()}
+        ariaLabel="Goose pen"
+      />,
+    );
+    expect(await view.findByRole("button", { name: "Pick item 13" })).toBeTruthy();
+    expect(view.getByRole("button", { name: "Pick item 7" })).toBeTruthy();
+    expect(mount).not.toHaveBeenCalled();
+
+    view.unmount();
+    expect(unmount).not.toHaveBeenCalled();
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("keeps a healthy Android WebGL board through rapid item updates", async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value: "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36",
+    });
+    let samples = 0;
+    const getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation((contextId: string) => {
+      if (contextId !== "2d") return null;
+      return {
+        drawImage: vi.fn(),
+        getImageData: vi.fn(() => {
+          samples += 1;
+          return { data: new Uint8ClampedArray(20 * 20 * 4) };
+        }),
+      } as unknown as CanvasRenderingContext2D;
+    });
+    const { resume, scene } = sceneController({ markRendered: true });
+    const dispatch = vi.fn(async () => undefined);
+    const view = render(
+      <ThreeGameComponent
+        scene={scene}
+        state={{
+          gameStatus: "dealt",
+          themeId: "farm-kitchen",
+          items: [{ id: 1, kind: 1 }, { id: 2, kind: 2 }],
+        }}
+        dispatch={dispatch}
+        ariaLabel="Goose pen"
+      />,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_700);
+    });
+    expect(samples).toBe(0);
+    expect(view.queryByTestId("android-canvas-fallback")).toBeNull();
+    expect(resume).toHaveBeenCalled();
+
+    view.rerender(
+      <ThreeGameComponent
+        scene={scene}
+        state={{
+          gameStatus: "dealt",
+          themeId: "farm-kitchen",
+          items: [{ id: 2, kind: 2 }],
+        }}
+        dispatch={dispatch}
+        ariaLabel="Goose pen"
+      />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_700);
+    });
+
+    expect(samples).toBe(0);
+    expect(view.queryByTestId("android-canvas-fallback")).toBeNull();
+    getContextSpy.mockRestore();
+  });
+
+  it("uses the compatibility pile when Android reports a software renderer", async () => {
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value: "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/133.0 Mobile Safari/537.36",
+    });
+    const { mount, pause, scene } = sceneController({ markRendered: true });
+    scene.mount = (host, bridge) => {
+      mount(host, bridge);
+      host.querySelector("canvas")!.dataset.gooseSoftwareRenderer = "true";
+    };
+    const view = render(
+      <ThreeGameComponent
+        scene={scene}
+        state={{
+          gameStatus: "dealt",
+          themeId: "night-market",
+          items: [{ id: 3, kind: 7 }],
+        }}
+        dispatch={vi.fn()}
+        ariaLabel="Goose pen"
+      />,
+    );
+
+    expect(await view.findByTestId("android-canvas-fallback", undefined, { timeout: 5_000 })).toBeTruthy();
+    expect(view.getByRole("button", { name: "Pick item 8" })).toBeTruthy();
+    expect(pause).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("theme item color variants", () => {
+  it("uses the logical full-body colorway asset without an extra marker filter", () => {
+    const view = render(<ThemeItemChip themeId="fresh-market" kind={18} />);
+    const chip = view.container.querySelector("img");
+    expect(chip?.getAttribute("src")).toBe("./art/items/fresh-market/item-18.webp");
+    expect(chip?.getAttribute("data-color-variant")).toBe("true");
+    expect(chip?.getAttribute("data-variant-index")).toBe("1");
+    expect(chip?.style.getPropertyValue("--goose-item-hue")).toBe("0deg");
+
+    const secondTreatment = render(<ThemeItemChip themeId="fresh-market" kind={36} />);
+    expect(secondTreatment.container.querySelector("img")?.getAttribute("data-variant-index")).toBe("2");
   });
 });

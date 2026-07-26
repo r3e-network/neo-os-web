@@ -8,7 +8,9 @@ const requiredFiles = [
   "package.json",
   "neo-manifest.json",
   "src/logic/themes.ts",
+  "src/logic/scenes.ts",
   "src/logic/game-rules.ts",
+  "src/logic/progress.test.ts",
   "src/logic/engine-zhuada.test.ts",
   "src/logic/guest-engine.test.ts",
   "src/logic/item-stream.ts",
@@ -18,15 +20,28 @@ const requiredFiles = [
   "src/logic/use-device-shake.test.tsx",
   "src/logic/motion-quality.test.ts",
   "src/scenes/scene-motion.ts",
+  "src/scenes/ZhuaDaScene.ts",
+  "src/scenes/pile-dynamics.ts",
+  "src/scenes/pile-dynamics.test.ts",
+  "src/scenes/pile-density.test.ts",
+  "src/scenes/pick.ts",
+  "src/scenes/pick-raycast.test.ts",
   "src/scenes/physics-profiles.test.ts",
   "src/scenes/pick-lock.test.ts",
+  "src/scenes/model-kit.ts",
   "src/scenes/model-cache.test.ts",
+  "src/scenes/models.ts",
+  "src/scenes/render-quality.ts",
+  "src/scenes/render-quality.test.ts",
   "src/main.tsx",
   "src/manifest.ts",
   "src/PlayArea.tsx",
   "src/PlayArea.scss",
+  "src/PlayArea.accessibility.test.tsx",
   "src/ThreeGameComponent.tsx",
   "src/ThreeGameComponent.test.tsx",
+  "src/ThemeItemChip.tsx",
+  "scripts/generate-art.mjs",
   "scripts/verify-assets.mjs",
   "scripts/audio-quality.test.mjs",
   "scripts/image-quality.test.mjs",
@@ -167,14 +182,95 @@ describe("release audit script", () => {
     expectAuditFailure(overrides, "keeps every item icon visible, padded, transparent, and visually detailed");
   });
 
+  it("rejects palette collapse between unrelated near-match families", () => {
+    const runtimeOverrides = baselineOverrides();
+    runtimeOverrides["src/logic/themes.ts"] =
+      runtimeOverrides["src/logic/themes.ts"].replace("baseKind * 137.508", "0 * 137.508");
+    expectAuditFailure(runtimeOverrides, "baseKind * 137.508");
+
+    const iconOverrides = baselineOverrides();
+    iconOverrides["scripts/generate-art.mjs"] =
+      iconOverrides["scripts/generate-art.mjs"].replace("baseKind * 137.508", "0 * 137.508");
+    expectAuditFailure(iconOverrides, "baseKind * 137.508");
+  });
+
   it("rejects weakened 3D model quality guardrails", () => {
     const overrides = baselineOverrides();
     overrides["src/scenes/model-cache.test.ts"] =
       overrides["src/scenes/model-cache.test.ts"].replace(
-        "keeps every production 3D item as a layered multi-material mesh with a pick proxy",
+        "keeps every production 3D item layered while merging authored parts into a mobile draw-call budget",
         "keeps model cache working",
       );
-    expectAuditFailure(overrides, "keeps every production 3D item as a layered multi-material mesh with a pick proxy");
+    expectAuditFailure(overrides, "keeps every production 3D item layered while merging authored parts into a mobile draw-call budget");
+  });
+
+  it("rejects flattening the material-specific skin hierarchy", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/model-kit.ts"] =
+      overrides["src/scenes/model-kit.ts"].replace("goose-skin-v5:", "goose-skin-flat:");
+    expectAuditFailure(overrides, "goose-skin-v5:");
+  });
+
+  it("rejects removal of low-end mobile and software-renderer quality guardrails", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/render-quality.test.ts"] =
+      overrides["src/scenes/render-quality.test.ts"].replace(
+        "uses a cheaper render path on SwiftShader without reducing gameplay bodies",
+        "checks software rendering",
+      );
+    expectAuditFailure(overrides, "uses a cheaper render path on SwiftShader without reducing gameplay bodies");
+  });
+
+  it("rejects removal of the automatic Android emulator renderer classification", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/render-quality.ts"] =
+      overrides["src/scenes/render-quality.ts"].replace(
+        "android emulator openGL ES translator",
+        "unrecognized emulator renderer",
+      );
+    expectAuditFailure(overrides, "android emulator openGL ES translator");
+  });
+
+  it("rejects missing approved-art fidelity guardrails for opening night-market items", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/model-cache.test.ts"] =
+      overrides["src/scenes/model-cache.test.ts"].replace(
+        "keeps the first-run night-market models faithful to their approved item art",
+        "checks the first-run night models",
+      );
+    expectAuditFailure(overrides, "keeps the first-run night-market models faithful to their approved item art");
+  });
+
+  it("rejects missing two-sided circular-face detail guardrails", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/model-cache.test.ts"] =
+      overrides["src/scenes/model-cache.test.ts"].replace(
+        "keeps rolling night-market circular faces recognizable without painted markers",
+        "checks circular faces",
+      );
+    expectAuditFailure(overrides, "keeps rolling night-market circular faces recognizable without painted markers");
+  });
+
+  it("rejects missing two-sided detail guardrails for the bright themes", () => {
+    for (const title of [
+      "keeps fresh-market packages and cut food readable from both tumble faces",
+      "keeps farm-kitchen silhouettes clean after physics rolls them over",
+    ]) {
+      const overrides = baselineOverrides();
+      overrides["src/scenes/model-cache.test.ts"] =
+        overrides["src/scenes/model-cache.test.ts"].replace(title, "checks bright-theme details");
+      expectAuditFailure(overrides, title);
+    }
+  });
+
+  it("rejects missing collider fidelity guardrails for opening night-market items", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/physics-profiles.test.ts"] =
+      overrides["src/scenes/physics-profiles.test.ts"].replace(
+        "matches the opening night-market colliders to the round lantern and necked bottle",
+        "checks the first-run night colliders",
+      );
+    expectAuditFailure(overrides, "matches the opening night-market colliders to the round lantern and necked bottle");
   });
 
   it("rejects weakened long-run streaming gameplay guardrails", () => {
@@ -187,6 +283,85 @@ describe("release audit script", () => {
     expectAuditFailure(overrides, "keeps complete triple counts inside the initial pile and every refill wave");
   });
 
+  it("rejects weakened dense-pile geometry and 48-kind near-match streaming guardrails", () => {
+    const densityOverrides = baselineOverrides();
+    densityOverrides["src/scenes/pile-density.test.ts"] =
+      densityOverrides["src/scenes/pile-density.test.ts"].replace(
+        "keeps L2 challenge bodies tightly packed enough to create real overlap",
+        "checks L2 dimensions",
+      );
+    expectAuditFailure(
+      densityOverrides,
+      "keeps L2 challenge bodies tightly packed enough to create real overlap",
+    );
+
+    const mixOverrides = baselineOverrides();
+    mixOverrides["src/logic/item-stream.test.ts"] =
+      mixOverrides["src/logic/item-stream.test.ts"].replace(
+        "opens L2 with eighteen identities, six paired near-match families, and 30 later kinds",
+        "checks L2 opening",
+      );
+    expectAuditFailure(
+      mixOverrides,
+      "opens L2 with eighteen identities, six paired near-match families, and 30 later kinds",
+    );
+
+    const sizeMixOverrides = baselineOverrides();
+    sizeMixOverrides["src/logic/item-stream.test.ts"] =
+      sizeMixOverrides["src/logic/item-stream.test.ts"].replace(
+        "opens $id with eighteen identities, fourteen small, two medium and two large bodies",
+        "checks L2 packet sizes",
+      );
+    expectAuditFailure(
+      sizeMixOverrides,
+      "opens $id with eighteen identities, fourteen small, two medium and two large bodies",
+    );
+
+    const familyDiversityOverrides = baselineOverrides();
+    familyDiversityOverrides["src/logic/item-stream.ts"] =
+      familyDiversityOverrides["src/logic/item-stream.ts"].replace(
+        "const usedFamilies = new Set<string>()",
+        "opening selection score",
+      );
+    expectAuditFailure(
+      familyDiversityOverrides,
+      "const usedFamilies = new Set<string>()",
+    );
+
+    const replayMixOverrides = baselineOverrides();
+    replayMixOverrides["src/logic/item-stream.test.ts"] =
+      replayMixOverrides["src/logic/item-stream.test.ts"].replace(
+        "reshuffles the eighteen opening identities and their treatments across fresh runs",
+        "checks opening variety",
+      );
+    expectAuditFailure(
+      replayMixOverrides,
+      "reshuffles the eighteen opening identities and their treatments across fresh runs",
+    );
+
+    const colourBalanceOverrides = baselineOverrides();
+    colourBalanceOverrides["src/logic/item-stream.test.ts"] =
+      colourBalanceOverrides["src/logic/item-stream.test.ts"].replace(
+        "keeps every randomized $id opening spread across broad colour families",
+        "checks opening colours",
+      );
+    expectAuditFailure(
+      colourBalanceOverrides,
+      "keeps every randomized $id opening spread across broad colour families",
+    );
+
+    const packetSpreadOverrides = baselineOverrides();
+    packetSpreadOverrides["src/logic/item-stream.test.ts"] =
+      packetSpreadOverrides["src/logic/item-stream.test.ts"].replace(
+        "separates identical opening triples across the pile instead of spawning free clumps",
+        "checks opening positions",
+      );
+    expectAuditFailure(
+      packetSpreadOverrides,
+      "separates identical opening triples across the pile instead of spawning free clumps",
+    );
+  });
+
   it("rejects weakened fresh-redeal gameplay guardrails", () => {
     const overrides = baselineOverrides();
     overrides["src/logic/guest-engine.test.ts"] =
@@ -195,6 +370,22 @@ describe("release audit script", () => {
         "survives late-level redeals",
       );
     expectAuditFailure(overrides, "survives twenty consecutive late-level redeals without exceeding the live-body ceiling");
+  });
+
+  it("rejects removal of balanced, replay-varying item composition guardrails", () => {
+    const overrides = baselineOverrides();
+    overrides["src/logic/themes.ts"] = overrides["src/logic/themes.ts"].replace(
+      'sizeBand: "large"',
+      'weightBand: "large"',
+    );
+    expectAuditFailure(overrides, "must keep size metadata for all 18 authored silhouettes");
+
+    const replayOverrides = baselineOverrides();
+    replayOverrides["src/logic/progress.test.ts"] = replayOverrides["src/logic/progress.test.ts"].replace(
+      "keeps the tutorial subset and every full challenge order varied across replays",
+      "keeps replay subsets valid",
+    );
+    expectAuditFailure(replayOverrides, "keeps the tutorial subset and every full challenge order varied across replays");
   });
 
   it("rejects weakened shelf rescue rule guardrails", () => {
@@ -295,6 +486,23 @@ describe("release audit script", () => {
     delete packageJson.scripts["prebuild"];
     overrides["package.json"] = JSON.stringify(packageJson);
     expectAuditFailure(overrides, "npm run build must use the prebuild lifecycle to regenerate art/audio");
+  });
+
+  it("rejects art generation that leaves chapter-2 goose portraits stale", () => {
+    const overrides = baselineOverrides();
+    overrides["scripts/generate-art.mjs"] = overrides["scripts/generate-art.mjs"].replace(
+      "Array.from({ length: 9 }",
+      "Array.from({ length: 6 }",
+    );
+    expectAuditFailure(overrides, "Array.from({ length: 9 }");
+  });
+
+  it("rejects restoring the flat procedural portrait generator", () => {
+    const overrides = baselineOverrides();
+    const packageJson = JSON.parse(overrides["package.json"]);
+    packageJson.scripts["geese:generate"] = "node scripts/generate-goose-portraits.mjs";
+    overrides["package.json"] = JSON.stringify(packageJson);
+    expectAuditFailure(overrides, "must not ship the obsolete procedural portrait generator");
   });
 
   it("rejects stale production-build resource lifecycle docs", () => {
@@ -489,6 +697,19 @@ describe("release audit script", () => {
     expectAuditFailure(overrides, "allows rapid different-item picks while the tray choreography queues receipts");
   });
 
+  it("rejects invisible tap proxies stealing picks from visible objects", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/pick-raycast.test.ts"] =
+      overrides["src/scenes/pick-raycast.test.ts"].replace(
+        "never lets an oversized invisible proxy steal a tap from a visible surface",
+        "checks proxy raycasts",
+      );
+    expectAuditFailure(
+      overrides,
+      "never lets an oversized invisible proxy steal a tap from a visible surface",
+    );
+  });
+
   it("rejects a late guest reload that can cancel an immediate start or resume", () => {
     const overrides = baselineOverrides();
     overrides["src/main.tsx"] = overrides["src/main.tsx"].replace(
@@ -496,6 +717,26 @@ describe("release audit script", () => {
       "guest.enter();",
     );
     expectAuditFailure(overrides, "if (!isPlaying.get()) guest.enter()");
+  });
+
+  it("rejects removal of the overhead-readable physical rest guard", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/pile-dynamics.ts"] =
+      overrides["src/scenes/pile-dynamics.ts"].replace(
+        "settleReadableFace",
+        "settleUnreadableEdge",
+      );
+    expectAuditFailure(overrides, "settleReadableFace");
+  });
+
+  it("rejects removal of the authored-top cookware rest guard", () => {
+    const overrides = baselineOverrides();
+    overrides["src/scenes/pile-dynamics.ts"] =
+      overrides["src/scenes/pile-dynamics.ts"].replace(
+        "settleReadableUpright",
+        "settleUnreadableUnderside",
+      );
+    expectAuditFailure(overrides, "settleReadableUpright");
   });
 
   it("rejects stale design QA motion timings", () => {
@@ -530,6 +771,26 @@ describe("release audit script", () => {
     expectAuditFailure(portraitOverrides, "moves a tall-phone pile down into the reference composition without shifting desktop");
   });
 
+  it("rejects removal of the mobile Safari drawer safe-area gate", () => {
+    const overrides = baselineOverrides();
+    overrides["src/PlayArea.accessibility.test.tsx"] = overrides["src/PlayArea.accessibility.test.tsx"]
+      .replace(
+        "keeps the active-run drawer visible in-stage on desktop and above mobile browser chrome",
+        "keeps the active-run drawer in normal document flow",
+      );
+    expectAuditFailure(overrides, "keeps the active-run drawer visible in-stage on desktop and above mobile browser chrome");
+  });
+
+  it("rejects removal of the in-play first-level teaching flow", () => {
+    const overrides = baselineOverrides();
+    overrides["src/PlayArea.accessibility.test.tsx"] = overrides["src/PlayArea.accessibility.test.tsx"]
+      .replace(
+        "teaches the first level in-place and dismisses each lesson from real play state",
+        "renders a static first-level hint",
+      );
+    expectAuditFailure(overrides, "teaches the first level in-place and dismisses each lesson from real play state");
+  });
+
   it("rejects stale release evidence counts and build digests", () => {
     const overrides = baselineOverrides();
     overrides["PRODUCTION-READINESS.md"] =
@@ -548,6 +809,18 @@ describe("release audit script", () => {
         "source, built, staged and catalog versions are all `3.1.0`.",
       );
     expectAuditFailure(overrides, "package, `neo-manifest.json`, and runtime `APP_VERSION`");
+  });
+
+  it("rejects stale level and resource counts in release documentation", () => {
+    const overrides = baselineOverrides();
+    overrides["PRODUCTION-READINESS.md"] = overrides["PRODUCTION-READINESS.md"]
+      .replace("18–1,584 logical objects", "18–432 logical objects");
+    expectAuditFailure(overrides, "18–1,584 logical objects");
+
+    const readmeOverrides = baselineOverrides();
+    readmeOverrides["README.md"] = readmeOverrides["README.md"]
+      .replace("all 186 image dimensions/alpha requirements", "all 175 image dimensions/alpha requirements");
+    expectAuditFailure(readmeOverrides, "186 image");
   });
 
   it("rejects playtest debug actions outside the dev-only branch", () => {
@@ -574,8 +847,27 @@ describe("release audit script", () => {
   it("rejects simulator QA setup autostart outside the dev-only query gate", () => {
     const overrides = baselineOverrides();
     overrides["src/main.tsx"] =
-      overrides["src/main.tsx"].replace("import.meta.env.DEV &&\n      typeof window", "true &&\n      typeof window");
+      overrides["src/main.tsx"].replace(
+        "const simulatorQaParams = import.meta.env.DEV &&",
+        "const simulatorQaParams = true &&",
+      );
     expectAuditFailure(overrides, "must DEV-gate simulator QA setup autostart behind ?simQa=1");
+  });
+
+  it("rejects a simulator theme applied after the guest engine has already started", () => {
+    const overrides = baselineOverrides();
+    overrides["src/main.tsx"] = overrides["src/main.tsx"].replace(
+      "createObservable<GameThemeId>(initialThemeId)",
+      "createObservable<GameThemeId>(loadThemePref())",
+    );
+    expectAuditFailure(overrides, "must resolve a validated simulator theme before the guest engine starts");
+  });
+
+  it("rejects an Android emulator fallback override outside the dev-only query gate", () => {
+    const overrides = baselineOverrides();
+    overrides["src/ThreeGameComponent.tsx"] = overrides["src/ThreeGameComponent.tsx"]
+      .replace("if (!import.meta.env.DEV || typeof window === \"undefined\") return false;", "if (typeof window === \"undefined\") return false;");
+    expectAuditFailure(overrides, "must DEV-gate the Android emulator fallback override");
   });
 
   it("rejects a missing production bundle verifier chain", () => {
@@ -602,6 +894,16 @@ describe("release audit script", () => {
         "production bundle missing runtime chunk",
       );
     expectAuditFailure(overrides, "production bundle missing required asset");
+  });
+
+  it("rejects a production bundle verifier that omits chapter-2 goose portraits", () => {
+    const overrides = baselineOverrides();
+    overrides["scripts/verify-production-bundle.mjs"] =
+      overrides["scripts/verify-production-bundle.mjs"].replace(
+        "Array.from({ length: 9 }",
+        "Array.from({ length: 6 }",
+      );
+    expectAuditFailure(overrides, "Array.from({ length: 9 }");
   });
 
   it("rejects a Device QA bundle verifier without required static asset coverage", () => {
@@ -632,5 +934,32 @@ describe("release audit script", () => {
         "renders Android smoke fallback",
       );
     expectAuditFailure(overrides, "shows a real-asset Android fallback pile when Chrome renders a blank WebGL canvas");
+  });
+
+  it("rejects Android fallback probes that interrupt rapid live play", () => {
+    const overrides = baselineOverrides();
+    overrides["src/ThreeGameComponent.test.tsx"] =
+      overrides["src/ThreeGameComponent.test.tsx"].replace(
+        "keeps a healthy Android WebGL board through rapid item updates",
+        "allows Android fallback probes after every item update",
+      );
+    expectAuditFailure(overrides, "keeps a healthy Android WebGL board through rapid item updates");
+
+    const markerOverrides = baselineOverrides();
+    markerOverrides["src/scenes/ZhuaDaScene.ts"] =
+      markerOverrides["src/scenes/ZhuaDaScene.ts"].replace(
+        "this.renderer.domElement.dataset.gooseFrameReady = \"true\"",
+        "this.renderer.domElement.dataset.gooseFrameReady = \"false\"",
+      );
+    expectAuditFailure(markerOverrides, "this.renderer.domElement.dataset.gooseFrameReady = \"true\"");
+  });
+
+  it("rejects stale simulator conclusions that call healthy Android WebGL blank", () => {
+    const overrides = baselineOverrides();
+    overrides["SIMULATOR-QA.md"] = overrides["SIMULATOR-QA.md"].replace(
+      "positive non-empty render marker",
+      "transparent pixel readback",
+    );
+    expectAuditFailure(overrides, "positive non-empty render marker");
   });
 });

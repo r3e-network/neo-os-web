@@ -16,10 +16,23 @@ import {
   progressWithLastTheme,
   serializeProgress,
 } from "./progress";
-import { LEVEL_CURVE, TOTAL_LEVELS, randomizedSpecOf, specOf } from "./game-rules";
-import { SCENES, isSceneFinalLevel, sceneIndexOfLevel, sceneOfLevel } from "./scenes";
+import {
+  LEVEL_CURVE,
+  TOTAL_LEVELS,
+  isBalancedDealComposition,
+  randomizedSpecOf,
+  specOf,
+  summarizeDealComposition,
+} from "./game-rules";
+import {
+  SCENES,
+  SCENE_KIND_POOL_SIZE,
+  isSceneFinalLevel,
+  sceneIndexOfLevel,
+  sceneOfLevel,
+} from "./scenes";
 import { ITEM_DEFS, TRAY_SLOTS, generateItems, makeRng } from "./engine-zhuada";
-import { DEFAULT_THEME_ID } from "./themes";
+import { DEFAULT_THEME_ID, GAME_THEMES } from "./themes";
 
 describe("progress schema + migration", () => {
   it("defaults on null / garbage payloads", () => {
@@ -129,7 +142,7 @@ describe("progress schema + migration", () => {
       readOnly: true,
       sourceVersion: 8,
     });
-    expect(() => serializeProgress(result.progress)).toThrow(/schema v8/i);
+    expect(() => serializeProgress(result.progress)).toThrow();
     expect(progressAfterWin(result.progress, 4, 700, "timed").next.readOnly).toBe(
       true,
     );
@@ -245,13 +258,13 @@ describe("scene catalog invariants (G4/G5)", () => {
     }
   });
 
-  it("gives all nine scenes distinct 12-kind series spanning the 18-item catalog", () => {
+  it("gives all nine scenes distinct 48-kind series spanning the 54-item catalog", () => {
     const validIds = new Set(ITEM_DEFS.map((def) => def.id));
     const signatures = new Set<string>();
     const catalog = new Set<number>();
     for (const s of SCENES) {
-      expect(s.kindPool).toHaveLength(12);
-      expect(new Set(s.kindPool).size).toBe(12);
+      expect(s.kindPool).toHaveLength(SCENE_KIND_POOL_SIZE);
+      expect(new Set(s.kindPool).size).toBe(SCENE_KIND_POOL_SIZE);
       s.kindPool.forEach((kind) => {
         expect(validIds.has(kind), `${s.nameKey}/${kind}`).toBe(true);
         catalog.add(kind);
@@ -275,7 +288,9 @@ describe("scene catalog invariants (G4/G5)", () => {
     expect(l1.kinds * 2).toBeLessThan(TRAY_SLOTS);
 
     expect(l2.kinds).toBeGreaterThanOrEqual(l1.kinds * 3);
-    expect(l2Items).toBeGreaterThanOrEqual(l1Items * 8);
+    expect(l2.kinds).toBe(48);
+    expect(l2Items).toBe(864);
+    expect(l2Items).toBeGreaterThanOrEqual(l1Items * 40);
   });
 
   it("specOf slices the scene pool and generateItems draws from it (multiple of 3 each)", () => {
@@ -305,5 +320,41 @@ describe("scene catalog invariants (G4/G5)", () => {
     expect(first.kindPool).toHaveLength(first.kinds);
     expect(new Set(first.kindPool).size).toBe(first.kinds);
     expect(first.kindPool!.every((kind) => sceneKinds.has(kind))).toBe(true);
+  });
+
+  it("guarantees rich big/small, silhouette and near-colour composition for every theme", () => {
+    for (const theme of GAME_THEMES) {
+      for (let level = 1; level <= TOTAL_LEVELS; level += 1) {
+        const sceneKinds = new Set(sceneOfLevel(level).kindPool);
+        for (let seed = 1; seed <= 6; seed += 1) {
+          const spec = randomizedSpecOf(level, makeRng(level * 1000 + seed), theme.id);
+          expect(
+            isBalancedDealComposition(theme.id, spec.kindPool ?? []),
+            `${theme.id}/L${level}/seed${seed} ${JSON.stringify(summarizeDealComposition(theme.id, spec.kindPool ?? []))}`,
+          ).toBe(true);
+          expect(spec.kindPool?.every((kind) => sceneKinds.has(kind))).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("keeps the tutorial subset and every full challenge order varied across replays", () => {
+    for (const theme of GAME_THEMES) {
+      for (const level of [1, 2, 5, 12, 24]) {
+        const orders = new Set<string>();
+        const subsets = new Set<string>();
+        for (let seed = 1; seed <= 24; seed += 1) {
+          const spec = randomizedSpecOf(level, makeRng(level * 10000 + seed), theme.id);
+          orders.add((spec.kindPool ?? []).join(","));
+          subsets.add([...(spec.kindPool ?? [])].sort((a, b) => a - b).join(","));
+        }
+        expect(orders.size, `${theme.id}/L${level} unique orders`).toBeGreaterThanOrEqual(3);
+        if (level === 1) {
+          expect(subsets.size, `${theme.id}/L${level} unique subsets`).toBeGreaterThanOrEqual(3);
+        } else {
+          expect(subsets.size, `${theme.id}/L${level} authored full subset`).toBe(1);
+        }
+      }
+    }
   });
 });

@@ -35,6 +35,13 @@ async function boot(): Promise<void> {
 
   setup(ctx) {
     const app = ctx.framework;
+    const simulatorQaParams = import.meta.env.DEV && typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : null;
+    const simulatorQaTheme = simulatorQaParams?.get("simTheme");
+    const initialThemeId = isGameThemeId(simulatorQaTheme)
+      ? simulatorQaTheme
+      : loadThemePref();
 
     // Standard session observables (reused everywhere — same object the guest mutates).
     const obs = app.game.session.observables(ctx.t);
@@ -73,7 +80,10 @@ async function boot(): Promise<void> {
     const shuffleNonce = createObservable(0);
     const hintNonce = createObservable(0);
     const extractReceipt = createObservable({ ...EMPTY_EXTRACT_RECEIPT });
-    const themeId = createObservable<GameThemeId>(loadThemePref());
+    // Resolve the simulator theme before the guest engine and first deal are
+    // created. Applying it later through setTheme is racy by design because
+    // setTheme correctly refuses to mutate an active run.
+    const themeId = createObservable<GameThemeId>(initialThemeId);
     const resumeAvailable = createObservable(false);
     const resumeLevel = createObservable(0);
     const continueAvailable = createObservable(false);
@@ -341,8 +351,7 @@ async function boot(): Promise<void> {
 
     if (
       import.meta.env.DEV &&
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).get("simQa") === "1"
+      simulatorQaParams?.get("simQa") === "1"
     ) {
       window.setTimeout(() => {
         app.mode.set("guest");

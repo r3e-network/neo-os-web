@@ -1,6 +1,6 @@
 # Original art source manifest
 
-Review date: 2026-07-11
+Review date: 2026-07-25
 
 Origin: generated specifically for this project with OpenAI ImageGen, then
 selected and refined against the user-provided gameplay-video composition.
@@ -12,7 +12,7 @@ list below is the canonical identity record for the reviewed masters.
 Art direction: original chibi goose characters; warm, cute, toy-like material
 language; three independent settings (fresh market, farm kitchen, night
 market); portrait mobile backdrops; clean 4x3 object catalogs; wicker, wood and
-bamboo container surfaces; six independently rendered collection portraits;
+bamboo container surfaces; nine independently rendered collection portraits;
 no original-game brand marks or character copies.
 
 ```text
@@ -26,9 +26,12 @@ a5e3a255adf988b6fa18c45bae76ac85f99e6f4ce0ed0ae69a102d25b5aaed6b  goose-collecti
 caa837e14da559fe5773aee3cc450d84e77e246aef7a5c10a5ff304c71ea2e08  goose-collection-03.png
 a6e790a6cb74e731e6115cae79f4eb670291982aad7659f13d5649734af257d1  goose-collection-04.png
 fee2c25ea0770479b76bab3b349aff022c6929eef5ccec8b2bff6537b43da2eb  goose-collection-05.png
-a9d11b4b1445d748a353a64392a095bdc0f32c9e3a01376e7850ad256d8aaf4a  items-farm-kitchen-atlas.png
-5d55517fa9830740125d8123c52fc97dfb5e718d2cc0110724539aeaff52b79a  items-fresh-market-atlas.png
-c9f7de540a9583be7d1010e87d203d242d5c6923a376fa59570c5edb44be6a00  items-night-market-atlas.png
+814f1f5fc2af20c5d4f0e50c744f48ba6a784186325517a60c8cd8094f797469  goose-collection-06.png
+9414255ae070571a4c9595360b3f39c48eccded819be3eb6e5a480f04211d4b4  goose-collection-07.png
+bff3437b79440ceb581a4ac326629c2ef57f7e637911a826dc1bd15ad7117b25  goose-collection-08.png
+338404e7345545c4a78903cbe5f9b9af35dcfca580b351bdf454cf5d53d2d585  items-farm-kitchen-atlas.png
+87edffa1f35ab0203cf9cbbd0030c2ba65e0bd7b20726a5c7c7acfd21eaed2fe  items-fresh-market-atlas.png
+3be09f9dacfb982892a94046b09895ce1d99657894492e511a69b50684b9abfe  items-night-market-atlas.png
 d2439e9a6bf8c491f56ddd34d1d268d9f135edc138b9a2239760c58af3d6a159  logo-master.png
 be6af492404c3a44b62d21c9e7c97ee958b5439e1a0a08b8a9834d9864d1981b  mascot-farm-kitchen.png
 a4de61d6cf17c2dc7ab1d83915efafb6d4aa1ad83a6a3c4bd85895e73a29c967  mascot-fresh-market.png

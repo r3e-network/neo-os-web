@@ -20,7 +20,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { GameBridge } from "@framework/phaser/GameBridge";
 import type { DispatchFn, GameState } from "@framework/phaser/types";
-import { THEME_ITEM_COUNT } from "./logic/themes";
+import { themeItem, themeOf } from "./logic/themes";
+import { publicAssetUrl } from "./logic/public-asset-url";
+import { ThemeItemChip } from "./ThemeItemChip";
 
 export interface ThreeGameProps {
   /** A ready-to-use Three.js scene controller (owns renderer + loop). */
@@ -57,6 +59,8 @@ export interface ThreeSceneController {
   activatePrimary?(): void;
   /** Stop physics/render work after an unrecoverable GPU interruption. */
   pause?(): void;
+  /** Resume physics/render work after leaving a compatibility fallback. */
+  resume?(): void;
   /** Tear down renderer + listeners. */
   unmount(): void;
 }
@@ -79,34 +83,38 @@ function isAndroidChromeRuntime(): boolean {
   return /\bAndroid\b/i.test(ua) && /\b(?:Chrome|Chromium)\//i.test(ua);
 }
 
-function canvasLooksBlank(canvas: HTMLCanvasElement): boolean {
-  const sample = document.createElement("canvas");
-  sample.width = 20;
-  sample.height = 20;
-  const ctx = sample.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return false;
-  try {
-    ctx.drawImage(canvas, 0, 0, sample.width, sample.height);
-    const pixels = ctx.getImageData(0, 0, sample.width, sample.height).data;
-    for (let i = 0; i < pixels.length; i += 4) {
-      if (pixels[i] !== 0 || pixels[i + 1] !== 0 || pixels[i + 2] !== 0 || pixels[i + 3] !== 0) {
-        return false;
-      }
-    }
-    return true;
-  } catch {
-    return false;
-  }
+function forcesAndroidSimulatorFallback(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get("simQa") === "1" && params.get("androidFallback") === "1";
 }
 
-function fallbackItemStyle(item: FallbackItem, index: number, total: number): CSSProperties {
+function canvasLooksBlank(canvas: HTMLCanvasElement): boolean {
+  // Only the scene's direct post-render framebuffer probe is a trustworthy
+  // positive signal. Android Emulator can expose fully populated WebGL pixels
+  // to drawImage while Chrome's compositor still presents a transparent
+  // surface; accepting that offscreen copy left the player staring at an
+  // empty table forever. Healthy Android renderers mark the canvas from
+  // ZhuaDaScene immediately after a visible submitted frame.
+  return canvas.dataset.gooseSoftwareRenderer === "true"
+    || canvas.dataset.gooseFrameReady !== "true";
+}
+
+function fallbackItemStyle(
+  item: FallbackItem,
+  index: number,
+  total: number,
+  themeId: string,
+): CSSProperties {
   const ring = index / Math.max(1, total);
   const angle = (item.id * 137.508 + item.kind * 23 + index * 11) * (Math.PI / 180);
   const radius = 8 + (item.id * 17 + item.kind * 9 + index * 5) % 33;
   const x = 50 + Math.cos(angle) * radius;
   const y = 51 + Math.sin(angle) * radius * 0.82 + (ring - 0.5) * 8;
   const rotate = ((item.id * 29 + item.kind * 17) % 70) - 35;
-  const scale = 0.84 + ((item.id + item.kind + index) % 7) * 0.035;
+  const sizeBand = themeItem(themeId, item.kind).sizeBand;
+  const sizeScale = sizeBand === "large" ? 1.2 : sizeBand === "small" ? 0.76 : 0.98;
+  const scale = (0.86 + ((item.id + item.kind + index) % 5) * 0.025) * sizeScale;
   return {
     left: `${Math.max(12, Math.min(88, x))}%`,
     top: `${Math.max(15, Math.min(84, y))}%`,
@@ -123,6 +131,8 @@ function AndroidCanvasFallback({
   dispatch: DispatchFn;
 }) {
   const themeId = String(state?.themeId ?? "fresh-market");
+  const safeThemeId = themeOf(themeId).id;
+  const shakeNonce = Number(state?.shakeNonce ?? 0) || 0;
   const rawItems = Array.isArray(state?.items) ? state.items : [];
   const items = rawItems
     .map((item) => item && typeof item === "object" ? item as Record<string, unknown> : null)
@@ -135,25 +145,26 @@ function AndroidCanvasFallback({
     <div className="goose-android-fallback" data-testid="android-canvas-fallback">
       <img
         className="goose-android-fallback__basket"
-        src={`./art/container-${themeId}.webp`}
+        src={publicAssetUrl(`./art/container-${safeThemeId}.webp`)}
         alt=""
         draggable={false}
       />
-      <div className="goose-android-fallback__pile" aria-label="Android fallback item pile">
+      <div
+        key={`fallback-pile-${shakeNonce}`}
+        className="goose-android-fallback__pile"
+        data-shaking={shakeNonce > 0 ? "true" : undefined}
+        aria-label="Android fallback item pile"
+      >
         {items.map((item, index) => (
           <button
             key={item.id}
             type="button"
             className="goose-android-fallback__item"
-            style={fallbackItemStyle(item, index, items.length)}
+            style={fallbackItemStyle(item, index, items.length, themeId)}
             aria-label={`Pick item ${item.kind + 1}`}
             onClick={() => { void dispatch("extract", { itemId: item.id }); }}
           >
-            <img
-              src={`./art/items/${themeId}/item-${String(Math.max(0, Math.min(THEME_ITEM_COUNT - 1, item.kind))).padStart(2, "0")}.webp`}
-              alt=""
-              draggable={false}
-            />
+            <ThemeItemChip themeId={safeThemeId} kind={item.kind} />
           </button>
         ))}
       </div>
@@ -234,15 +245,28 @@ export function ThreeGameComponent({
     window.__phaserBridge = bridge;
 
     // Hand control to the scene. It owns the WebGLRenderer + rAF loop.
+    //
+    // The explicit Android simulator fallback is a development-only QA lane
+    // for emulator images whose Chromium GPU process is unstable. Mounting a
+    // WebGLRenderer behind that DOM fallback can still crash/restart the GPU
+    // process and take the visible compatibility board down with it. In that
+    // one opt-in lane, keep the real game rules/dispatch/state flow but do not
+    // create a WebGL context at all.
+    const skipSceneBoot = forcesAndroidSimulatorFallback() && isAndroidChromeRuntime();
     mountedOkRef.current = false;
-    try {
-      scene.mount(mount, bridge);
-      mountedOkRef.current = true;
-    } catch (err) {
-      setError({
-        message: err instanceof Error && err.message ? err.message : errorLabel,
-        mode: "retry",
-      });
+    if (skipSceneBoot) {
+      setReady(true);
+      onReadyRef.current?.();
+    } else {
+      try {
+        scene.mount(mount, bridge);
+        mountedOkRef.current = true;
+      } catch (err) {
+        setError({
+          message: err instanceof Error && err.message ? err.message : errorLabel,
+          mode: "retry",
+        });
+      }
     }
 
     // Keep renderer size + camera aspect in sync with the host box (mobile
@@ -288,7 +312,7 @@ export function ThreeGameComponent({
       rendererCanvas?.removeEventListener("webglcontextlost", onContextLost);
       unsubReady();
       unsubError();
-      scene.unmount();
+      if (!skipSceneBoot) scene.unmount();
       bridge.destroy();
       mount.replaceChildren();
       if (window.__phaserBridge === bridge) {
@@ -329,6 +353,14 @@ export function ThreeGameComponent({
       setAndroidCanvasFallback(false);
       return;
     }
+    // Some Android Emulator GPU backends can crash/restart Chromium's GPU
+    // process while the normal Android UI remains healthy. This explicit,
+    // development-only QA switch keeps that known host-driver limitation from
+    // blocking interaction verification; production never reads or ships it.
+    if (forcesAndroidSimulatorFallback()) {
+      setAndroidCanvasFallback(true);
+      return;
+    }
     let cancelled = false;
     const id = window.setTimeout(() => {
       const canvas = mountRef.current?.querySelector("canvas");
@@ -340,7 +372,26 @@ export function ThreeGameComponent({
       cancelled = true;
       window.clearTimeout(id);
     };
-  }, [error, ready, state?.gameStatus, state?.items]);
+  // This is intentionally an initial-deal health check, not a per-pick
+  // screenshot test. Android's compositor may return a transient transparent
+  // readback while a perfectly healthy WebGL canvas is animating. Re-running
+  // the heuristic for every `items` update can therefore replace the live 3D
+  // board with the emergency DOM fallback in the middle of rapid play.
+  // Context loss after boot is handled separately by `webglcontextlost`.
+  }, [error, ready, state?.gameStatus]);
+
+  // The DOM fallback is intentionally an emergency compatibility surface, not
+  // a second renderer. Stop the hidden Three/Cannon loop while it is visible
+  // so a blank Android GPU path cannot keep consuming battery or compounding a
+  // compositor failure. Resume with a fresh clock delta if the board recovers.
+  useEffect(() => {
+    if (!mountedOkRef.current) return;
+    if (androidCanvasFallback) {
+      scene.pause?.();
+    } else {
+      scene.resume?.();
+    }
+  }, [androidCanvasFallback, scene]);
 
   // Mobile responsive sizing — match the Phaser component's behavior.
   useEffect(() => {

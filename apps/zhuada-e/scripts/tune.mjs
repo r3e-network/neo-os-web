@@ -17,10 +17,10 @@
  *      a FAIRNESS FLOOR for the currently shipped timed mode, and gates that
  *      the shipped timeMs never sits below it.
  *   4. STREAM + OCCLUSION MODEL — hundreds of logical items are packetized as
- *      complete triples, but item-stream.ts exposes only 48 initially and one
- *      9-item bottom-up wave after the live pile falls to 42. Within that live
+ *      complete triples, but item-stream.ts exposes only 54 initially and one
+ *      9-item bottom-up wave after the live pile falls to 45. Within that live
  *      physics window only E(n) = max(6, round(n^0.72)) top items are pickable
- *      (n=18 → 8 exposed, n=48 → 16), matching the shipped reservoir model.
+ *      (n=18 → 8 exposed, n=54 → 18), matching the shipped reservoir model.
  *   5. STRATEGY OPTIONS — policies can spend rescue moves:
  *        shuffle : re-roll kind assignment + re-pile (shipped power-up, 1/level
  *                  grant read from guest-engine.ts)
@@ -135,7 +135,7 @@ const STREAM_REFILL_TRIGGER = extractIntConst(streamSrc, "STREAM_REFILL_TRIGGER"
 const STREAM_REFILL_BATCH = extractIntConst(streamSrc, "STREAM_REFILL_BATCH", "item-stream.ts");
 const STREAM_VISIBLE_CEILING = extractIntConst(streamSrc, "STREAM_VISIBLE_CEILING", "item-stream.ts");
 const SCORE_PER_MATCH_DEFAULT = 10; // default of readTuneNum("score", 10, …)
-const SCENE_KIND_COUNT = 12;
+const SCENE_KIND_COUNT = extractIntConst(scenesSrc, "SCENE_KIND_POOL_SIZE", "scenes.ts");
 const CATALOG_KIND_COUNT = (engineSrc.match(/\{ id: \d+, name:/g) ?? []).length;
 
 // Shipped-data invariants (fail fast — a broken catalog invalidates every row).

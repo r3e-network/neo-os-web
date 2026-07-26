@@ -14,6 +14,7 @@ const sourceDir = path.join(appDir, "art-src");
 const publicDir = path.join(appDir, "public");
 const artDir = path.join(publicDir, "art");
 const geeseDir = path.join(artDir, "geese");
+const variantsOnly = process.argv.includes("--variants-only");
 
 await fs.mkdir(artDir, { recursive: true });
 await fs.mkdir(geeseDir, { recursive: true });
@@ -24,7 +25,8 @@ const themeAtlases = [
   ["night-market", "items-night-market-atlas.png"],
 ];
 
-const ITEM_COUNT = 18;
+const BASE_ITEM_COUNT = 18;
+const ITEM_COUNT = 54;
 
 const supplementalPalettes = {
   "fresh-market": ["#d94c52", "#63a55b", "#e5a72f", "#f2c84b", "#c86f4a", "#f0d78a"],
@@ -33,30 +35,30 @@ const supplementalPalettes = {
 };
 
 function supplementalIconMarkup(themeId, offset) {
-  const common = { stroke: "#563824", gold: "#f5be45", green: "#4f8c49", cream: "#fff2cf", red: "#c8413c" };
+  const common = { gold: "#f5be45", green: "#4f8c49", cream: "#fff2cf", red: "#c8413c", dark: "#563824" };
   const fresh = [
-    `<path d="M70 154 Q150 184 230 154 L216 222 Q150 248 84 222Z" fill="url(#accent)"/><path d="M88 166 Q92 78 150 78 Q208 78 212 166" fill="none" stroke="#9a6339" stroke-width="13"/><g fill="url(#body)"><circle cx="112" cy="143" r="30"/><circle cx="151" cy="126" r="33"/><circle cx="190" cy="145" r="29"/></g><g fill="${common.cream}"><circle cx="103" cy="138" r="4"/><circle cx="145" cy="120" r="4"/><circle cx="184" cy="140" r="4"/></g><path d="M134 92l17-22 17 22-17 9z" fill="${common.green}"/>`,
-    `<path d="M56 220 L150 58 L244 220Z" fill="${common.green}"/><path d="M69 211 L150 75 L231 211Z" fill="#e7efad"/><path d="M84 198 L150 92 L216 198Z" fill="url(#body)"/><g fill="#4a3028"><ellipse cx="128" cy="156" rx="6" ry="11"/><ellipse cx="171" cy="157" rx="6" ry="11"/><ellipse cx="150" cy="126" rx="6" ry="11"/></g>`,
-    `<path d="M88 86 Q150 65 212 86 L205 224 Q150 246 95 224Z" fill="url(#body)"/><rect x="91" y="66" width="118" height="35" rx="12" fill="${common.gold}"/><rect x="103" y="126" width="94" height="69" rx="18" fill="${common.cream}"/><path d="M128 162h44M150 140v44" stroke="#a66a22" stroke-width="8" stroke-linecap="round"/>`,
-    `<path d="M58 218 L237 218 L82 78Z" fill="url(#body)"/><path d="M58 218 L82 78 L98 97 L79 218Z" fill="#d99b29"/><g fill="#ad7422"><circle cx="116" cy="179" r="13"/><circle cx="145" cy="139" r="10"/><circle cx="181" cy="190" r="15"/><circle cx="100" cy="207" r="8"/></g>`,
-    `<path d="M89 138h122l-15 106H104Z" fill="url(#body)"/><path d="M84 137q66-18 132 0" fill="none" stroke="#9e5738" stroke-width="14"/><path d="M150 142V83" stroke="${common.green}" stroke-width="10"/><path d="M149 97q-34-37-52-2 25 25 52 2M151 113q34-38 52-2-25 25-52 2" fill="${common.green}"/><g transform="translate(150 67)"><g fill="${common.cream}"><ellipse rx="16" ry="41" transform="rotate(0)"/><ellipse rx="16" ry="41" transform="rotate(60)"/><ellipse rx="16" ry="41" transform="rotate(120)"/></g><circle r="17" fill="${common.gold}"/></g>`,
-    `<rect x="87" y="72" width="126" height="174" rx="15" fill="url(#body)"/><path d="M87 96l31-38h64l31 38" fill="url(#soft)"/><rect x="104" y="126" width="92" height="82" rx="17" fill="${common.cream}"/><path d="M149 190q-31-29-4-55 34 5 29 35-8 25-25 20Z" fill="${common.green}"/><path d="M185 72l17-38" stroke="${common.red}" stroke-width="9" stroke-linecap="round"/>`,
+    `<path d="M66 168Q150 190 234 168L218 230Q150 258 82 230Z" fill="url(#accent)"/><g fill="url(#body)"><circle cx="111" cy="145" r="34"/><circle cx="151" cy="126" r="38"/><circle cx="191" cy="145" r="34"/></g><path d="M150 92q-12-28-29-6l18 18Z" fill="${common.green}"/>`,
+    `<path d="M58 224L150 58l92 166Z" fill="${common.green}"/><path d="M73 214L150 76l77 138Z" fill="#e7efad"/><path d="M88 202L150 94l62 108Z" fill="url(#body)"/>`,
+    `<path d="M88 90Q150 66 212 90L204 228Q150 252 96 228Z" fill="url(#body)"/><rect x="88" y="70" width="124" height="34" rx="14" fill="${common.gold}"/><path d="M106 129h88v65h-88Z" fill="${common.cream}"/>`,
+    `<path d="M58 224L238 224L83 72Z" fill="url(#body)"/><path d="M58 224L83 72L102 96L80 224Z" fill="#d99b29"/>`,
+    `<path d="M88 142h124l-16 104H104Z" fill="url(#body)"/><path d="M150 142V82" stroke="${common.green}" stroke-width="12"/><path d="M150 94Q115 67 100 102Q124 126 150 108Q176 126 200 102Q185 67 150 94Z" fill="${common.green}"/><circle cx="150" cy="62" r="18" fill="${common.gold}"/>`,
+    `<rect x="88" y="72" width="124" height="176" rx="16" fill="url(#body)"/><path d="M88 98L119 58h62l31 40Z" fill="url(#soft)"/><rect x="104" y="128" width="92" height="82" rx="17" fill="${common.cream}"/><path d="M185 72L202 34" stroke="${common.red}" stroke-width="10" stroke-linecap="round"/>`,
   ];
   const farm = [
-    `<rect x="58" y="105" width="184" height="94" rx="45" fill="url(#body)"/><rect x="27" y="127" width="50" height="50" rx="23" fill="url(#soft)"/><rect x="223" y="127" width="50" height="50" rx="23" fill="url(#soft)"/><path d="M88 108v88M212 108v88" stroke="#754625" stroke-width="8"/>`,
-    `<path d="M72 111h156l-14 116q-64 27-128 0Z" fill="url(#body)"/><ellipse cx="150" cy="108" rx="86" ry="22" fill="${common.cream}"/><path d="M98 106q52-56 104 0" fill="none" stroke="#293942" stroke-width="12"/><circle cx="150" cy="63" r="16" fill="${common.gold}"/><rect x="40" y="134" width="42" height="25" rx="10" fill="#293942"/><rect x="218" y="134" width="42" height="25" rx="10" fill="#293942"/>`,
-    `<path d="M65 207Q66 82 150 72q84 10 85 135-85 38-170 0Z" fill="url(#body)"/><path d="M104 93l-20 60M150 75l-12 67M195 95l-20 58" stroke="#9a5e2f" stroke-width="10" stroke-linecap="round"/><path d="M76 204q74 25 148 0" stroke="${common.cream}" stroke-width="14"/>`,
-    `<path d="M84 96h132l-9 139q-57 27-114 0Z" fill="${common.cream}"/><ellipse cx="150" cy="96" rx="70" ry="19" fill="url(#body)"/><path d="M91 136h118M91 200h118" stroke="#477fac" stroke-width="9"/><rect x="110" y="148" width="80" height="39" rx="12" fill="url(#body)"/><circle cx="150" cy="75" r="18" fill="${common.gold}"/>`,
-    `<ellipse cx="147" cy="170" rx="66" ry="73" fill="url(#body)"/><circle cx="157" cy="92" r="43" fill="url(#body)"/><path d="M157 48q-18-31-31 2M157 48q0-37 17-5M170 51q20-26 28 4" fill="none" stroke="${common.red}" stroke-width="12"/><path d="M195 98l38 17-38 17Z" fill="${common.gold}"/><path d="M87 159q-42-45-51 14 31 5 56 28M88 154q-25-64-46-26" fill="none" stroke="#3f4936" stroke-width="13"/><circle cx="173" cy="89" r="5" fill="#2a2420"/>`,
-    `<circle cx="143" cy="155" r="86" fill="url(#body)"/><g fill="none" stroke="url(#soft)" stroke-width="8"><ellipse cx="143" cy="155" rx="75" ry="37" transform="rotate(18 143 155)"/><ellipse cx="143" cy="155" rx="75" ry="37" transform="rotate(75 143 155)"/><ellipse cx="143" cy="155" rx="75" ry="37" transform="rotate(132 143 155)"/></g><path d="M179 102l75 122" stroke="#bd9a66" stroke-width="8" stroke-linecap="round"/>`,
+    `<g fill="url(#body)"><rect x="34" y="124" width="232" height="42" rx="20"/><rect x="58" y="100" width="184" height="90" rx="44"/></g><circle cx="62" cy="145" r="22" fill="url(#soft)"/><circle cx="238" cy="145" r="22" fill="url(#soft)"/>`,
+    `<path d="M72 112h156l-14 116q-64 27-128 0Z" fill="url(#body)"/><ellipse cx="150" cy="108" rx="86" ry="22" fill="${common.cream}"/><path d="M98 106q52-56 104 0" fill="none" stroke="#293942" stroke-width="12"/><circle cx="150" cy="63" r="16" fill="${common.gold}"/>`,
+    `<path d="M65 207Q66 82 150 72q84 10 85 135-85 38-170 0Z" fill="url(#body)"/><path d="M76 204q74 25 148 0" stroke="${common.cream}" stroke-width="14"/>`,
+    `<path d="M84 96h132l-9 139q-57 27-114 0Z" fill="${common.cream}"/><ellipse cx="150" cy="96" rx="70" ry="19" fill="url(#body)"/><rect x="110" y="148" width="80" height="39" rx="12" fill="url(#body)"/>`,
+    `<ellipse cx="147" cy="170" rx="66" ry="73" fill="url(#body)"/><circle cx="157" cy="92" r="43" fill="url(#body)"/><path d="M195 98l38 17-38 17Z" fill="${common.gold}"/><path d="M87 159q-42-45-51 14 31 5 56 28M88 154q-25-64-46-26" fill="none" stroke="#3f4936" stroke-width="13"/>`,
+    `<circle cx="143" cy="151" r="82" fill="url(#body)"/><path d="M83 127Q143 75 204 126Q143 100 83 127Z" fill="url(#soft)"/><path d="M68 165Q143 112 218 164Q143 139 68 165Z" fill="url(#soft)"/><path d="M83 199Q143 158 203 198Q143 181 83 199Z" fill="url(#soft)"/><path d="M193 202Q249 210 240 252Q211 239 185 220Z" fill="url(#body)"/>`,
   ];
   const night = [
-    `<ellipse cx="137" cy="161" rx="76" ry="65" fill="url(#body)"/><path d="M205 145l55-43-28 72Z" fill="url(#body)"/><path d="M66 142q-49-35-53 23 8 51 60 18" fill="none" stroke="${common.gold}" stroke-width="13"/><ellipse cx="137" cy="91" rx="46" ry="14" fill="url(#soft)"/><circle cx="137" cy="70" r="14" fill="${common.gold}"/><path d="M114 162h46" stroke="${common.gold}" stroke-width="9"/>`,
-    `<path d="M150 232L61 128Q150 36 239 128Z" fill="url(#body)"/><g stroke="${common.gold}" stroke-width="7"><path d="M150 232L61 128M150 232L94 91M150 232V66M150 232L206 91M150 232L239 128"/></g><circle cx="150" cy="232" r="17" fill="${common.gold}"/>`,
-    `<ellipse cx="150" cy="175" rx="63" ry="74" fill="url(#body)"/><circle cx="150" cy="99" r="47" fill="url(#body)"/><path d="M112 67l14-35 20 31M188 67l-14-35-20 31" fill="url(#soft)"/><path d="M195 124v-71" stroke="url(#body)" stroke-width="25" stroke-linecap="round"/><circle cx="136" cy="98" r="5"/><circle cx="164" cy="98" r="5"/><circle cx="150" cy="174" r="30" fill="${common.gold}"/><path d="M140 174h20M150 164v20" stroke="${common.red}" stroke-width="6"/>`,
-    `<path d="M62 128h176l-20 102q-68 35-136 0Z" fill="url(#body)"/><ellipse cx="150" cy="128" rx="88" ry="26" fill="#8b4c2d"/><g fill="none" stroke="#f1d183" stroke-width="9"><path d="M86 123q25-38 50 0t50 0 28 0"/><path d="M91 139q25-38 50 0t50 0"/></g><path d="M172 72l-34 110M203 79l-35 110" stroke="#b8893f" stroke-width="8" stroke-linecap="round"/>`,
-    `<path d="M150 235Q49 203 81 126q25 30 45 19-9-47 24-87 33 40 24 87 20 11 45-19 32 77-69 109Z" fill="url(#body)"/><path d="M150 222q-50-38-26-92 26 29 26-49 26 78 26 49 24 54-26 92Z" fill="url(#soft)"/><circle cx="150" cy="172" r="24" fill="${common.gold}"/>`,
-    `<rect x="88" y="51" width="124" height="198" rx="18" fill="${common.green}"/><rect x="101" y="64" width="98" height="172" rx="14" fill="url(#body)"/><g fill="none" stroke-width="8"><circle cx="132" cy="112" r="13" stroke="${common.red}"/><circle cx="168" cy="112" r="13" stroke="#2f7b5d"/><circle cx="132" cy="157" r="13" stroke="#2f7b5d"/><circle cx="168" cy="157" r="13" stroke="${common.red}"/><circle cx="150" cy="201" r="13" stroke="#2f7b5d"/></g>`,
+    `<path d="M83 126Q83 213 150 232Q217 213 217 126Q150 151 83 126Z" fill="url(#body)"/><ellipse cx="150" cy="124" rx="68" ry="20" fill="${common.cream}"/><path d="M211 136Q268 105 259 161Q247 179 213 170Z" fill="url(#body)"/><path d="M94 129Q42 112 43 174Q48 220 108 205" fill="none" stroke="${common.gold}" stroke-width="17"/><rect x="119" y="88" width="62" height="18" rx="9" fill="${common.gold}"/><circle cx="150" cy="74" r="14" fill="${common.gold}"/>`,
+    `<path d="M150 232L64 132Q150 42 236 132Z" fill="url(#body)"/><path d="M150 232L150 68" stroke="${common.gold}" stroke-width="9"/><circle cx="150" cy="232" r="17" fill="${common.gold}"/>`,
+    `<ellipse cx="150" cy="176" rx="63" ry="74" fill="url(#body)"/><circle cx="150" cy="98" r="47" fill="url(#body)"/><path d="M112 67l14-35 20 31M188 67l-14-35-20 31" fill="url(#soft)"/><path d="M195 124v-71" stroke="url(#body)" stroke-width="25" stroke-linecap="round"/><circle cx="136" cy="98" r="5"/><circle cx="164" cy="98" r="5"/><ellipse cx="150" cy="178" rx="27" ry="20" fill="${common.gold}"/>`,
+    `<path d="M62 130h176l-20 101q-68 35-136 0Z" fill="url(#body)"/><ellipse cx="150" cy="128" rx="88" ry="26" fill="#8b4c2d"/><path d="M100 144Q150 112 200 144" fill="none" stroke="#f1d183" stroke-width="11"/>`,
+    `<path d="M150 235Q49 203 81 126q25 30 45 19-9-47 24-87 33 40 24 87 20 11 45-19 32 77-69 109Z" fill="url(#body)"/><path d="M150 222Q123 196 150 170Q177 196 150 222Z" fill="url(#soft)"/><circle cx="150" cy="168" r="22" fill="${common.gold}"/>`,
+    `<rect x="88" y="51" width="124" height="198" rx="18" fill="${common.green}"/><rect x="101" y="64" width="98" height="172" rx="14" fill="url(#body)"/><path d="M121 90h58v122h-58Z" fill="${common.cream}"/>`,
   ];
   return (themeId === "fresh-market" ? fresh : themeId === "farm-kitchen" ? farm : night)[offset];
 }
@@ -72,15 +74,222 @@ function supplementalItemSvg(themeId, kind) {
       <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#322016" flood-opacity=".34"/></filter>
     </defs>
     <g filter="url(#shadow)" stroke="#563824" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">${supplementalIconMarkup(themeId, offset)}</g>
-    <path d="M92 58q38-25 76-9" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="7" stroke-linecap="round"/>
   </svg>`);
+}
+
+function rgbToHsl(red, green, blue) {
+  red /= 255;
+  green /= 255;
+  blue /= 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const lightness = (max + min) / 2;
+  let hue = 0;
+  let saturation = 0;
+  if (max !== min) {
+    const delta = max - min;
+    saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+    if (max === red) hue = (green - blue) / delta + (green < blue ? 6 : 0);
+    else if (max === green) hue = (blue - red) / delta + 2;
+    else hue = (red - green) / delta + 4;
+    hue /= 6;
+  }
+  return [hue, saturation, lightness];
+}
+
+function hueToRgb(p, q, hue) {
+  if (hue < 0) hue += 1;
+  if (hue > 1) hue -= 1;
+  if (hue < 1 / 6) return p + (q - p) * 6 * hue;
+  if (hue < 1 / 2) return q;
+  if (hue < 2 / 3) return p + (q - p) * (2 / 3 - hue) * 6;
+  return p;
+}
+
+function hslToRgb(hue, saturation, lightness) {
+  if (saturation === 0) return [lightness * 255, lightness * 255, lightness * 255];
+  const q = lightness < 0.5
+    ? lightness * (1 + saturation)
+    : lightness + saturation - lightness * saturation;
+  const p = 2 * lightness - q;
+  return [
+    hueToRgb(p, q, hue + 1 / 3) * 255,
+    hueToRgb(p, q, hue) * 255,
+    hueToRgb(p, q, hue - 1 / 3) * 255,
+  ];
+}
+
+function hueDistanceDegrees(left, right) {
+  const distance = Math.abs(left - right);
+  return Math.min(distance, 360 - distance);
+}
+
+function variantTreatment(baseHue, baseLightness, baseKind, variant) {
+  const anchor = (baseKind * 137.508 + 24) % 360;
+  const firstHue = hueDistanceDegrees(anchor, baseHue) < 75
+    ? (anchor + 180) % 360
+    : anchor;
+  const secondCandidates = [(firstHue + 120) % 360, (firstHue + 240) % 360];
+  const secondHue = secondCandidates.reduce((best, candidate) => (
+    hueDistanceDegrees(candidate, baseHue) > hueDistanceDegrees(best, baseHue)
+      ? candidate
+      : best
+  ));
+  return variant === 1
+    ? {
+        hue: firstHue / 360,
+        saturation: 0.68 + (baseKind % 3) * 0.05,
+        lightness: baseLightness > 0.68 ? 0.5 : 0.59,
+      }
+    : {
+        hue: secondHue / 360,
+        saturation: 0.66 + ((baseKind + 1) % 3) * 0.05,
+        lightness: baseLightness > 0.68 ? 0.43 : 0.54,
+      };
+}
+
+function applyColorTreatment(data, info, variant, themeId, baseKind) {
+  // Most bodies tolerate a generous hue family so gradients recolour as one
+  // continuous skin. Candied fruit needs a tighter family because its wooden
+  // skewer is deliberately close to the authored red/orange body hue.
+  const bodyHueTolerance = themeId === "farm-kitchen" && baseKind === 4
+    ? 0.22
+    : themeId === "night-market" && baseKind === 0
+      ? 0.06
+    : themeId === "night-market" && baseKind === 4
+      ? 0.08
+      : 0.11;
+  const neutralBodyMaxLightness = themeId === "night-market" && baseKind === 17 ? 1 : 0.94;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+  let visible = 0;
+  let saturated = 0;
+  const hueWeights = new Float64Array(36);
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    if (data[offset + 3] < 32) continue;
+    red += data[offset];
+    green += data[offset + 1];
+    blue += data[offset + 2];
+    visible += 1;
+    const [hue, saturation, lightness] = rgbToHsl(
+      data[offset],
+      data[offset + 1],
+      data[offset + 2],
+    );
+    // Ignore very dark outlines and tiny bright highlights when deciding
+    // which authored colour owns the main body. Their saturation can be high
+    // enough to outweigh a broad pastel surface even though their area is
+    // small (the frying pan used to be classified by its brown rim).
+    if (saturation >= 0.24 && lightness >= 0.25 && lightness <= 0.88) {
+      hueWeights[Math.min(hueWeights.length - 1, Math.floor(hue * hueWeights.length))]
+        += 0.75 + data[offset + 3] / 255;
+      saturated += 1;
+    }
+  }
+  let dominantBin = 0;
+  for (let index = 1; index < hueWeights.length; index += 1) {
+    if (hueWeights[index] > hueWeights[dominantBin]) dominantBin = index;
+  }
+  const [averageHue, , averageLightness] = rgbToHsl(red / visible, green / visible, blue / visible);
+  const baseHue = saturated >= visible * 0.12
+    ? (dominantBin + 0.5) / hueWeights.length
+    : averageHue;
+  // The night-market framed cake has a broad cream centre surrounded by a
+  // saturated border. Area, not border saturation, defines its colour identity.
+  const neutralBody = saturated < visible * 0.12
+    || (themeId === "night-market" && baseKind === 17);
+  const hueDistance = (left, right) => {
+    const distance = Math.abs(left - right);
+    return Math.min(distance, 1 - distance);
+  };
+  let bodyLightness = 0;
+  let bodyWeight = 0;
+  if (!neutralBody) {
+    for (let offset = 0; offset < data.length; offset += info.channels) {
+      if (data[offset + 3] < 32) continue;
+      const [hue, saturation, lightness] = rgbToHsl(
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+      );
+      if (saturation < 0.24 || hueDistance(hue, baseHue) > bodyHueTolerance) continue;
+      const weight = saturation * (0.6 + data[offset + 3] / 255);
+      bodyLightness += lightness * weight;
+      bodyWeight += weight;
+    }
+  }
+  const baseLightness = bodyWeight > 0 ? bodyLightness / bodyWeight : averageLightness;
+  // Keep raster thumbnails on the same family-distributed colour treatment as
+  // the 3D material resolver in logic/themes.ts. This avoids a random opening
+  // collapsing into one purple/mint palette while preserving the icon's own
+  // highlights, shadows and structural accents.
+  const treatment = variantTreatment(baseHue * 360, baseLightness, baseKind, variant);
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    if (data[offset + 3] < 16) continue;
+    const [sourceHue, sourceSaturation, sourceLightness] = rgbToHsl(
+      data[offset],
+      data[offset + 1],
+      data[offset + 2],
+    );
+    const belongsToBody = neutralBody
+      ? sourceLightness >= 0.17
+        && sourceLightness <= neutralBodyMaxLightness
+        && sourceSaturation < 0.48
+      : sourceSaturation >= 0.12
+        && sourceLightness >= 0.25
+        && sourceLightness <= Math.min(0.93, baseLightness + 0.38)
+        && hueDistance(sourceHue, baseHue) <= bodyHueTolerance;
+    // Keep structural materials stable. Brass rims, ceramic faces, wooden
+    // handles, cream labels and dark outlines are what make the 30px tray
+    // chip read as the same physical model after it tumbles into the tray.
+    if (!belongsToBody) continue;
+    // Preserve the source illustration's local highlight/shadow relationship
+    // around its own average hue. Adding the raw hue directly made warm red
+    // accents pull the entire variant back toward red, defeating the large
+    // green/purple colour block promised by the 3D material resolver.
+    const rawHueDelta = sourceHue - baseHue;
+    const relativeHue = rawHueDelta > 0.5
+      ? rawHueDelta - 1
+      : rawHueDelta < -0.5
+        ? rawHueDelta + 1
+        : rawHueDelta;
+    const [nextRed, nextGreen, nextBlue] = hslToRgb(
+      (treatment.hue + relativeHue * 0.28 + 1) % 1,
+      Math.min(1, Math.max(0.35, treatment.saturation * 0.78 + sourceSaturation * 0.22)),
+      Math.min(1, Math.max(0.06, treatment.lightness + (sourceLightness - baseLightness) * 0.78)),
+    );
+    data[offset] = Math.round(nextRed);
+    data[offset + 1] = Math.round(nextGreen);
+    data[offset + 2] = Math.round(nextBlue);
+  }
+  return data;
+}
+
+async function emitVariantSprites(themeId) {
+  const targetDir = path.join(artDir, "items", themeId);
+  for (let kind = BASE_ITEM_COUNT; kind < ITEM_COUNT; kind += 1) {
+    const baseKind = kind % BASE_ITEM_COUNT;
+    const variant = Math.floor(kind / BASE_ITEM_COUNT);
+    const baseFile = path.join(targetDir, `item-${String(baseKind).padStart(2, "0")}.webp`);
+    const { data, info } = await sharp(baseFile)
+      .modulate({ hue: 0, saturation: 1, brightness: 1 })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    await sharp(applyColorTreatment(data, info, variant, themeId, baseKind), { raw: info })
+      .webp({ quality: 92, alphaQuality: 100, effort: 3 })
+      .toFile(path.join(targetDir, `item-${String(kind).padStart(2, "0")}.webp`));
+  }
 }
 
 // Atlases are authoring sources only. Runtime uses the cleaned transparent
 // per-item files below, so remove legacy public atlases instead of shipping
 // three large unused sprite sheets.
-for (const [themeId] of themeAtlases) {
-  await fs.rm(path.join(artDir, `items-${themeId}-atlas.webp`), { force: true });
+if (!variantsOnly) {
+  for (const [themeId] of themeAtlases) {
+    await fs.rm(path.join(artDir, `items-${themeId}-atlas.webp`), { force: true });
+  }
 }
 
 async function emitBrand(sourceName, base, width, height) {
@@ -266,7 +475,7 @@ async function emitItemSprites(themeId, sourceName) {
       .webp({ quality: 92, alphaQuality: 100, effort: 6 })
       .toFile(path.join(targetDir, `item-${String(kind).padStart(2, "0")}.webp`));
   }
-  for (let kind = 12; kind < ITEM_COUNT; kind += 1) {
+  for (let kind = 12; kind < BASE_ITEM_COUNT; kind += 1) {
     await sharp(supplementalItemSvg(themeId, kind), { density: 144 })
       .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .resize(224, 224, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
@@ -275,9 +484,6 @@ async function emitItemSprites(themeId, sourceName) {
       .toFile(path.join(targetDir, `item-${String(kind).padStart(2, "0")}.webp`));
   }
 }
-
-await emitBrand("logo-master.png", "logo", 512, 512);
-await emitBrand("banner-master.png", "banner", 1024, 512);
 
 const assets = [
   ["theme-fresh-market.png", "theme-fresh-market.webp", 768, 1152, 78],
@@ -291,21 +497,27 @@ const assets = [
   ["container-night-market.png", "container-night-market.webp", 1024, 1024, 88],
 ];
 
-const collectionGeese = Array.from({ length: 6 }, (_, index) => {
+const collectionGeese = Array.from({ length: 9 }, (_, index) => {
   const id = String(index).padStart(2, "0");
   return [`goose-collection-${id}.png`, `goose-${id}.webp`];
 });
 
-for (const [source, output, width, height, quality] of assets) {
-  await emitWebAsset(source, output, width, height, quality);
+if (!variantsOnly) {
+  await emitBrand("logo-master.png", "logo", 512, 512);
+  await emitBrand("banner-master.png", "banner", 1024, 512);
+  for (const [source, output, width, height, quality] of assets) {
+    await emitWebAsset(source, output, width, height, quality);
+  }
+  for (const [source, output] of collectionGeese) {
+    await emitCollectionGoose(source, output);
+  }
+  for (const [themeId, source] of themeAtlases) {
+    await emitItemSprites(themeId, source);
+  }
 }
 
-for (const [source, output] of collectionGeese) {
-  await emitCollectionGoose(source, output);
-}
-
-for (const [themeId, source] of themeAtlases) {
-  await emitItemSprites(themeId, source);
+for (const [themeId] of themeAtlases) {
+  await emitVariantSprites(themeId);
 }
 
 for (const file of [

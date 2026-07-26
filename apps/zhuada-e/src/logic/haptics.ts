@@ -17,7 +17,7 @@
 
 import { gameStorage } from "./game-storage";
 
-export type HapticCue = "pick" | "match" | "win" | "jam" | "fail" | "shake";
+export type HapticCue = "pick" | "match" | "combo" | "win" | "jam" | "fail" | "shake";
 export interface HapticsQaSnapshot {
   supported: boolean;
   enabled: boolean;
@@ -28,6 +28,7 @@ const HAPTICS_KEY = "zhuada-e:haptics-off";
 const PATTERNS: Record<HapticCue, number | number[]> = {
   pick: 10,
   match: 30,
+  combo: 30, // base — scaled by playCombo()
   win: [30, 50, 80],
   jam: [55, 35, 90],
   fail: 100,
@@ -97,6 +98,20 @@ class HapticsEngine {
       navigator.vibrate(PATTERNS[cue]);
     } catch {
       /* some browsers throw outside user gestures — feedback is best-effort */
+    }
+  }
+
+  /**
+   * Combo-scaled haptic: intensity grows with chain depth so a x5 combo
+   * feels materially stronger than a x1 match. Pattern: [base + step*5, gap, bonus].
+   */
+  playCombo(comboStep: number): void {
+    if (!this._enabled || !this.supported) return;
+    const base = 30 + Math.min(12, comboStep) * 5;
+    try {
+      navigator.vibrate(comboStep > 2 ? [base, 20, base * 0.6] : base);
+    } catch {
+      /* best-effort */
     }
   }
 }

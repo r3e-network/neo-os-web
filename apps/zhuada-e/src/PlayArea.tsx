@@ -12,11 +12,19 @@
  * small entry chunk. While the scene chunk is loading we show a lightweight
  * placeholder so layout + overlay stay correct.
  */
-import { useCallback, useEffect, useRef, useState, type ComponentType, type CSSProperties } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+} from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { ThreeGameComponent } from "./ThreeGameComponent";
 import type { ThreeSceneController } from "./ThreeGameComponent";
 import { AnimatedTray } from "./AnimatedTray";
 import { SHELF_SLOTS, TRAY_SLOTS, type ExtractReceipt } from "./logic/engine-zhuada";
@@ -26,13 +34,20 @@ import { SCENES } from "./logic/scenes";
 import { EMPTY_PROGRESS, bestOverall, clearedLevels, type GooseProgress } from "./logic/progress";
 import { EMPTY_DAILY, type DailyState } from "./logic/daily-reward";
 import { goosePerkKey } from "./logic/goose-passive";
-import { RefreshCw, Shuffle, Lightbulb, Clock, Volume2, VolumeX, Vibrate, VibrateOff, BookOpen, Lock, Archive, Undo2, Waves, Timer, Smartphone, ShieldCheck, CircleAlert, Play, Trash2, Share2, Flame, Gift, CalendarDays } from "lucide-react";
+import { RefreshCw, Shuffle, Lightbulb, Clock, Volume2, VolumeX, Vibrate, VibrateOff, BookOpen, Lock, Archive, Undo2, Waves, Timer, Smartphone, ShieldCheck, CircleAlert, Play, Trash2, Share2, Flame, Gift, CalendarDays, Layers3, MousePointerClick } from "lucide-react";
 import { sound } from "./logic/sound";
 import { haptics } from "./logic/haptics";
 import { GooseChip } from "./GooseChip";
 import { GoosePerkIcon } from "./GoosePerkIcon";
 import { ThemeItemChip } from "./ThemeItemChip";
-import { GAME_THEMES, colorToCss, themeOf, type GameThemeId } from "./logic/themes";
+import {
+  GAME_THEMES,
+  THEME_ITEM_ASSET_COUNT,
+  colorToCss,
+  isGameThemeId,
+  themeOf,
+  type GameThemeId,
+} from "./logic/themes";
 import { useDeviceShake } from "./logic/use-device-shake";
 import type { ShakeSignal } from "./logic/device-motion";
 import type { DeviceQaPanelProps } from "./DeviceQaPanel";
@@ -40,6 +55,46 @@ import "./PlayArea.scss";
 
 /** HUD time turns urgent (danger color + pulse) inside the last 10 seconds. */
 const TIME_DANGER_MS = 10000;
+
+/**
+ * Self-contained shake cooldown badge. Owns its own 500ms ticker so the
+ * parent PlayArea (1450 lines) does NOT re-render during the countdown.
+ * Renders just the remaining-seconds text or the ready label.
+ */
+function ShakeCooldownLabel({
+  shakeReadyAt,
+  isPlaying,
+  readyLabel,
+  cdLabelFn,
+}: {
+  shakeReadyAt: number;
+  isPlaying: boolean;
+  readyLabel: string;
+  cdLabelFn: (sec: number) => string;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const current = Date.now();
+    setNow(current);
+    if (!isPlaying || shakeReadyAt <= current) return;
+    const id = window.setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+      if (t >= shakeReadyAt) window.clearInterval(id);
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [isPlaying, shakeReadyAt]);
+  const left = Math.max(0, shakeReadyAt - now);
+  return <>{left > 0 ? cdLabelFn(Math.ceil(left / 1000)) : readyLabel}</>;
+}
+
+// The bridge/canvas host is only needed after the async Three scene is ready.
+// Keeping it out of the shell entry preserves the cold-start budget as the
+// item catalog grows, without delaying the lobby or changing the live scene.
+const ThreeGameComponent = lazy(async () => {
+  const module = await import("./ThreeGameComponent");
+  return { default: module.ThreeGameComponent };
+});
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
@@ -81,11 +136,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const undoable = bool("undoable");
   const timedMode = bool("timedMode");
   const shakeReadyAt = val<number>("shakeReadyAt", 0) ?? 0;
+  const shakeNonce = val<number>("shakeNonce", 0) ?? 0;
+  const hintNonce = val<number>("hintNonce", 0) ?? 0;
   const themeId = val<GameThemeId>("themeId", "fresh-market") ?? "fresh-market";
   const resumeAvailable = bool("resumeAvailable");
   const resumeLevel = val<number>("resumeLevel", 0) ?? 0;
   const continueAvailable = bool("continueAvailable");
   const gameTheme = themeOf(themeId);
+  const retryLabel = t("statusRetry");
+  const itemName = (kind: number, emptyKey: string) => {
+    const item = gameTheme.items[kind];
+    if (!item) return t(emptyKey);
+    return t("itemColorway", {
+      name: t(item.nameKey),
+      variant: Math.floor(kind / THEME_ITEM_ASSET_COUNT) + 1,
+    });
+  };
 
   const failReason = str("failReason", "");
   // Meta progression (G4): unlocked level / wins / per-level best / geese.
@@ -107,6 +173,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     const id = window.setTimeout(() => setDailyMilestoneBurst(false), 1200);
     return () => window.clearTimeout(id);
   }, [dailyMilestoneFx]);
+  const [hintFeedback, setHintFeedback] = useState(false);
+  const hintFeedbackRef = useRef(0);
+  useEffect(() => {
+    if (hintNonce <= 0 || hintNonce === hintFeedbackRef.current) return;
+    hintFeedbackRef.current = hintNonce;
+    setHintFeedback(true);
+    const id = window.setTimeout(() => setHintFeedback(false), 2200);
+    return () => window.clearTimeout(id);
+  }, [hintNonce]);
   const currentLevelRecord = progress.levels[level];
   const currentBest = timedMode
     ? currentLevelRecord?.best.timed
@@ -249,26 +324,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   }, []);
 
-  // Shake cooldown countdown — a light 500ms ticker while a cooldown runs so
-  // the button label counts down without a per-frame render. `nowTick` must be
-  // re-anchored the moment a cooldown starts: the mount-time value can be many
-  // seconds stale, which would inflate the first rendered countdown.
-  const [nowTick, setNowTick] = useState(() => Date.now());
-  const shakeCdLeft = Math.max(0, shakeReadyAt - nowTick);
-  useEffect(() => {
-    // Always refresh the wall-clock anchor when a run is restored. A restored
-    // ready-at value may already be in the past; returning before this update
-    // would compare it with the lobby's stale mount-time tick and display a
-    // phantom, minutes-long cooldown.
-    const now = Date.now();
-    setNowTick(now);
-    if (!isPlaying || shakeReadyAt <= now) return;
-    const id = window.setInterval(() => {
-      setNowTick(Date.now());
-      if (Date.now() >= shakeReadyAt) window.clearInterval(id);
-    }, 500);
-    return () => window.clearInterval(id);
-  }, [isPlaying, shakeReadyAt]);
+  // Shake cooldown — the ShakeCooldownLabel sub-component owns the 500ms
+  // ticker for the countdown display, so PlayArea no longer re-renders
+  // during the cooldown. We only need a coarse "on cooldown" flag here
+  // for the disabled state (re-evaluated on other state changes).
+  const shakeOnCd = shakeReadyAt > Date.now();
 
   // Lazy-load the physics scene the first time we enter play.
   useEffect(() => {
@@ -277,10 +337,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       setSceneLoadError(false);
       import("./scenes/ZhuaDaScene")
         .then((m) => setScene(new m.ZhuaDaScene()))
-        .catch((error: unknown) => {
+        .catch(() => {
           sceneLoadingRef.current = false;
           setSceneLoadError(true);
-          console.error("[zhuada-e] Unable to load the physical scene", error);
         });
     }
   }, [gameStatus, scene, sceneLoadAttempt]);
@@ -301,7 +360,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     shuffleNonce: val<number>("shuffleNonce", 0) ?? 0,
     hintNonce: val<number>("hintNonce", 0) ?? 0,
     dealNonce: val<number>("dealNonce", 0) ?? 0,
-    shakeNonce: val<number>("shakeNonce", 0) ?? 0,
+    shakeNonce,
     shakeStrength: val<number>("shakeStrength", 1) ?? 1,
     extractReceipt,
     shelf,
@@ -312,7 +371,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     statusWonTitle: t("statusWonTitle"),
     statusFailedTitle: t("statusFailedTitle"),
     statusNext: t("statusNext"),
-    statusRetry: t("statusRetry"),
+    statusRetry: retryLabel,
     statusReady: t("statusReady"),
   };
 
@@ -386,10 +445,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   useEffect(() => {
     if (!import.meta.env.DEV || typeof window === "undefined") return;
     if (simulatorQaAutoStartRef.current || gameStatus !== "idle") return;
-    if (new URLSearchParams(window.location.search).get("simQa") !== "1") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("simQa") !== "1") return;
+    const requestedTheme = params.get("simTheme");
+    if (isGameThemeId(requestedTheme) && requestedTheme !== themeId) {
+      // Keep simulator captures reproducible without changing production
+      // routing or reaching into browser storage. Theme selection must settle
+      // before the auto-start so the Three scene, catalog and backdrop all
+      // initialize from the same presentation contract.
+      void dispatch("setTheme", { id: requestedTheme });
+      return;
+    }
     simulatorQaAutoStartRef.current = true;
     void dispatch("startLevel", { level: progress.lastPlayedLevel || 1 });
-  }, [dispatch, gameStatus, progress.lastPlayedLevel]);
+  }, [dispatch, gameStatus, progress.lastPlayedLevel, themeId]);
 
   async function shareResult(): Promise<void> {
     sound.unlock();
@@ -420,13 +489,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const drawerActions = isPlaying
     ? [
         {
-          label: t("statusRetry"),
+          label: retryLabel,
           onClick: () => {
             closeDrawerAndRestoreFocus();
             runGameAction("retry", {});
           },
           icon: <RefreshCw size={16} aria-hidden="true" />,
-          hint: t("statusRetry"),
+          hint: retryLabel,
         },
         {
           label: t("collectionBack"),
@@ -451,7 +520,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // last-stand state beside the tray and point directly at the rescue tools.
   const isTrayJammed = isPlaying && trayCount >= TRAY_SLOTS;
   const accessibleStatus = `${lastStatus}. ${t("scoreLabel")}: ${score}. ${t("scoreTray")}: ${trayCount}/${TRAY_SLOTS}.`;
-  const shakeOnCd = shakeCdLeft > 0;
   const powerActions = isPlaying
     ? [
         {
@@ -498,7 +566,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           : []),
         {
           key: "shake",
-          label: shakeOnCd ? t("puShakeCd", { sec: Math.ceil(shakeCdLeft / 1000) }) : t("puShake"),
+          label: <ShakeCooldownLabel
+            shakeReadyAt={shakeReadyAt}
+            isPlaying={isPlaying}
+            readyLabel={t("puShake")}
+            cdLabelFn={(sec) => t("puShakeCd", { sec })}
+          />,
           icon: <Waves size={16} aria-hidden="true" />,
           count: -1, // cooldown-based, not a consumable — no ×N badge
           disabled: shakeOnCd,
@@ -513,6 +586,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const clearedPercent = levelItemTotal > 0
     ? Math.min(100, Math.round((clearedLogical / levelItemTotal) * 100))
     : 0;
+  // L1 is intentionally the friendly tutorial level, but the previous build
+  // taught its core gestures only inside the optional More drawer. Keep the
+  // lesson in the playfield and let real state advance/dismiss it: first pull,
+  // first triple, then the optional pile toss. No modal or input lock is added.
+  const tutorialStep = isPlaying && level === 1 && bridgeState.items.length > 0
+    ? score === 0
+      ? trayCount === 0
+        ? "pick"
+        : "match"
+      : score < 20 && shakeNonce === 0
+        ? "shake"
+        : null
+    : null;
 
   // ── Overlay (start map / win / all-clear / fail) ──
   const isAllClear = gameStatus === "solved" && level >= TOTAL_LEVELS;
@@ -555,7 +641,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : failureCopy;
     primaryLabel = continueAvailable
       ? t(failReason === "trayFull" ? "continueTrayAction" : "continueRunAction")
-      : t("statusRetry");
+      : retryLabel;
     onPrimary = () => runGameAction(continueAvailable ? "continueRun" : "retry", {});
   }
 
@@ -614,18 +700,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="goose-stage-shell" data-playing={isPlaying ? "true" : undefined}>
             <div className="goose-canvas-wrap">
               {scene ? (
-                <ThreeGameComponent
-                  scene={scene}
-                  state={bridgeState}
-                  dispatch={dispatch}
-                  className="goose-three-canvas"
-                  ariaLabel={t("boardLabel")}
-                  loadingLabel={t("canvasLoading")}
-                  errorLabel={t("canvasError")}
-                  contextLostLabel={t("canvasContextLost")}
-                  retryLabel={t("statusRetry")}
-                  continueLabel={t("continueAction")}
-                />
+                <Suspense
+                  fallback={(
+                    <div className="goose-canvas-placeholder" role="status" aria-live="polite">
+                      <span className="goose-canvas-placeholder__label">
+                        <span className="goose-canvas-placeholder__spinner" aria-hidden="true" />
+                        {t("canvasLoading")}
+                      </span>
+                    </div>
+                  )}
+                >
+                  <ThreeGameComponent
+                    scene={scene}
+                    state={bridgeState}
+                    dispatch={dispatch}
+                    className="goose-three-canvas"
+                    ariaLabel={t("boardLabel")}
+                    loadingLabel={t("canvasLoading")}
+                    errorLabel={t("canvasError")}
+                    contextLostLabel={t("canvasContextLost")}
+                    retryLabel={retryLabel}
+                    continueLabel={t("continueAction")}
+                  />
+                </Suspense>
               ) : sceneLoadError ? (
                 <div
                   className="goose-canvas-load-error"
@@ -643,7 +740,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     }}
                   >
                     <RefreshCw size={15} aria-hidden="true" />
-                    {t("statusRetry")}
+                    {retryLabel}
                   </button>
                 </div>
               ) : (
@@ -672,6 +769,45 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {dailyMilestoneBurst && (
                 <div className="goose-daily-milestone" aria-hidden="true">
                   <span>{t("dailyMilestone")}</span>
+                </div>
+              )}
+
+              {hintFeedback && (
+                <div
+                  className="goose-hint-feedback"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  <Lightbulb size={16} strokeWidth={2.4} aria-hidden="true" />
+                  <span>{t("puUsedHint")}</span>
+                </div>
+              )}
+
+              {tutorialStep && (
+                <div
+                  className="goose-first-run-coach"
+                  data-step={tutorialStep}
+                  key={tutorialStep}
+                  role="note"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  <span className="goose-first-run-coach__step" aria-hidden="true">
+                    {tutorialStep === "pick" ? "1/3" : tutorialStep === "match" ? "2/3" : "3/3"}
+                  </span>
+                  {tutorialStep === "pick"
+                    ? <MousePointerClick size={17} strokeWidth={2.4} aria-hidden="true" />
+                    : tutorialStep === "match"
+                      ? <Layers3 size={17} strokeWidth={2.4} aria-hidden="true" />
+                      : <Waves size={17} strokeWidth={2.4} aria-hidden="true" />}
+                  <span>{t(
+                    tutorialStep === "pick"
+                      ? "tutorialPick"
+                      : tutorialStep === "match"
+                        ? "tutorialMatch"
+                        : "tutorialShake",
+                  )}</span>
                 </div>
               )}
 
@@ -1020,7 +1156,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         {continueAvailable && (
                           <button type="button" className="goose-overlay__ghost" onClick={() => runGameAction("retry", {})}>
                             <RefreshCw size={15} aria-hidden="true" />
-                            {t("statusRetry")}
+                            {retryLabel}
                           </button>
                         )}
                         <button type="button" className="goose-overlay__ghost" onClick={() => void shareResult()}>
@@ -1063,7 +1199,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               >
                 <div className="goose-level-progress__copy">
                   <span>{t("levelProgressValue", { percent: clearedPercent })}</span>
-                  <span>{t("levelReserveValue", { count: bridgeState.reserveCount })}</span>
+                  <strong className="goose-level-progress__scope">
+                    {t("levelScopeValue", { kinds: levelSpec.kinds, total: levelItemTotal })}
+                  </strong>
+                  {bridgeState.reserveCount > 0 && (
+                    <span>{t("levelReserveValue", { count: bridgeState.reserveCount })}</span>
+                  )}
                 </div>
                 <span className="goose-level-progress__track" aria-hidden="true">
                   <span style={{ width: `${clearedPercent}%` }} />
@@ -1074,7 +1215,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {/* One persistent tray under the pen. The rescue shelf stays hidden
                 while empty so normal play never presents a duplicate tray row;
                 it appears only after the player explicitly uses 移出. */}
-            <div className="goose-tray-row" data-jammed={isTrayJammed ? "true" : undefined}>
+            <div
+              className="goose-tray-row"
+              data-jammed={isTrayJammed ? "true" : undefined}
+              data-tray-warning={!isTrayJammed && trayCount >= 5 ? (trayCount >= 6 ? "2" : "1") : undefined}
+            >
               {isTrayJammed && (
                 <div
                   className="goose-tray-jam-alert"
@@ -1096,10 +1241,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 themeId={themeId}
                 label={t("scoreTray")}
                 emptyLabel={t("trayEmptySlot")}
-                itemName={(kind) => {
-                  const item = gameTheme.items[kind];
-                  return item ? t(item.nameKey) : t("trayEmptySlot");
-                }}
+                itemName={(kind) => itemName(kind, "trayEmptySlot")}
               />
               {isPlaying && !shelfFree && (
                 <div className="goose-shelf" role="list" aria-label={t("shelfTitle")}>
@@ -1107,7 +1249,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {Array.from({ length: SHELF_SLOTS }).map((_, i) => {
                     const kind = shelf[i] ?? null;
                     const item = kind !== null ? gameTheme.items[kind] : null;
-                    const name = item ? t(item.nameKey) : t("shelfEmptySlot");
+                    const name = kind !== null
+                      ? itemName(kind, "shelfEmptySlot")
+                      : t("shelfEmptySlot");
                     return (
                       <div
                         key={i}
@@ -1145,7 +1289,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     aria-describedby={isTrayJammed && !action.disabled && (action.key === "remove" || action.key === "undo") ? "goose-tray-jam-alert" : undefined}
                     disabled={action.disabled}
                     onClick={action.onClick}
-                    title={action.label}
+                    title={typeof action.label === "string" ? action.label : undefined}
                   >
                     {action.icon}
                     <span className="goose-powerbar__label">{action.label}</span>

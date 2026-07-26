@@ -4,6 +4,11 @@ import { EMPTY_EXTRACT_RECEIPT, type ItemInstance } from "./engine-zhuada";
 import { EMPTY_PROGRESS, type GooseProgress } from "./progress";
 import { EMPTY_DAILY, type DailyState } from "./daily-reward";
 import { TOTAL_LEVELS, specOf } from "./game-rules";
+import {
+  STREAM_INITIAL_VISIBLE,
+  STREAM_REFILL_BATCH,
+  STREAM_REFILL_TRIGGER,
+} from "./item-stream";
 
 class TestObservable<T> {
   constructor(private value: T) {}
@@ -148,18 +153,37 @@ describe("fresh deal boundary", () => {
     expect(second).not.toEqual(first);
   });
 
-  it("keeps a 210-item level behind a 48-body window and refills from below", () => {
+  it("keeps a 1,008-item level behind a dense 54-body window and refills from below", () => {
     vi.stubGlobal("window", {});
     const { engine, items } = createHarness();
     engine.startLevel(3);
     const initial = items.get();
-    expect(initial).toHaveLength(48);
+    expect(initial).toHaveLength(STREAM_INITIAL_VISIBLE);
 
-    // Six accepted picks reach the refill trigger and surface a nine-item wave
-    // (42 + 9 = 51 bodies), whether or not one packet already matched.
-    for (const item of initial.slice(0, 6)) engine.extract(item.id);
-    expect(items.get()).toHaveLength(51);
-    expect(items.get().filter((item) => item.spawnMode === "reservoir")).toHaveLength(9);
+    // Thirty-six accepted picks expose the floor, then one complete
+    // twenty-seven-item bottom-up layer restores a substantial heap.
+    const excavation = STREAM_INITIAL_VISIBLE - STREAM_REFILL_TRIGGER;
+    const byKind = new Map<number, ItemInstance[]>();
+    for (const item of initial) {
+      const group = byKind.get(item.kind) ?? [];
+      group.push(item);
+      byKind.set(item.kind, group);
+    }
+    const safeExcavation = [...byKind.values()]
+      .filter((group) => group.length >= 3)
+      .slice(0, excavation / 3)
+      .flatMap((group) => group.slice(0, 3));
+    for (const item of safeExcavation) engine.extract(item.id);
+    // Matching and Frenzy can consume additional live pieces during the same
+    // sequence, but the wave must restore the heap well above its refill floor.
+    expect(items.get().length).toBeGreaterThanOrEqual(STREAM_REFILL_TRIGGER);
+    expect(items.get().length).toBeLessThanOrEqual(STREAM_INITIAL_VISIBLE);
+    const liveReservoirItems = items.get().filter((item) => item.spawnMode === "reservoir");
+    // item-stream.test.ts owns the exact +27 activation contract. At engine
+    // level the match that crosses the trigger may also start Frenzy, which is
+    // allowed to consume up to three freshly activated items immediately.
+    expect(liveReservoirItems.length).toBeGreaterThanOrEqual(STREAM_REFILL_BATCH - 3);
+    expect(liveReservoirItems.length).toBeLessThanOrEqual(STREAM_REFILL_BATCH);
   });
 
   it.each(Array.from({ length: TOTAL_LEVELS }, (_, index) => index + 1))(
@@ -231,7 +255,7 @@ describe("fresh deal boundary", () => {
       const layout = active.map((item) => `${item.kind}:${item.px.toFixed(4)}:${item.pz.toFixed(4)}`).join("|");
       expect(dealNonce.get()).toBe(run);
       expect(active.length).toBeLessThanOrEqual(54);
-      expect(active.length + reserveCount.get()).toBe(432);
+      expect(active.length + reserveCount.get()).toBe(1440);
       expect(new Set(active.map((item) => item.id)).size).toBe(active.length);
       expect(layout).not.toBe(previousLayout);
       previousLayout = layout;
@@ -295,20 +319,42 @@ describe("fresh deal boundary", () => {
       level: 2,
       themeId: "fresh-market" as const,
       timedMode: false,
-      active: [{ id: 1, kind: 17, px: 0, py: 1, pz: 0 }],
+      active: [{ id: 1, kind: 53, px: 0, py: 1, pz: 0 }],
       reserve: [],
-      tray: [17, null, null, null, null, null, null],
+      tray: [53, null, null, null, null, null, null],
       shelf: [null, null, null],
       score: 0,
       powerups: { shuffle: 1, hint: 3, remove: 1, undo: 1, addTime: 0 },
-      lastGrab: { itemId: 1, kind: 17, slot: 0 },
+      lastGrab: { itemId: 1, kind: 53, slot: 0 },
       timeLeftMs: 0,
       elapsedMs: 100,
       shakeCooldownMs: 0,
       continueUsed: false,
     };
     expect(isStoredRunState(base)).toBe(true);
-    expect(isStoredRunState({ ...base, active: [{ ...base.active[0], kind: 18 }] })).toBe(false);
+    expect(isStoredRunState({ ...base, active: [{ ...base.active[0], kind: 54 }] })).toBe(false);
+  });
+
+  it("accepts the 1,584-item late-game reservoir but rejects oversized snapshots", () => {
+    const item = (id: number) => ({ id, kind: id % 54, px: 0, py: 1, pz: 0 });
+    const base = {
+      level: 24,
+      themeId: "night-market" as const,
+      timedMode: false,
+      active: Array.from({ length: 54 }, (_, id) => item(id)),
+      reserve: Array.from({ length: 1530 }, (_, index) => item(index + 54)),
+      tray: [null, null, null, null, null, null, null],
+      shelf: [null, null, null],
+      score: 0,
+      powerups: { shuffle: 1, hint: 3, remove: 1, undo: 1, addTime: 0 },
+      lastGrab: null,
+      timeLeftMs: 0,
+      elapsedMs: 100,
+      shakeCooldownMs: 0,
+      continueUsed: false,
+    };
+    expect(isStoredRunState(base)).toBe(true);
+    expect(isStoredRunState({ ...base, reserve: [...base.reserve, item(1584)] })).toBe(false);
   });
 
   it("lets the lobby discard a resumable run", () => {
@@ -663,8 +709,19 @@ describe("terminal state machine", () => {
     }
     /** A kind with ≥4 in the box — after a 3-clear it still has a copy for the
      *  Frenzy pull to grab, so the pull is guaranteed to land (no refund). */
-    function kindWithSpare(map: Map<number, ItemInstance[]>): number {
-      return [...map.entries()].find(([, g]) => g.length >= 4)?.[0] ?? firstKindWith(map, 3);
+    function kindWithSpare(items: ReturnType<typeof createHarness>["items"]): number {
+      const map = groupByKind(items.get());
+      const ready = [...map.entries()].find(([, group]) => group.length >= 4);
+      if (ready) return ready[0];
+      // The 48-kind opening intentionally shows one triple per visible
+      // identity. Add a controlled fourth active copy so this unit test proves
+      // charge consumption instead of depending on which kind a random refill
+      // happened to surface.
+      const kind = firstKindWith(map, 3);
+      const source = map.get(kind)![0]!;
+      const nextId = 1_000_000 + items.get().length;
+      items.set([...items.get(), { ...source, id: nextId }]);
+      return kind;
     }
     /** Clear one triple of `kind` (three grabs of the same kind). */
     function clearTriple(engine: ReturnType<typeof createHarness>["engine"], items: ReturnType<typeof createHarness>["items"], kind: number): void {
@@ -697,7 +754,7 @@ describe("terminal state machine", () => {
 
       // 6th clear is armed → it pulls the cleared kind and spends one charge.
       // Use a kind with a spare copy so the pull is guaranteed to land.
-      const pullKind = kindWithSpare(groupByKind(items.get()));
+      const pullKind = kindWithSpare(items);
       const fxBefore = frenzyFx.get();
       clearTriple(engine, items, pullKind);
       expect(frenzyCharges.get()).toBe(1); // one charge spent
@@ -719,7 +776,7 @@ describe("terminal state machine", () => {
       // and actually decrements the charge; loop until fully depleted.
       let guard = 24;
       while (frenzyCharges.get() > 0 && guard-- > 0) {
-        clearTriple(engine, items, kindWithSpare(groupByKind(items.get())));
+        clearTriple(engine, items, kindWithSpare(items));
       }
       expect(frenzyCharges.get()).toBe(0); // both charges spent
 

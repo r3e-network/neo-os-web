@@ -64,6 +64,10 @@ function buildKettle(color: number): THREE.Group {
   const group = new THREE.Group();
   const p = palette(color);
   const blackMetal = surface(0x2f2b2b, "metal");
+  const handleEnamel = surface(tint(color, -0.24), "metal", {
+    metalness: 0.34,
+    clearcoat: 0.52,
+  });
 
   group.add(lathe([
     [0.42, -0.58], [0.61, -0.52], [0.7, -0.24], [0.68, 0.18],
@@ -73,38 +77,53 @@ function buildKettle(color: number): THREE.Group {
   const base = horizontalRing(0.55, 0.055, blackMetal);
   base.position.y = -0.54;
   group.add(base);
-  const baseSeal = cylinder(0.53, 0.53, 0.07, blackMetal, 22);
+  const baseSeal = cylinder(0.53, 0.53, 0.07, p.base, 22);
   baseSeal.position.y = -0.57;
   baseSeal.userData.detailLayer = "kettle-base-seal";
   group.add(baseSeal);
 
-  const lid = cylinder(0.39, 0.44, 0.11, p.light, 20);
+  // The kettle is read almost entirely from above. A pale lid field and a
+  // coloured enamel ring keep it identifiable as cookware even when the body
+  // treatment is green or purple rather than the authored red.
+  const lid = cylinder(0.4, 0.45, 0.11, p.cream, 20);
   lid.position.y = 0.49;
   group.add(lid);
+  const lidRing = horizontalRing(0.38, 0.045, p.light, 22);
+  lidRing.position.y = 0.56;
+  lidRing.userData.detailLayer = "kettle-lid-ring";
+  group.add(lidRing);
 
   const knob = sphere(0.12, blackMetal, 12, 8);
   knob.scale.set(1.25, 0.75, 1.25);
   knob.position.y = 0.61;
   group.add(knob);
 
+  // Author the spout and handle in the X/Z footprint rather than as vertical
+  // side-view lines. They remain real three-dimensional kettle parts, but now
+  // retain their silhouette in the game's fixed overhead camera instead of
+  // looking like arbitrary black slashes painted over a round fruit.
   const spout = tube([
-    new THREE.Vector3(-0.5, 0.03, 0),
-    new THREE.Vector3(-0.76, 0.14, 0),
-    new THREE.Vector3(-0.98, 0.38, 0),
-  ], 0.115, p.base, 16, 7);
+    new THREE.Vector3(-0.48, 0.08, 0),
+    new THREE.Vector3(-0.7, 0.13, 0.04),
+    new THREE.Vector3(-0.9, 0.18, 0.17),
+    new THREE.Vector3(-1.07, 0.22, 0.3),
+  ], 0.12, p.light, 18, 8);
   group.add(spout);
 
   const spoutLip = cylinder(0.14, 0.14, 0.075, blackMetal, 14);
-  spoutLip.rotation.z = Math.PI / 2.7;
-  spoutLip.position.set(-0.98, 0.39, 0);
+  spoutLip.rotation.z = Math.PI / 2;
+  spoutLip.rotation.y = -0.55;
+  spoutLip.position.set(-1.08, 0.23, 0.31);
   group.add(spoutLip);
 
   const handle = tube([
-    new THREE.Vector3(-0.42, 0.38, -0.04),
-    new THREE.Vector3(-0.25, 0.82, -0.04),
-    new THREE.Vector3(0.02, 0.96, -0.04),
-    new THREE.Vector3(0.42, 0.4, -0.04),
-  ], 0.075, blackMetal, 18, 7);
+    new THREE.Vector3(0.4, 0.28, -0.34),
+    new THREE.Vector3(0.64, 0.54, -0.58),
+    new THREE.Vector3(0.86, 0.78, 0),
+    new THREE.Vector3(0.64, 0.54, 0.58),
+    new THREE.Vector3(0.4, 0.28, 0.34),
+  ], 0.085, handleEnamel, 24, 8);
+  handle.userData.detailLayer = "kettle-overhead-handle";
   group.add(handle);
   return finishModel(group);
 }
@@ -169,14 +188,33 @@ function buildMilkBottle(color: number): THREE.Group {
   foilCap.userData.detailLayer = "bottle-cap";
   group.add(foilCap);
 
-  const label = roundedBox(0.56, 0.36, 0.045, 0.08, cream, 3);
-  label.position.set(0, -0.03, 0.485);
-  label.userData.detailLayer = "bottle-label";
-  group.add(label);
-  const labelMark = roundedBox(0.17, 0.2, 0.025, 0.055, blue, 3);
-  labelMark.position.set(0, -0.03, 0.52);
-  labelMark.userData.detailLayer = "bottle-label-mark";
-  group.add(labelMark);
+  // A bottle must still read as a bottle when Cannon leaves it cap-down. The
+  // old short lip became a flat circular disc from the overhead camera; a
+  // raised neck, cap crown and contrasting cap seal preserve the vertical
+  // silhouette and give the viewer three unmistakable orientation cues.
+  const neck = cylinder(0.2, 0.235, 0.22, thickGlass, 20);
+  neck.position.y = 0.88;
+  neck.userData.detailLayer = "bottle-neck";
+  group.add(neck);
+  const capCrown = cylinder(0.235, 0.235, 0.12, blue, 20);
+  capCrown.position.y = 1.04;
+  capCrown.userData.detailLayer = "bottle-cap-crown";
+  group.add(capCrown);
+  const capSeal = cylinder(0.16, 0.16, 0.035, cream, 18);
+  capSeal.position.y = 1.115;
+  capSeal.userData.detailLayer = "bottle-cap-seal";
+  group.add(capSeal);
+
+  // Wrap the large label around all four sides. A bottle tumbling in the pan
+  // should never show an unmarked white/blue disc simply because its front
+  // label rotated away from the camera.
+  for (const angle of [0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2]) {
+    const label = roundedBox(0.56, 0.36, 0.045, 0.08, cream, 3);
+    label.position.set(Math.sin(angle) * 0.485, -0.03, Math.cos(angle) * 0.485);
+    label.rotation.y = angle;
+    label.userData.detailLayer = "bottle-label";
+    group.add(label);
+  }
   return finishModel(group);
 }
 
@@ -201,6 +239,14 @@ function buildBowl(color: number): THREE.Group {
   const foot = cylinder(0.31, 0.38, 0.14, p.dark, 18);
   foot.position.y = -0.4;
   group.add(foot);
+  const baseSeal = cylinder(0.25, 0.25, 0.025, p.cream, 18);
+  baseSeal.position.y = -0.48;
+  baseSeal.userData.detailLayer = "bowl-base-seal";
+  group.add(baseSeal);
+  const baseRing = horizontalRing(0.16, 0.025, p.blue, 18);
+  baseRing.position.y = -0.498;
+  baseRing.userData.detailLayer = "bowl-base-ring";
+  group.add(baseRing);
   return finishModel(group);
 }
 
@@ -284,9 +330,13 @@ function buildJamJar(color: number): THREE.Group {
   lidTop.position.y = 0.715;
   group.add(lidTop);
 
-  const blankLabel = roundedBox(0.66, 0.34, 0.05, 0.08, cream, 3);
-  blankLabel.position.set(0, -0.06, 0.535);
-  group.add(blankLabel);
+  for (const facing of [-1, 1] as const) {
+    const label = roundedBox(0.66, 0.34, 0.05, 0.08, cream, 3);
+    label.position.set(0, -0.06, facing * 0.535);
+    label.rotation.y = facing < 0 ? Math.PI : 0;
+    label.userData.detailLayer = "jam-label";
+    group.add(label);
+  }
   return finishModel(group);
 }
 
@@ -309,12 +359,6 @@ function buildSpoon(color: number): THREE.Group {
   hollow.position.set(-0.59, 0.115, 0);
   group.add(hollow);
 
-  for (const offset of [-0.08, 0.18]) {
-    const mark = capsule(0.025, 0.27, grain, "x");
-    mark.position.set(offset, 0.11, 0);
-    mark.rotation.y = offset < 0 ? 0.32 : -0.28;
-    group.add(mark);
-  }
   return finishModel(group);
 }
 
@@ -349,7 +393,6 @@ function buildOvenMitt(color: number): THREE.Group {
   const group = new THREE.Group();
   const fabric = surface(color, "fabric");
   const trim = surface(0xffedcf, "fabric");
-  const seam = surface(tint(color, -0.2), "fabric");
 
   const mitt = extrudedShape([
     [-0.38, -0.52], [0.31, -0.52], [0.43, -0.25], [0.42, 0.43],
@@ -362,18 +405,6 @@ function buildOvenMitt(color: number): THREE.Group {
   cuff.position.y = -0.55;
   group.add(cuff);
 
-  for (const x of [-0.22, 0.22]) {
-    const stitch = capsule(0.024, 0.52, seam, "y");
-    stitch.position.set(x, 0.02, 0.145);
-    stitch.rotation.z = x < 0 ? -0.16 : 0.16;
-    group.add(stitch);
-  }
-  for (const [x, y] of [[-0.08, -0.24], [0.12, 0.18], [0.02, 0.43]] as const) {
-    const tuft = sphere(0.045, trim, 8, 6);
-    tuft.scale.z = 0.4;
-    tuft.position.set(x, y, 0.17);
-    group.add(tuft);
-  }
   return finishModel(group);
 }
 
@@ -436,9 +467,6 @@ function buildJug(color: number): THREE.Group {
   ], 0.11, cream, 12, 7);
   group.add(spout);
 
-  const band = horizontalRing(0.56, 0.035, blue, 22);
-  band.position.y = -0.02;
-  group.add(band);
   const baseSeal = cylinder(0.34, 0.34, 0.07, cream, 20);
   baseSeal.position.y = -0.66;
   baseSeal.userData.detailLayer = "jug-base-seal";
@@ -450,7 +478,6 @@ function buildHeartCookie(color: number): THREE.Group {
   const group = new THREE.Group();
   const biscuit = surface(color, "paper");
   const icing = surface(0xffd46e, "glaze");
-  const crumb = surface(tint(color, -0.16), "paper");
   const heart: ReadonlyArray<readonly [number, number]> = [
     [0, -0.67], [0.58, -0.14], [0.62, 0.27], [0.38, 0.52],
     [0.12, 0.5], [0, 0.35], [-0.12, 0.5], [-0.38, 0.52],
@@ -466,12 +493,6 @@ function buildHeartCookie(color: number): THREE.Group {
   icingHeart.position.y = 0.18;
   group.add(icingHeart);
 
-  for (const [x, z] of [[-0.25, -0.12], [0.24, -0.08], [-0.15, 0.26], [0.18, 0.24]] as const) {
-    const dot = sphere(0.045, crumb, 8, 6);
-    dot.scale.y = 0.45;
-    dot.position.set(x, 0.225, z);
-    group.add(dot);
-  }
   return finishModel(group);
 }
 
@@ -502,9 +523,6 @@ function buildMug(color: number): THREE.Group {
     new THREE.Vector3(0.45, -0.25, 0),
   ], 0.075, p.cream, 18, 7));
 
-  const badge = roundedBox(0.25, 0.34, 0.045, 0.08, p.light, 3);
-  badge.position.set(0, 0.02, 0.49);
-  group.add(badge);
   return finishModel(group);
 }
 
@@ -524,12 +542,6 @@ function buildRollingPin(color: number): THREE.Group {
     const grip = capsule(0.19, 0.56, light, "x");
     grip.position.x = x + Math.sign(x) * 0.27;
     group.add(grip);
-  }
-  for (const x of [-0.62, 0.62]) {
-    const band = part(new THREE.TorusGeometry(0.39, 0.035, 7, 24), dark);
-    band.rotation.y = Math.PI / 2;
-    band.position.x = x;
-    group.add(band);
   }
   return finishModel(group);
 }
@@ -554,9 +566,10 @@ function buildCookingPot(color: number): THREE.Group {
     handle.position.set(x, 0.14, 0);
     group.add(handle);
   }
-  const badge = roundedBox(0.38, 0.32, 0.04, 0.09, cream, 3);
-  badge.position.set(0, -0.05, 0.66);
-  group.add(badge);
+  const baseSeal = cylinder(0.5, 0.5, 0.07, dark, 24);
+  baseSeal.position.y = -0.52;
+  baseSeal.userData.detailLayer = "pot-base-seal";
+  group.add(baseSeal);
   return finishModel(group);
 }
 
@@ -564,19 +577,12 @@ function buildCountryLoaf(color: number): THREE.Group {
   const group = new THREE.Group();
   const crust = surface(color, "produce", { roughness: 0.72, clearcoat: 0.08 });
   const crumb = surface(tint(color, 0.19), "paper");
-  const score = surface(tint(color, -0.18), "matte");
   const loaf = roundedBox(1.28, 0.72, 0.86, 0.32, crust, 6);
   loaf.position.y = -0.02;
   group.add(loaf);
   const belly = roundedBox(1.08, 0.34, 0.89, 0.16, crumb, 5);
   belly.position.set(0, -0.25, 0.02);
   group.add(belly);
-  for (const x of [-0.36, 0, 0.36]) {
-    const slash = capsule(0.045, 0.55, score, "z");
-    slash.position.set(x, 0.34, 0);
-    slash.rotation.y = -0.45;
-    group.add(slash);
-  }
   for (const [x, z] of [[-0.42, 0.35], [0.18, 0.39], [0.48, -0.31]] as const) {
     const flour = sphere(0.04, crumb, 8, 6);
     flour.scale.y = 0.3;
@@ -604,11 +610,6 @@ function buildButterCrock(color: number): THREE.Group {
   const plaque = roundedBox(0.55, 0.3, 0.045, 0.1, butter, 3);
   plaque.position.set(0, -0.03, 0.51);
   group.add(plaque);
-  for (const y of [-0.19, 0.18]) {
-    const stripe = capsule(0.025, 0.72, blue, "x");
-    stripe.position.set(0, y, 0.51);
-    group.add(stripe);
-  }
   return finishModel(group);
 }
 
@@ -657,23 +658,12 @@ function buildYarnBall(color: number): THREE.Group {
   const group = new THREE.Group();
   const yarn = surface(color, "fabric");
   const light = surface(tint(color, 0.18), "fabric");
-  const needle = surface(0xc6b28f, "wood");
   group.add(sphere(0.62, yarn, 22, 16));
   for (let i = 0; i < 7; i += 1) {
     const strand = part(new THREE.TorusGeometry(0.54 - (i % 2) * 0.05, 0.025, 6, 28), i % 2 ? light : yarn);
     strand.rotation.set(i * 0.37, i * 0.52, i * 0.24);
     group.add(strand);
   }
-  const loose = tube([
-    new THREE.Vector3(0.4, -0.2, 0.32),
-    new THREE.Vector3(0.75, -0.45, 0.18),
-    new THREE.Vector3(0.92, -0.5, -0.2),
-  ], 0.035, light, 18, 7);
-  group.add(loose);
-  const pin = capsule(0.025, 1.45, needle, "x");
-  pin.position.set(0.05, 0.15, 0.12);
-  pin.rotation.z = 0.42;
-  group.add(pin);
   return finishModel(group);
 }
 
@@ -698,7 +688,7 @@ const BUILDERS: ReadonlyArray<(color: number) => THREE.Group> = [
   buildYarnBall,
 ];
 
-/** Build one production farm-kitchen object (logical kinds 0..17). */
+/** Build one production farm-kitchen base recipe (authored kinds 0..17). */
 export function buildFarmKitchenModel(kind: number, color: number): THREE.Group {
   const safeKind = Number.isFinite(kind)
     ? THREE.MathUtils.clamp(Math.floor(kind), 0, BUILDERS.length - 1)

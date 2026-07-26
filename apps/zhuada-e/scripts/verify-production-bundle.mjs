@@ -38,11 +38,11 @@ export const requiredProductionFiles = Object.freeze([
     `art/theme-${theme}.webp`,
     `art/mascot-${theme}.webp`,
     `art/container-${theme}.webp`,
-    ...Array.from({ length: 18 }, (_, index) => (
+    ...Array.from({ length: 54 }, (_, index) => (
       `art/items/${theme}/item-${String(index).padStart(2, "0")}.webp`
     )),
   ]),
-  ...Array.from({ length: 6 }, (_, index) => `art/geese/goose-${String(index).padStart(2, "0")}.webp`),
+  ...Array.from({ length: 9 }, (_, index) => `art/geese/goose-${String(index).padStart(2, "0")}.webp`),
   ...cues.map((cue) => `audio/${cue}.wav`),
   ...ambiences.map((ambience) => `audio/${ambience}.wav`),
 ]);

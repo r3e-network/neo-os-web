@@ -8,10 +8,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "public");
 const sourceDir = path.join(root, "art-src");
 const themes = ["fresh-market", "farm-kitchen", "night-market"];
-const itemCount = 18;
+const itemCount = 54;
 const cues = [
-  "land", "pick", "match", "combo", "win", "fail", "powerup", "shuffle",
-  "click", "tick", "unlock", "shake",
+  "land", "pick", "match", "combo", "comboBreak", "traySlot",
+  "win", "fail", "powerup", "shuffle", "click", "tick", "unlock", "shake",
 ];
 const ambiences = ["ambient-garden", "ambient-kitchen", "ambient-night"];
 
@@ -21,8 +21,11 @@ function invariant(condition, message) {
 
 async function verifySourceManifest() {
   const manifestText = await fs.readFile(path.join(sourceDir, "SOURCE_MANIFEST.md"), "utf8");
-  const entries = [...manifestText.matchAll(/^([a-f0-9]{64})  ([^/\n]+\.png)$/gm)];
-  invariant(entries.length === 20, `source manifest: expected 20 PNG entries, got ${entries.length}`);
+  // SOURCE_MANIFEST.md is sha256sum output: 64 hex digits, exactly two spaces,
+  // then the file name. The {2} quantifier states that count explicitly so it
+  // cannot be miscounted when the line is edited.
+  const entries = [...manifestText.matchAll(/^([a-f0-9]{64}) {2}([^/\n]+\.png)$/gm)];
+  invariant(entries.length === 23, `source manifest: expected 23 PNG entries, got ${entries.length}`);
   for (const [, expected, name] of entries) {
     const bytes = await fs.readFile(path.join(sourceDir, name));
     const actual = createHash("sha256").update(bytes).digest("hex");
@@ -86,8 +89,8 @@ async function verifyWav(relative, minimumSeconds) {
   const byteRate = bytes.readUInt32LE(28);
   const bitsPerSample = bytes.readUInt16LE(34);
   const dataBytes = bytes.readUInt32LE(40);
-  invariant(format === 1 && channels === 1 && sampleRate === 22050 && bitsPerSample === 16,
-    `${relative}: expected mono 22.05kHz 16-bit PCM`);
+  invariant(format === 1 && channels === 2 && sampleRate === 44100 && bitsPerSample === 16,
+    `${relative}: expected stereo 44.1kHz 16-bit PCM`);
   invariant(byteRate > 0 && dataBytes <= bytes.length - 44, `${relative}: invalid data length`);
   const duration = dataBytes / byteRate;
   invariant(duration >= minimumSeconds,
@@ -151,4 +154,4 @@ for (let index = 0; index < 9; index += 1) {
 for (const cue of cues) await verifyWav(`audio/${cue}.wav`, 0.05);
 for (const ambience of ambiences) await verifyWav(`audio/${ambience}.wav`, 5.5);
 
-console.log(`Asset gate passed: 78 images + ${cues.length + ambiences.length} PCM audio files · v${packageJson.version}`);
+console.log(`Asset gate passed: 186 images + ${cues.length + ambiences.length} PCM audio files · v${packageJson.version}`);

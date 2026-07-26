@@ -2,10 +2,10 @@
  * models.ts — original low-poly item + goose models for Goose Basket Shuffle.
  *
  * Every shape here is an original production model recipe built from composed
- * Three.js geometry. The three player-selectable themes expose 54 distinct
- * objects; matching dedicated transparent item renders are used by the React
- * tray while these recipes drive the physical pile. No third-party game art
- * is reproduced.
+ * Three.js geometry. The three player-selectable themes expose 162 match
+ * identities: 54 authored silhouettes plus 108 deliberate colour variants.
+ * Matching transparent item renders are used by the React tray while these
+ * recipes drive the physical pile. No third-party game art is reproduced.
  *
  * Each builder returns a THREE.Group so multiple sub-meshes compose into one
  * pickable object. `buildModelMesh(kind, color, scale)` is the single entry
@@ -13,6 +13,7 @@
  */
 
 import * as THREE from "three";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { ModelKind } from "../logic/engine-zhuada";
 import type { GooseVariant } from "../logic/scenes";
 import { themeOf, type GameThemeId } from "../logic/themes";
@@ -258,7 +259,7 @@ export function buildModelMesh(kind: ModelKind, color: number, scale = 0.62): TH
 }
 
 
-/** Build one of the 54 production physical objects for the WebGL pile.
+/** Build one of the production physical objects for the WebGL pile.
  *
  * Every catalog entry is a real multi-surface 3D mesh. Its quaternion follows
  * the cannon body, so the player sees honest rolling, tumbling and settling —
@@ -270,15 +271,17 @@ export function buildThemeModelMesh(
   scale?: number,
 ): THREE.Group {
   const safeKind = Math.max(0, Math.min(themeOf(themeId).items.length - 1, Math.floor(kind)));
+  const authoredKind = themeOf(themeId).items[safeKind]?.modelKind ?? safeKind;
   const normalizedColor = color & 0xffffff;
   const templateKey = `${themeId}:${safeKind}:${normalizedColor}`;
   let template = THEME_MODEL_TEMPLATES.get(templateKey);
   if (!template) {
     template = themeId === "farm-kitchen"
-      ? buildFarmKitchenModel(safeKind, normalizedColor)
+      ? buildFarmKitchenModel(authoredKind, normalizedColor)
       : themeId === "night-market"
-        ? buildNightMarketModel(safeKind, normalizedColor)
-        : buildFreshMarketModel(safeKind, normalizedColor);
+        ? buildNightMarketModel(authoredKind, normalizedColor)
+        : buildFreshMarketModel(authoredKind, normalizedColor);
+    template = mergeTemplateSurfaces(template);
     // A compact center volume makes finger input forgiving for hollow/open
     // models (cup, bowl, doughnut) without changing their visible geometry or
     // their profile-driven cannon collision shape.
@@ -297,6 +300,139 @@ export function buildThemeModelMesh(
   const group = cloneThemeModelTemplate(template);
   group.scale.setScalar(scale ?? physicsProfileOf(themeId, safeKind).visualScale);
   return group;
+}
+
+/**
+ * Flatten authored nested parts into one mesh per shared material.
+ *
+ * The source recipes deliberately use many small meshes to make modeling and
+ * visual QA readable (a lantern can have separate ribs, caps and tassels).
+ * Sending each part as a separate WebGL draw call multiplies that authoring
+ * structure by the 54-body mobile pile. Baking every same-material part into a
+ * template-local geometry preserves the exact silhouette, PBR materials and
+ * independent item animation while cutting the typical item from 8–12 draw
+ * calls to 2–6.
+ */
+function mergeMaterialKey(material: THREE.Material): string {
+  const physical = material as THREE.MeshPhysicalMaterial;
+  return [
+    material.type,
+    physical.color?.getHexString?.() ?? "",
+    physical.roughness ?? "",
+    physical.metalness ?? "",
+    physical.clearcoat ?? "",
+    physical.clearcoatRoughness ?? "",
+    physical.sheen ?? "",
+    physical.sheenRoughness ?? "",
+    physical.transmission ?? "",
+    physical.map?.uuid ?? "no-albedo-map",
+    // Surface skins are shared by finish, but two materials with different
+    // maps must never be flattened into one geometry bucket. Keep the map
+    // identity in the key so a future recipe can opt into a bespoke skin
+    // without losing its material response during draw-call merging.
+    physical.normalMap?.uuid ?? "no-normal-map",
+    physical.roughnessMap?.uuid ?? "no-roughness-map",
+    material.userData.surfaceSkin ?? "no-surface-skin",
+    material.transparent ? "transparent" : "opaque",
+    material.opacity,
+    material.side,
+    material.depthWrite ? "depth" : "no-depth",
+  ].join(":");
+}
+
+function mergeTemplateSurfaces(template: THREE.Group): THREE.Group {
+  template.updateMatrixWorld(true);
+  const rootInverse = template.matrixWorld.clone().invert();
+  const sourceMeshes: THREE.Mesh[] = [];
+  const surfaces = new Map<
+    string,
+    {
+      material: THREE.Material;
+      geometries: THREE.BufferGeometry[];
+      castShadow: boolean;
+      receiveShadow: boolean;
+      detailLayers: Array<{ name: string; geometryType: string }>;
+    }
+  >();
+
+  template.traverse((object) => {
+    const mesh = object as THREE.Mesh;
+    if (!mesh.isMesh || mesh.userData.interactionProxy) return;
+    // Authored item recipes currently use one material per part. Keep an
+    // explicit escape hatch for a future grouped/multi-material geometry
+    // instead of silently flattening its material groups incorrectly.
+    if (Array.isArray(mesh.material)) return;
+    sourceMeshes.push(mesh);
+    const materialKey = mergeMaterialKey(mesh.material);
+    const surface = surfaces.get(materialKey) ?? {
+      material: mesh.material,
+      geometries: [],
+      castShadow: false,
+      receiveShadow: false,
+      detailLayers: [],
+    };
+    const localMatrix = rootInverse.clone().multiply(mesh.matrixWorld);
+    const cloned = mesh.geometry.clone();
+    const geometry = cloned.index ? cloned.toNonIndexed() : cloned;
+    if (geometry !== cloned) cloned.dispose();
+    geometry.applyMatrix4(localMatrix);
+    surface.geometries.push(geometry);
+    surface.castShadow ||= mesh.castShadow;
+    surface.receiveShadow ||= mesh.receiveShadow;
+    if (typeof mesh.userData.detailLayer === "string") {
+      surface.detailLayers.push({
+        name: mesh.userData.detailLayer,
+        geometryType: mesh.geometry.type,
+      });
+    }
+    surfaces.set(materialKey, surface);
+  });
+
+  if (sourceMeshes.length === 0 || surfaces.size === 0) return template;
+  const sourcePartCount = sourceMeshes.length;
+  const sourceGeometries = new Set(sourceMeshes.map((mesh) => mesh.geometry));
+  template.clear();
+
+  let surfaceIndex = 0;
+  let shadowCasterCount = 0;
+  const nextCastShadow = (surfaceCastShadow: boolean): boolean => {
+    if (!surfaceCastShadow || shadowCasterCount >= 2) return false;
+    shadowCasterCount += 1;
+    return true;
+  };
+  for (const surface of surfaces.values()) {
+    const material = surface.material;
+    const merged = surface.geometries.length === 1
+      ? surface.geometries[0]!
+      : mergeGeometries(surface.geometries, false);
+    if (!merged) {
+      // Attribute layouts should match for Three primitives, but preserve a
+      // correct visible model if a future custom geometry cannot be merged.
+      for (const geometry of surface.geometries) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.name = `item-surface-${surfaceIndex++}`;
+        mesh.castShadow = nextCastShadow(surface.castShadow);
+        mesh.receiveShadow = surface.receiveShadow;
+        mesh.userData.detailLayers = surface.detailLayers;
+        template.add(mesh);
+      }
+      continue;
+    }
+    if (surface.geometries.length > 1) {
+      surface.geometries.forEach((geometry) => geometry.dispose());
+    }
+    const mesh = new THREE.Mesh(merged, material);
+    mesh.name = `item-surface-${surfaceIndex++}`;
+    mesh.castShadow = nextCastShadow(surface.castShadow);
+    mesh.receiveShadow = surface.receiveShadow;
+    mesh.userData.detailLayers = surface.detailLayers;
+    template.add(mesh);
+  }
+
+  sourceGeometries.forEach((geometry) => geometry.dispose());
+  template.userData.sourcePartCount = sourcePartCount;
+  template.userData.mergedSurfaceCount = template.children.length;
+  return template;
 }
 
 /** Clone transforms recursively while keeping geometry buffers shared.
