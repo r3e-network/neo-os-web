@@ -22,25 +22,39 @@ cleanup_playwright_artifacts() {
     fi
   fi
 
-  local stray_pids=""
-  stray_pids="$(
+  # pgrep emits one pid per line and kill accepts several, so the pids are
+  # collected into an array instead of a string the shell has to re-split.
+  local stray_pids=()
+  local stray_pid
+  while IFS= read -r stray_pid; do
+    # `if` rather than `&&`: a false AND-list at the end of the loop body would
+    # be a failing command and abort the script under `set -e`.
+    if [[ -n "${stray_pid}" ]]; then
+      stray_pids+=("${stray_pid}")
+    fi
+  done < <(
     {
       pgrep -f "${ROOT_DIR}.*playwright" 2>/dev/null || true
       pgrep -f "${ROOT_DIR}.*next-server" 2>/dev/null || true
     } | sort -n | uniq
-  )"
-  if [[ -n "${stray_pids}" ]]; then
-    kill ${stray_pids} 2>/dev/null || true
+  )
+  if [[ "${#stray_pids[@]}" -gt 0 ]]; then
+    kill "${stray_pids[@]}" 2>/dev/null || true
     sleep 0.5
-    local remaining=""
-    remaining="$(
+    local remaining=()
+    local remaining_pid
+    while IFS= read -r remaining_pid; do
+      if [[ -n "${remaining_pid}" ]]; then
+        remaining+=("${remaining_pid}")
+      fi
+    done < <(
       {
         pgrep -f "${ROOT_DIR}.*playwright" 2>/dev/null || true
         pgrep -f "${ROOT_DIR}.*next-server" 2>/dev/null || true
       } | sort -n | uniq
-    )"
-    if [[ -n "${remaining}" ]]; then
-      kill -9 ${remaining} 2>/dev/null || true
+    )
+    if [[ "${#remaining[@]}" -gt 0 ]]; then
+      kill -9 "${remaining[@]}" 2>/dev/null || true
     fi
   fi
 }
@@ -84,55 +98,80 @@ should_fail_audit_output() {
   return 1
 }
 
-audit_output=""
-if audit_output="$(npm audit --omit=dev --audit-level=high 2>&1)"; then
-  printf "%s\n" "$audit_output"
-else
-  if printf "%s\n" "$audit_output" | grep -Eqi "(ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|socket hang up|SSL connection timeout|request to .* failed|audit endpoint returned an error)"; then
-    echo "[verify_repo] npm audit skipped due to network error (root audit)." >&2
-  elif should_fail_audit_output "$audit_output"; then
-    printf "%s\n" "$audit_output" >&2
-    exit 1
-  else
-    # npm@10+ can return a non-zero exit code even when only moderate/low findings are present.
-    # Treat sub-high findings as informational for functional validation gates.
-    printf "%s\n" "$audit_output"
-    echo "[verify_repo] npm audit returned non-zero but no high/critical findings were detected; continuing." >&2
-  fi
-fi
+# Run one `npm audit` scope and classify its outcome.
+#
+# npm@10+ exits non-zero for moderate/low findings too, and the registry is not
+# always reachable from a validation runner, so a bare exit code cannot decide
+# this. The three outcomes are: network failure (skip, not the repo's fault),
+# high/critical finding (fail), anything else (report and continue).
+#
+# Args: <label for diagnostics> <npm audit arguments...>
+run_npm_audit_scope() {
+  local label="$1"
+  shift
 
-audit_output=""
-if audit_output="$(npm audit --workspace platform/host-app --omit=dev --audit-level=high 2>&1)"; then
-  printf "%s\n" "$audit_output"
-else
-  if printf "%s\n" "$audit_output" | grep -Eqi "(ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|socket hang up|SSL connection timeout|request to .* failed|audit endpoint returned an error)"; then
-    echo "[verify_repo] npm audit skipped due to network error (host-app audit)." >&2
-  elif should_fail_audit_output "$audit_output"; then
-    printf "%s\n" "$audit_output" >&2
-    exit 1
-  else
+  local audit_output=""
+  if audit_output="$(npm audit "$@" --omit=dev --audit-level=high 2>&1)"; then
     printf "%s\n" "$audit_output"
-    echo "[verify_repo] npm audit returned non-zero but no high/critical findings were detected; continuing." >&2
+    return 0
   fi
-fi
+
+  if printf "%s\n" "$audit_output" | grep -Eqi "(ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|socket hang up|SSL connection timeout|request to .* failed|audit endpoint returned an error)"; then
+    echo "[verify_repo] npm audit skipped due to network error (${label})." >&2
+    return 0
+  fi
+
+  if should_fail_audit_output "$audit_output"; then
+    printf "%s\n" "$audit_output" >&2
+    return 1
+  fi
+
+  printf "%s\n" "$audit_output"
+  echo "[verify_repo] npm audit returned non-zero but no high/critical findings were detected (${label}); continuing." >&2
+  return 0
+}
+
+run_npm_audit_scope "root audit"
+run_npm_audit_scope "host-app audit" --workspace platform/host-app
 
 npm run test:deploy-scripts
-npm run -s check:platform:contracts
-npm run -s check:factory-template-artifacts
-npm run -s check:platform:game-migration
-npm run -s check:platform:social-framework
-npm run -s check:platform:anchor-framework
-npm run -s check:platform:registry-framework
-npm run -s check:platform:defi-framework
-npm run -s check:platform:factory-framework
+npm run test:shared-aa-governance
+
+# Framework and repo-hygiene gates. Each is a `check:` script that exits
+# non-zero on a real regression, so they run before the slower suites.
+for gate in \
+  check:repo:secret-material \
+  check:repo:lint-scope \
+  check:platform:contracts \
+  check:factory-template-artifacts \
+  check:platform:engine-base \
+  check:platform:game-migration \
+  check:platform:social-framework \
+  check:platform:anchor-framework \
+  check:platform:registry-framework \
+  check:platform:defi-framework \
+  check:platform:factory-framework \
+  check:platform:vesting-framework \
+  check:platform:escrow-framework \
+  check:platform:joint-aa \
+  check:platform:shared-aa-roster \
+  check:cross-repo:duplication; do
+  echo "[verify_repo] gate: ${gate}"
+  npm run -s "${gate}"
+done
+
 npm run -s test:shared
 npm --prefix platform/admin-console test --silent
 npm --prefix platform/admin-console run typecheck
-rm -rf platform/admin-console/.next >/dev/null 2>&1 || true
-rm -rf platform/admin-console/.next >/dev/null 2>&1 || true
-if ! npm --prefix platform/admin-console run build; then
-  rm -rf platform/admin-console/.next >/dev/null 2>&1 || true
+
+# Next occasionally leaves a partially written .next tree behind, which makes
+# the following build fail on stale chunks; clearing it before each attempt is
+# the recovery path.
+build_admin_console() {
   rm -rf platform/admin-console/.next >/dev/null 2>&1 || true
   npm --prefix platform/admin-console run build
+}
+if ! build_admin_console; then
+  build_admin_console
 fi
 PLAYWRIGHT_WORKERS="${PLAYWRIGHT_WORKERS:-1}" npm --prefix platform/host-app run test:full

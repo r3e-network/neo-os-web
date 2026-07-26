@@ -6,6 +6,12 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..", "..");
 const APPS_DIR = path.join(ROOT, "apps");
 const CONTRACTS_DIR = path.join(ROOT, "contracts");
+const DEFAULT_REPORT_PATH = path.join(
+  ROOT,
+  "docs",
+  "reports",
+  "miniapp-coverage-latest.json",
+);
 const TESTNET_NETWORK_MAGIC = 894710606;
 const MAINNET_NETWORK_MAGIC = 860833102;
 const DEFAULT_TESTNET_RPC_CANDIDATES = [
@@ -417,32 +423,28 @@ async function main() {
   }
 
   rows.sort((a, b) => a.app.localeCompare(b.app));
-  console.log(
-    JSON.stringify(
-      {
-        generated_at: new Date().toISOString(),
-        testnet_rpc: testnetRpcCandidates[0].rpcUrl,
-        mainnet_rpc: mainnetRpcCandidates[0].rpcUrl,
-        testnet_rpc_candidates: testnetRpcCandidates.map(
-          (candidate) => candidate.rpcUrl,
-        ),
-        mainnet_rpc_candidates: mainnetRpcCandidates.map(
-          (candidate) => candidate.rpcUrl,
-        ),
-        testnet_network_magic: testnetMagic,
-        mainnet_network_magic: mainnetMagic,
-        summary: rows.reduce((acc, row) => {
-          acc[row.classification] = (acc[row.classification] || 0) + 1;
-          return acc;
-        }, {}),
-        rpc_unknown: [],
-        action_required: rows.filter((row) => row.action_required),
-        rows,
-      },
-      null,
-      2,
+  const report = {
+    generated_at: new Date().toISOString(),
+    testnet_rpc: testnetRpcCandidates[0].rpcUrl,
+    mainnet_rpc: mainnetRpcCandidates[0].rpcUrl,
+    testnet_rpc_candidates: testnetRpcCandidates.map(
+      (candidate) => candidate.rpcUrl,
     ),
-  );
+    mainnet_rpc_candidates: mainnetRpcCandidates.map(
+      (candidate) => candidate.rpcUrl,
+    ),
+    testnet_network_magic: testnetMagic,
+    mainnet_network_magic: mainnetMagic,
+    summary: rows.reduce((acc, row) => {
+      acc[row.classification] = (acc[row.classification] || 0) + 1;
+      return acc;
+    }, {}),
+    rpc_unknown: [],
+    action_required: rows.filter((row) => row.action_required),
+    rows,
+  };
+  fs.writeFileSync(DEFAULT_REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`);
+  console.log(JSON.stringify(report, null, 2));
 }
 
 main().catch((error) => {

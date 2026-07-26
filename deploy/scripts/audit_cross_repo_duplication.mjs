@@ -115,6 +115,18 @@ const stripJavaScriptComments = (content) =>
 const isTestFile = (relativePath) =>
   /(?:^|\/)(?:test|tests|__tests__)(?:\/|$)|\.(?:test|spec)\.[^.]+$/.test(relativePath);
 
+const reviewedEngineNames = ["aim", "color", "flappy", "sheep"];
+
+const reviewedHandwrittenEnginesOf = (syncSource) => reviewedEngineNames.map((name) => {
+  const start = syncSource.indexOf(`name: '${name}'`);
+  const end = start < 0 ? -1 : syncSource.indexOf("\n  },", start);
+  const block = start < 0 ? "" : syncSource.slice(start, end < 0 ? undefined : end);
+  if (!/action:\s*'keep'/.test(block)) return null;
+  const source = block.match(/source:\s*'([^']+)'/)?.[1] ?? null;
+  const reason = block.match(/reason:\s*'((?:\\.|[^'])+)'/)?.[1]?.replaceAll("\\'", "'") ?? null;
+  return { name, source, reason };
+}).filter(Boolean);
+
 export function evaluateDuplicationEvidence(report) {
   const auditComplete = report.cloneFamily.all_exist &&
     report.cloneFamily.contracts === cloneFamilyNames.length &&
@@ -187,6 +199,41 @@ export function buildCrossRepoDuplicationReport({
     "workers/nitro-worker/src/game/engine-parity.test.mjs",
   ];
   const syncSource = fs.readFileSync(path.join(morpheusRoot, syncRelativePaths[0]), "utf8");
+  const deployScriptRelativePath = "deploy/scripts/deploy_selected_miniapp_contracts.go";
+  const deployScriptSource = fs.readFileSync(path.join(miniappsRoot, deployScriptRelativePath), "utf8");
+  const legacyTargetMarker = "var legacyCloneDeployTargets";
+  const legacyTargetOffset = deployScriptSource.indexOf(legacyTargetMarker);
+  const defaultDeploySource = legacyTargetOffset < 0
+    ? deployScriptSource
+    : deployScriptSource.slice(0, legacyTargetOffset);
+  const legacyDeploySource = legacyTargetOffset < 0
+    ? ""
+    : deployScriptSource.slice(legacyTargetOffset);
+  const legacyCloneDeployment = {
+    script: deployScriptRelativePath,
+    default_target_count: cloneFamilyNames.filter((name) =>
+      defaultDeploySource.includes(`{"${name}"`)
+    ).length,
+    legacy_target_count: cloneFamilyNames.filter((name) =>
+      legacyDeploySource.includes(`{"${name}"`)
+    ).length,
+    explicit_opt_in: deployScriptSource.includes("MINIAPP_DEPLOY_INCLUDE_LEGACY_CLONES"),
+    legacy_manifest_writeback_disabled: cloneFamilyNames.every((name) =>
+      legacyDeploySource.includes(`{"${name}", "contracts/build/${name}.nef", "contracts/build/${name}.manifest.json", ""}`)
+    ),
+  };
+  const buildScriptRelativePath = "contracts/build.sh";
+  const buildScriptSource = fs.readFileSync(path.join(miniappsRoot, buildScriptRelativePath), "utf8");
+  const packageSource = fs.readFileSync(path.join(miniappsRoot, "package.json"), "utf8");
+  const legacyCloneBuild = {
+    script: buildScriptRelativePath,
+    default_excluded: buildScriptSource.includes("BUILD_LEGACY_CLONES")
+      && buildScriptSource.includes("is_legacy_clone_project")
+      && buildScriptSource.includes("continue"),
+    explicit_opt_in: buildScriptSource.includes("BUILD_LEGACY_CLONES")
+      && packageSource.includes("BUILD_LEGACY_CLONES=1 npm run -s build:contracts"),
+  };
+  const reviewedHandwrittenEngines = reviewedHandwrittenEnginesOf(syncSource);
 
   const morpheusEnvelopePath = path.join(
     morpheusRoot,
@@ -202,8 +249,22 @@ export function buildCrossRepoDuplicationReport({
     "utils",
     "morpheusEncryption.js"
   );
+  const aaGeneratedEnvelopePath = path.join(
+    abstractAccountRoot,
+    "frontend",
+    "src",
+    "utils",
+    "morpheusConfidentialEnvelope.generated.js"
+  );
   const morpheusEnvelope = fs.readFileSync(morpheusEnvelopePath);
   const aaEnvelope = fs.readFileSync(aaEnvelopePath);
+  const aaGeneratedEnvelope = fs.existsSync(aaGeneratedEnvelopePath)
+    ? fs.readFileSync(aaGeneratedEnvelopePath)
+    : Buffer.alloc(0);
+  const morpheusEnvelopeSha256 = sha256(morpheusEnvelope);
+  const aaGeneratedFromCanonical = aaGeneratedEnvelope.length > 0 &&
+    aaGeneratedEnvelope.includes(Buffer.from(`Source sha256: ${morpheusEnvelopeSha256}.`)) &&
+    aaGeneratedEnvelope.slice(-morpheusEnvelope.length).equals(morpheusEnvelope);
   const morpheusSharedPackage = JSON.parse(
     fs.readFileSync(path.join(morpheusRoot, "packages", "shared", "package.json"), "utf8")
   );
@@ -258,8 +319,10 @@ export function buildCrossRepoDuplicationReport({
         ...alignedLineSimilarity(aim.lines, color.lines),
       },
       per_contract: perContract,
-      boundary: "All 11 legacy clone contracts remain in-tree for rollback and drain recovery. Framework routing is not deletion proof.",
+      boundary: "All 11 legacy clone contracts remain in-tree for rollback and drain recovery. Framework routing is not deletion proof; the deployment helper excludes them by default and requires explicit MINIAPP_DEPLOY_INCLUDE_LEGACY_CLONES opt-in without manifest writeback.",
+      build_boundary: legacyCloneBuild,
     },
+    legacyCloneDeployment,
     morpheusEnginePorts: {
       dir: "neo-morpheus-oracle/workers/nitro-worker/src/game/engines/",
       source_files: sourceFiles.length,
@@ -277,14 +340,18 @@ export function buildCrossRepoDuplicationReport({
         parity_test_exists: fs.existsSync(path.join(morpheusRoot, syncRelativePaths[3])),
         git_status: gitStatus(morpheusRoot, syncRelativePaths),
       },
-      boundary: "Six engines are generated from miniapps TypeScript sources; six remain reviewed handwritten ports and five enclave-only adapters remain. Dirty sibling-repo status is worktree evidence, not landed release proof.",
+      reviewed_handwritten_engines: reviewedHandwrittenEngines,
+      boundary: `${[...syncSource.matchAll(/\baction:\s*'generate'/g)].length} engines are generated from miniapps TypeScript sources; ${[...syncSource.matchAll(/\baction:\s*'keep'/g)].length} remain reviewed handwritten ports and ${adapterFiles.length} enclave-only adapters remain. Dirty sibling-repo status is worktree evidence, not landed release proof.`,
     },
     envelopeCopies: {
       morpheus_file: "neo-morpheus-oracle/packages/shared/src/confidential-envelope.js",
       aa_file: "neo-abstract-account/frontend/src/utils/morpheusEncryption.js",
-      morpheus_sha256: sha256(morpheusEnvelope),
+      aa_generated_file: "neo-abstract-account/frontend/src/utils/morpheusConfidentialEnvelope.generated.js",
+      morpheus_sha256: morpheusEnvelopeSha256,
       aa_sha256: sha256(aaEnvelope),
+      aa_generated_sha256: aaGeneratedEnvelope.length > 0 ? sha256(aaGeneratedEnvelope) : null,
       byte_match: morpheusEnvelope.equals(aaEnvelope),
+      aa_generated_from_canonical: aaGeneratedFromCanonical,
       morpheus_exported: Boolean(
         morpheusSharedPackage.exports?.["./confidential-envelope"]?.default
       ),
@@ -293,13 +360,10 @@ export function buildCrossRepoDuplicationReport({
         aaFrontendFiles,
         /morpheusEncryption/g
       ),
-      aa_uses_vendored_copy: aaFrontendFiles.some((relativePath) =>
-        fs.readFileSync(
-          path.join(abstractAccountRoot, "frontend", "src", relativePath),
-          "utf8"
-        ).includes("morpheusEncryption")
-      ),
-      boundary: "The package export now exists, but AA still imports its guarded wire-compatible vendored implementation. Cross-repo package linking remains an explicit migration.",
+      aa_uses_vendored_copy: !aaGeneratedFromCanonical,
+      boundary: aaGeneratedFromCanonical
+        ? "AA keeps a thin browser adapter and a generated canonical envelope artifact; the sync script verifies the artifact source hash and exact canonical suffix before frontend use."
+        : "The package export exists, but AA does not yet consume a generated canonical envelope artifact.",
     },
     sdkGenerations: {
       framework: measureFiles(path.join(miniappsRoot, "framework"), frameworkFiles),

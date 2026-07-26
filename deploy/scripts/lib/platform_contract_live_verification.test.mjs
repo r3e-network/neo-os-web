@@ -99,6 +99,9 @@ test("live verifier separates matches, drift, Registry artifacts, and missing de
   assert.equal(report.summary.active_registry_artifacts, 1);
   assert.equal(report.summary.no_deployment_record, 1);
   assert.equal(report.summary.admin_domains, 3);
+  assert.equal(report.read_only, true);
+  assert.equal(report.chain_writes_performed, false);
   assert.match(renderLiveMarkdown(report), /live-artifact-drift/);
+  assert.match(renderLiveMarkdown(report), /Chain writes performed: no/);
   assert.match(report.boundary, /does not prove funded lifecycle behavior/i);
 });

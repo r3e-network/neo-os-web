@@ -20,6 +20,11 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { requireCredential } from "./lib/live_credentials.js";
 import { createLiveRpc } from "./lib/live_rpc.mjs";
+import {
+  DEFAULT_LIFECYCLE_EVIDENCE_DIR,
+  buildLifecycleEvidence,
+  writeLifecycleEvidence,
+} from "./lib/platform_game_lifecycle_evidence.mjs";
 
 const { sc, wallet } = pkg;
 
@@ -53,6 +58,14 @@ const PARAMS = gameParams(APP);
 const account = new wallet.Account(requireCredential("NEO_TESTNET_WIF", process.env.NEO_TESTNET_WIF));
 const verifierWif = requireCredential("PRIVATE_KERNEL_VERIFIER_WIF", process.env.PRIVATE_KERNEL_VERIFIER_WIF);
 const live = createLiveRpc({ network: "testnet", neon: pkg, label: "live_validate_rewardgame_settle" });
+const lifecycleEvidenceDirectory =
+  process.env.PLATFORM_GAME_LIFECYCLE_EVIDENCE_DIR || DEFAULT_LIFECYCLE_EVIDENCE_DIR;
+const lifecycle = {
+  checks: {},
+  txids: {},
+  values: {},
+  chainWritesPerformed: false,
+};
 
 const H = (a) => sc.ContractParam.hash160(a);
 const I = (n) => sc.ContractParam.integer(n.toString());
@@ -62,11 +75,25 @@ const P_H = (a) => ({ type: "Hash160", value: a });
 const P_S = (s) => ({ type: "String", value: s });
 const decInt = (v) => BigInt(v?.value ?? "0");
 const read = (method, params = []) => live.readStack(ENGINE, method, params);
-const invoke = (label, scriptHash, operation, args) =>
-  live.invokeAndConfirm({ label, account, scriptHash, operation, args });
+const txidKeyForLabel = {
+  registerGame: "register_game",
+  fund: "fund",
+  entry: "entry",
+  startGame: "start_game",
+  finalizeGame: "finalize_game",
+  withdraw: "withdraw",
+};
+const invoke = async (label, scriptHash, operation, args) => {
+  const result = await live.invokeAndConfirm({ label, account, scriptHash, operation, args });
+  lifecycle.chainWritesPerformed = true;
+  const key = txidKeyForLabel[label];
+  if (key) lifecycle.txids[key] = result.txid;
+  return result;
+};
 
 let failures = 0;
-const check = (ok, label, detail = "") => {
+const check = (key, ok, label, detail = "") => {
+  lifecycle.checks[key] = ok === true;
   if (ok) console.log(`  ok   ${label}`);
   else {
     failures += 1;
@@ -106,6 +133,36 @@ function buildResult(gameId) {
   return out;
 }
 
+function persistLifecycleEvidence(status) {
+  const report = buildLifecycleEvidence({
+    appId: APP,
+    engine: ENGINE,
+    network: "neo-n3-testnet",
+    status,
+    chainWritesPerformed: lifecycle.chainWritesPerformed,
+    checks: lifecycle.checks,
+    txids: lifecycle.txids,
+    values: lifecycle.values,
+    parameters: {
+      difficulty: DIFFICULTY,
+      fund: FUND,
+      entry: ENTRY0,
+      reward: REWARD0,
+      elapsed_ms: PARAMS.elapsedMs,
+      score: PARAMS.score,
+      min_solve_ms: PARAMS.minSolveMs,
+      limit_ms: PARAMS.limitMs,
+      target_score: PARAMS.targetScore,
+    },
+  });
+  const reportPath = writeLifecycleEvidence({
+    repoRoot: process.cwd(),
+    report,
+    directory: lifecycleEvidenceDirectory,
+  });
+  console.log(`lifecycle evidence: ${reportPath}`);
+}
+
 async function main() {
   console.log(`engine: ${ENGINE}\napp:    ${APP}\nparams: elapsedMs=${PARAMS.elapsedMs} score>=${PARAMS.score} (minSolve ${PARAMS.minSolveMs}, limit ${PARAMS.limitMs}, target ${PARAMS.targetScore})`);
 
@@ -119,25 +176,30 @@ async function main() {
     await new Promise((r) => setTimeout(r, 2000));
     gameType = Number(decInt((await read("getGameType", [P_S(APP)]))?.[0]));
   }
-  check(gameType === GAME_TYPE_REWARD, `app registered as RewardGame (gameType 5)`);
+  lifecycle.values.game_type = gameType;
+  check("app_registered", gameType === GAME_TYPE_REWARD, "app registered as RewardGame (gameType 5)");
 
   // 2. fund pool + entry deposit
   await invoke("fund", GAS, "transfer", [H(account.scriptHash), H(ENGINE), I(FUND), S(`${APP}:fund`)]);
   await invoke("entry", GAS, "transfer", [H(account.scriptHash), H(ENGINE), I(ENTRY0), S(`${APP}:entry`)]);
   const poolBefore = decInt((await read("poolBalance", [P_S(APP)]))?.[0]);
-  check(poolBefore >= BigInt(FUND), `pool funded (${poolBefore})`);
+  lifecycle.values.pool_before = poolBefore.toString();
+  check("pool_funded", poolBefore >= BigInt(FUND), `pool funded (${poolBefore})`);
 
   // 3. startGame → gameId from the GameStarted event
   const startRes = await invoke("startGame", ENGINE, "startGame", [S(APP), H(account.scriptHash), I(DIFFICULTY)]);
   const gameId = firstEventInt(startRes.execution, "GameStarted", 1);
-  check(gameId > 0n, `startGame issued gameId ${gameId}`);
+  lifecycle.values.game_id = gameId.toString();
+  check("start_game_issued", gameId > 0n, `startGame issued gameId ${gameId}`);
   const activePtr = decInt((await read("activeGameOf", [P_S(APP), P_H(account.scriptHash)]))?.[0]);
-  check(activePtr === gameId, `active-game pointer set (${activePtr})`);
+  lifecycle.values.active_before = activePtr.toString();
+  check("active_game_pointer_set", activePtr === gameId, `active-game pointer set (${activePtr})`);
 
   // 4. finalizeGame → kernel request id from the Finalizing event
   const finRes = await invoke("finalizeGame", ENGINE, "finalizeGame", [S(APP), H(account.scriptHash), S("00")]);
   const requestId = firstEventInt(finRes.execution, "Finalizing", 3);
-  check(requestId > 0n, `finalizeGame submitted kernel request ${requestId}`);
+  lifecycle.values.request_id = requestId.toString();
+  check("finalize_submitted", requestId > 0n, `finalizeGame submitted kernel request ${requestId}`);
 
   // 5. fulfill through the private kernel (verifier = operator)
   const resultHex = buildResult(gameId).toString("hex");
@@ -156,6 +218,8 @@ async function main() {
     cwd: process.cwd(),
     stdio: ["ignore", "pipe", "inherit"],
   }).toString().split("\n").slice(-3).forEach((l) => console.log(`  kernel: ${l}`));
+  lifecycle.chainWritesPerformed = true;
+  check("kernel_fulfill_completed", true, `kernel fulfilled request ${requestId}`);
 
   // 6. verify settlement (poll through node lag)
   let credit = 0n, status = 0n, activeAfter = -1n;
@@ -166,37 +230,53 @@ async function main() {
     status = decInt(mapGet(g, "status"));
     activeAfter = decInt((await read("activeGameOf", [P_S(APP), P_H(account.scriptHash)]))?.[0]);
   }
-  check(credit === BigInt(REWARD0), `winner credit posted (${credit} == ${REWARD0})`);
-  check(status === 2n, `game status is 2 (settled)`, `${status}`);
-  check(activeAfter === 0n, "active-game pointer cleared");
+  lifecycle.values.credit = credit.toString();
+  lifecycle.values.status = status.toString();
+  lifecycle.values.active_after = activeAfter.toString();
+  check("winner_credit_posted", credit === BigInt(REWARD0), `winner credit posted (${credit} == ${REWARD0})`);
+  check("settled_status", status === 2n, `game status is 2 (settled)`, `${status}`);
+  check("active_game_pointer_cleared", activeAfter === 0n, "active-game pointer cleared");
 
   const poolAfter = decInt((await read("poolBalance", [P_S(APP)]))?.[0]);
-  check(poolAfter === poolBefore + BigInt(ENTRY0) - BigInt(REWARD0),
+  lifecycle.values.pool_after = poolAfter.toString();
+  check("pool_accounting", poolAfter === poolBefore + BigInt(ENTRY0) - BigInt(REWARD0),
     `pool drawn down correctly (${poolBefore} + ${ENTRY0} - ${REWARD0} = ${poolAfter})`);
   const held = decInt((await read("heldForApp", [P_S(APP)]))?.[0]);
-  check(held === poolAfter + credit, `liability identity held==pool+credit (${held} == ${poolAfter + credit})`);
+  lifecycle.values.held = held.toString();
+  check("liability_identity", held === poolAfter + credit, `liability identity held==pool+credit (${held} == ${poolAfter + credit})`);
 
   // 7. withdraw the winnings (pull payment) back to the operator
   if (credit === BigInt(REWARD0)) {
     const gasBefore = decInt((await live.readStack(GAS, "balanceOf", [P_H(account.scriptHash)]))?.[0]);
+    lifecycle.values.gas_before = gasBefore.toString();
     await invoke("withdraw", ENGINE, "withdraw", [S(APP), H(account.scriptHash)]);
     let gasAfter = gasBefore;
     for (let i = 0; i < 15 && gasAfter === gasBefore; i++) {
       await new Promise((r) => setTimeout(r, 3000));
       gasAfter = decInt((await live.readStack(GAS, "balanceOf", [P_H(account.scriptHash)]))?.[0]);
     }
-    check(gasAfter >= gasBefore + BigInt(REWARD0) - 2_000_000n,
+    lifecycle.values.gas_after = gasAfter.toString();
+    check("credit_withdrawn", gasAfter >= gasBefore + BigInt(REWARD0) - 2_000_000n,
       `withdraw paid the credit out (gas ${gasBefore} → ${gasAfter}, minus ~0.01 GAS fees)`);
+  } else {
+    check("credit_withdrawn", false, "withdraw skipped because winner credit was not proven");
   }
 
   if (failures > 0) {
+    persistLifecycleEvidence("fail");
     console.error(`\n${failures} check(s) failed`);
     process.exit(1);
   }
+  persistLifecycleEvidence("pass");
   console.log("\nRewardGame private-kernel settle loop: ALL CHECKS PASSED");
 }
 
 main().catch((err) => {
+  try {
+    persistLifecycleEvidence("fail");
+  } catch (reportError) {
+    console.error(`lifecycle evidence write failed: ${reportError}`);
+  }
   console.error(err);
   process.exit(1);
 });

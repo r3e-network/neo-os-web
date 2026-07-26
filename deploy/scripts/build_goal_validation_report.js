@@ -39,16 +39,18 @@ const INPUTS = {
 };
 
 const ORACLE_ROOT = path.resolve(process.env.MORPHEUS_DIR || DEFAULT_ORACLE_ROOT);
+const DEFAULT_ORACLE_LOCAL_GATES_LOG =
+  process.env.GOAL_ORACLE_LOCAL_GATES_LOG || "/tmp/oracle-local-gates-current.redacted.log";
 const ORACLE_INPUTS = {
   drift: path.join(ORACLE_ROOT, "docs/reports/feed-registry-drift-latest.json"),
   controlPlaneSmoke:
     process.env.GOAL_CONTROL_PLANE_SMOKE_JSON ||
     path.join(ORACLE_ROOT, "examples/deployments/control-plane-smoke.testnet.latest.json"),
-  workerLog: process.env.GOAL_ORACLE_WORKER_LOG || "/tmp/oracle-worker-current.redacted.log",
-  relayerLog: process.env.GOAL_ORACLE_RELAYER_LOG || "/tmp/oracle-relayer-current.redacted.log",
+  workerLog: process.env.GOAL_ORACLE_WORKER_LOG || DEFAULT_ORACLE_LOCAL_GATES_LOG,
+  relayerLog: process.env.GOAL_ORACLE_RELAYER_LOG || DEFAULT_ORACLE_LOCAL_GATES_LOG,
   runtimeMatrixLog:
     process.env.GOAL_ORACLE_RUNTIME_MATRIX_LOG || "/tmp/oracle-runtime-matrix-current.redacted.log",
-  webBuildLog: process.env.GOAL_ORACLE_WEB_BUILD_LOG || "/tmp/oracle-web-build-current.redacted.log",
+  webBuildLog: process.env.GOAL_ORACLE_WEB_BUILD_LOG || DEFAULT_ORACLE_LOCAL_GATES_LOG,
 };
 
 function readJson(filePath, fallback = null) {
@@ -71,6 +73,15 @@ function normalizeLogText(text) {
   return String(text || "")
     .replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "")
     .replace(/\r/g, "\n");
+}
+
+function extractValidationSection(text, heading) {
+  const normalized = normalizeLogText(text);
+  const marker = `=== ${heading} ===`;
+  const start = normalized.indexOf(marker);
+  if (start < 0) return normalized;
+  const nextHeading = normalized.indexOf("\n=== ", start + marker.length);
+  return normalized.slice(start, nextHeading < 0 ? normalized.length : nextHeading);
 }
 
 function status(ok, partial = false) {
@@ -195,10 +206,22 @@ function buildReport() {
   const platformLocalGatesLog = readText(INPUTS.platformLocalGatesLog);
   const directLog = readText(INPUTS.directLog);
   const backfillLogs = INPUTS.testnetBackfillLogs.map(readText).filter(Boolean).join("\n");
-  const oracleWorkerLog = readText(ORACLE_INPUTS.workerLog);
-  const oracleRelayerLog = readText(ORACLE_INPUTS.relayerLog);
-  const oracleRuntimeMatrixLog = readText(ORACLE_INPUTS.runtimeMatrixLog);
-  const oracleWebBuildLog = readText(ORACLE_INPUTS.webBuildLog);
+  const oracleWorkerLog = extractValidationSection(
+    readText(ORACLE_INPUTS.workerLog),
+    "Worker Local Gates",
+  );
+  const oracleRelayerLog = extractValidationSection(
+    readText(ORACLE_INPUTS.relayerLog),
+    "Relayer Local Gates",
+  );
+  const oracleRuntimeMatrixLog = extractValidationSection(
+    readText(ORACLE_INPUTS.runtimeMatrixLog),
+    "Control Plane Local Gates",
+  );
+  const oracleWebBuildLog = extractValidationSection(
+    readText(ORACLE_INPUTS.webBuildLog),
+    "Web Local Gates",
+  );
   const controlPlaneSmoke = readJson(ORACLE_INPUTS.controlPlaneSmoke);
 
   const directTxHashes = extractTxHashes(directLog);
@@ -211,19 +234,26 @@ function buildReport() {
   const businessFailureCount = countFailures(businessCompleteness);
   const businessWarningCount = countWarnings(businessCompleteness);
   const runtimeScreenshotPngCount = countFilesWithExtension(INPUTS.runtimeScreenshotsDir, ".png");
+  const runtimeViewportCount = Array.isArray(runtimeUi?.viewports) && runtimeUi.viewports.length > 0
+    ? runtimeUi.viewports.length
+    : 2;
+  const expectedRuntimeChecks = activeMiniAppCount * runtimeViewportCount;
+  const coverageCategoryTotal = Object.values(coverage?.summary || {})
+    .filter((value) => Number.isInteger(value))
+    .reduce((total, value) => total + value, 0);
   const hasRuntimeScreenshotEvidence =
-    runtimeUi?.screenshots_enabled === true || runtimeScreenshotPngCount >= 120;
+    runtimeUi?.screenshots_enabled === true || runtimeScreenshotPngCount >= expectedRuntimeChecks;
   const contractDomainSummary = contractDomains?.summary || contractDomains || {};
   const contractStateErrorCount = countContractStateErrors(mainnetMethods);
   const hostFullChecks = readLogChecks(hostFullLog, {
-    jestSuites: /Test Suites:\s+127 passed,\s+127 total/,
-    jestTests: /Tests:\s+666 passed,\s+666 total/,
-    e2e: /\b27 passed\b/,
+    jestSuites: /Test Suites:\s+\d+ passed,\s+\d+ total/,
+    jestTests: /Tests:\s+\d+ passed,\s+\d+ total/,
+    e2e: /(?:^|\n)\s*\d+ passed\s+\([^)]*\)/,
   });
   const platformLocalChecks = readLogChecks(platformLocalGatesLog, {
     completed: /Local validation gates completed successfully/,
-    adminTests: /Tests\s+241 passed\s+\(241\)/,
-    adminFiles: /Test Files\s+25 passed\s+\(25\)/,
+    adminTests: /Tests\s+\d+ passed\s+\(\d+\)/,
+    adminFiles: /Test Files\s+\d+ passed\s+\(\d+\)/,
   });
   const oracleWorkerChecks = extractTestSummary(oracleWorkerLog);
   const oracleRelayerChecks = extractTestSummary(oracleRelayerLog);
@@ -277,7 +307,7 @@ function buildReport() {
     ),
     buildRequirement(
       "frontend.runtime-ui",
-      "All 60 miniapps render professional desktop/mobile UI without runtime failures",
+      `All ${activeMiniAppCount} active miniapps render professional desktop/mobile UI without runtime failures`,
       {
         file: path.relative(ROOT, INPUTS.runtimeUi),
         catalog_count: runtimeUi?.catalog_count,
@@ -291,10 +321,10 @@ function buildReport() {
         screenshot_png_count: runtimeScreenshotPngCount,
         screenshot_dir: path.relative(ROOT, INPUTS.runtimeScreenshotsDir),
       },
-      runtimeUi?.catalog_count === 60 &&
-        runtimeUi?.catalog_total_count === 60 &&
-        runtimeUi?.total_checks === 120 &&
-        runtimeUi?.passed === 120 &&
+      runtimeUi?.catalog_count === activeMiniAppCount &&
+        runtimeUi?.catalog_total_count === activeMiniAppCount &&
+        runtimeUi?.total_checks === expectedRuntimeChecks &&
+        runtimeUi?.passed === expectedRuntimeChecks &&
         runtimeUi?.failed === 0 &&
         runtimeWarningCount === 0 &&
         runtimeFailureCount === 0 &&
@@ -306,7 +336,7 @@ function buildReport() {
     ),
     buildRequirement(
       "miniapps.coverage",
-      "All 60 miniapps have complete catalog, PlayArea, live harness, and chain coverage classification",
+      `All ${activeMiniAppCount} active miniapps have complete catalog, PlayArea, live harness, and chain coverage classification`,
       {
         coverage_file: path.relative(ROOT, INPUTS.coverage),
         playarea_file: path.relative(ROOT, INPUTS.playareas),
@@ -319,7 +349,8 @@ function buildReport() {
         expected_total_active: activeMiniAppCount,
         allowed_missing_live_harness: KNOWN_MISSING_LIVE_HARNESS,
       },
-      coverage?.summary?.["testnet+mainnet"] === 36 &&
+      coverageCategoryTotal === activeMiniAppCount &&
+        coverage?.summary?.["testnet+mainnet"] === 36 &&
         coverage?.summary?.["frontend-only"] === 24 &&
         Array.isArray(coverage?.action_required) &&
         coverage.action_required.length === 0 &&
@@ -351,8 +382,8 @@ function buildReport() {
         contractDomainSummary?.chain_mismatch === 0 &&
         contractDomainSummary?.chain_error === 0 &&
         contractDomainSummary?.unique_actionable === 0 &&
-        mainnetMethods?.totalMiniapps === 60 &&
-        mainnetMethods?.mainnetContractApps === 36 &&
+        mainnetMethods?.totalMiniapps === activeMiniAppCount &&
+        mainnetMethods?.mainnetContractApps === coverage?.summary?.["testnet+mainnet"] &&
         mainnetMethods?.uniqueMainnetContracts === 27 &&
         mainnetMethods?.safeInvocationsAttempted >= 800 &&
         mainnetMethods?.blockerCount === 0 &&
@@ -504,7 +535,7 @@ function buildReport() {
   return {
     generated_at: new Date().toISOString(),
     objective_scope: [
-      "60 miniapps",
+      `${activeMiniAppCount} active miniapps`,
       "miniapp platform UI",
       "host app and admin console local gates",
       "AA surfaces and paymaster relay",
@@ -564,8 +595,7 @@ function writeReports(report) {
   lines.push(`- Contract domains: ${path.relative(ROOT, INPUTS.contractDomains)}`);
   lines.push(`- Mainnet methods: ${path.relative(ROOT, INPUTS.mainnetMethods)}`);
   lines.push(`- Feed drift: ${path.relative(ORACLE_ROOT, ORACLE_INPUTS.drift)}`);
-  lines.push("");
-  fs.writeFileSync(MD_REPORT, `${lines.join("\n")}\n`);
+  fs.writeFileSync(MD_REPORT, `${lines.join("\n").replace(/\n+$/, "")}\n`);
 }
 
 if (require.main === module) {

@@ -6,12 +6,12 @@
  * ship `runtime: {}`, so the verifier had no operations to check and silently
  * passed — an ABI drift in those contracts would go unnoticed.
  *
- * This module loads the COMMITTED contract build manifests
- * (contracts/build/<Contract>.manifest.json) and exposes, per deployed contract
- * name, the set of SAFE method signatures the compiled contract is expected to
- * publish. The verifier then asserts the live ABI still exposes every committed
- * safe method, and FAILS for any contract-backed app with no resolvable method
- * source instead of passing on an empty check.
+ * This module loads COMMITTED contract build manifests from the platform repo
+ * and any explicitly supplied canonical sibling build directories. It exposes,
+ * per deployed contract name, the set of SAFE method signatures the compiled
+ * contract is expected to publish. The verifier then asserts the live ABI still
+ * exposes every committed safe method, and FAILS for any contract-backed app
+ * with no resolvable method source instead of passing on an empty check.
  *
  * Pure / RPC-free so it can be unit-tested in isolation.
  */
@@ -42,31 +42,35 @@ export function abiMethodSignature(method) {
  * `name/arity` keys. Throws on an unreadable/invalid build manifest so a corrupt
  * artifact is surfaced rather than skipped.
  */
-export function loadBuildManifestAbis({ repoRoot = defaultRepoRoot() } = {}) {
-  const dir = buildManifestDir(repoRoot);
+export function loadBuildManifestAbis({ repoRoot = defaultRepoRoot(), additionalDirs = [] } = {}) {
   const byName = new Map();
-  if (!fs.existsSync(dir)) {
-    return { byName };
-  }
-  for (const fileName of fs.readdirSync(dir).sort()) {
-    if (!fileName.endsWith(".manifest.json")) continue;
-    const filePath = path.join(dir, fileName);
-    let manifest;
-    try {
-      manifest = JSON.parse(fs.readFileSync(filePath, "utf8"));
-    } catch (error) {
-      throw new Error(`invalid build manifest ${fileName}: ${error instanceof Error ? error.message : String(error)}`);
+  const directories = [buildManifestDir(repoRoot), ...additionalDirs]
+    .map((dir) => path.resolve(String(dir || "")))
+    .filter((dir, index, list) => dir && list.indexOf(dir) === index);
+
+  for (const dir of directories) {
+    if (!fs.existsSync(dir)) continue;
+    for (const fileName of fs.readdirSync(dir).sort()) {
+      if (!fileName.endsWith(".manifest.json")) continue;
+      const filePath = path.join(dir, fileName);
+      let manifest;
+      try {
+        manifest = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      } catch (error) {
+        throw new Error(`invalid build manifest ${fileName}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      const name = String(manifest?.name || "").trim();
+      if (!name || byName.has(name)) continue;
+      const methods = Array.isArray(manifest?.abi?.methods) ? manifest.abi.methods : [];
+      const safeMethods = methods.filter((method) => method?.safe === true);
+      byName.set(name, {
+        manifestFile: fileName,
+        manifestPath: filePath,
+        methods,
+        safeMethods: safeMethods.map((method) => String(method.name)),
+        safeSignatures: new Set(safeMethods.map((method) => abiMethodSignature(method))),
+      });
     }
-    const name = String(manifest?.name || "").trim();
-    if (!name) continue;
-    const methods = Array.isArray(manifest?.abi?.methods) ? manifest.abi.methods : [];
-    const safeMethods = methods.filter((method) => method?.safe === true);
-    byName.set(name, {
-      manifestFile: fileName,
-      methods,
-      safeMethods: safeMethods.map((method) => String(method.name)),
-      safeSignatures: new Set(safeMethods.map((method) => abiMethodSignature(method))),
-    });
   }
   return { byName };
 }
@@ -87,6 +91,7 @@ export function resolveExpectedMethods(deployedContractName, abis) {
   return {
     contractName: name,
     manifestFile: entry.manifestFile,
+    manifestPath: entry.manifestPath || null,
     safeMethods: entry.safeMethods,
     safeSignatures: entry.safeSignatures,
   };

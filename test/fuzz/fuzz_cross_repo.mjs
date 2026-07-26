@@ -22,7 +22,7 @@ const NETWORK = getNetworkConfig("testnet");
 
 const ORACLE_HASH = NETWORK.oracleHash;
 const AA_CORE_HASH = process.env.AA_CORE_HASH_TESTNET || "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2";
-const DATAFEED_HASH = process.env.DATAFEED_HASH_TESTNET || "";
+const DATAFEED_HASH = NETWORK.datafeedHash;
 
 // --- Campaign 1: Oracle kernel reads ---
 if (ORACLE_HASH) {
@@ -96,24 +96,44 @@ if (AA_CORE_HASH) {
   });
 }
 
-// --- Campaign 5: Data feed reads with random symbols ---
+// --- Campaign 5: Data feed reads with random resource IDs ---
 if (DATAFEED_HASH) {
-  const runner = new FuzzRunner("datafeed-random-symbols", { iterations: 100 });
+  const runner = new FuzzRunner("datafeed-random-resource-ids", { iterations: 100 });
   await runner.run(async (i) => {
-    const symbols = [
+    const resourceIds = [
       "NEO-USD", "GAS-USD", "BTC-USD", "ETH-USD",
       randomString(8) + "-USD",
       "",
+      "a".repeat(63),
+      "a".repeat(64),
       "a".repeat(256),
       "'; DROP TABLE feeds; --",
     ];
-    const symbol = symbols[i % symbols.length];
-    const result = await invokeRead(DATAFEED_HASH, "getPrice", [strParam(symbol)]);
+    const resourceId = resourceIds[i % resourceIds.length];
+    const result = await invokeRead(DATAFEED_HASH, "getLatest", [strParam(resourceId)]);
 
-    // Should HALT (returns 0 for unknown symbols), not FAULT
+    // Unknown and oversized IDs should return the six-field default record, not
+    // expose the StorageMap key-size limit as an unhandled VM fault.
     if (result.state === "FAULT") {
-      runner.finding(`DataFeed.getPrice("${symbol.slice(0, 50)}") FAULT`, {
+      runner.finding(`DataFeed.getLatest(${resourceId.length}-byte resource ID) FAULT`, {
+        resourceIdPreview: resourceId.slice(0, 50),
         exception: result.exception,
+      });
+      return;
+    }
+
+    const record = result.stack?.[0];
+    if (
+      result.state !== "HALT"
+      || record?.type !== "Struct"
+      || !Array.isArray(record.value)
+      || record.value.length !== 6
+    ) {
+      runner.finding(`DataFeed.getLatest(${resourceId.length}-byte resource ID) malformed result`, {
+        resourceIdPreview: resourceId.slice(0, 50),
+        state: result.state,
+        stackType: record?.type,
+        fieldCount: Array.isArray(record?.value) ? record.value.length : null,
       });
     }
   });

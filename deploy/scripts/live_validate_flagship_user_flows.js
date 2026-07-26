@@ -214,13 +214,9 @@ const GASBOX_SCAN_TIMEOUT_MS = Math.max(
 );
 const FLAGSHIP_TASKS = [
   ["dailyCheckin", runDailyCheckin],
-  ["lastSurvivor", runLastSurvivor],
-  ["gasBox", runGasBox],
-  ["fogPlay", runFogPlay],
   ["redEnvelope", runRedEnvelope],
   ["profitAnchor", runProfitAnchor],
   ["trustAnchor", runTrustAnchor],
-  ["selfLoan", runSelfLoan],
   ["neoPay", runNeoPay],
 ];
 

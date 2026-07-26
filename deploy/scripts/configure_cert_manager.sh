@@ -75,8 +75,14 @@ check_config() {
         return 1
     fi
 
-    local staging_email=$(grep -A 10 "letsencrypt-staging" "$ISSUER_FILE" | grep "email:" | sed 's/.*email:\s*\${CERT_MANAGER_EMAIL:-\(.*\)}.*/\1/' | tr -d ' ')
-    local prod_email=$(grep -A 10 "letsencrypt-prod" "$ISSUER_FILE" | grep "email:" | sed 's/.*email:\s*\${CERT_MANAGER_EMAIL:-\(.*\)}.*/\1/' | tr -d ' ')
+    # grep exits non-zero when an issuer block or its email line is absent, and
+    # that is a handled outcome: the empty value falls through to validate_email
+    # below, which reports the invalid configuration. The declaration is split
+    # from the assignment so the tolerance is stated by `|| true` rather than
+    # coming for free from `local` always returning 0.
+    local staging_email prod_email
+    staging_email=$(grep -A 10 "letsencrypt-staging" "$ISSUER_FILE" | grep "email:" | sed 's/.*email:\s*\${CERT_MANAGER_EMAIL:-\(.*\)}.*/\1/' | tr -d ' ' || true)
+    prod_email=$(grep -A 10 "letsencrypt-prod" "$ISSUER_FILE" | grep "email:" | sed 's/.*email:\s*\${CERT_MANAGER_EMAIL:-\(.*\)}.*/\1/' | tr -d ' ' || true)
 
     log_info "Current configuration:"
     log_info "  Staging email: $staging_email"

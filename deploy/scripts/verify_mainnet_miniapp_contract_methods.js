@@ -9,9 +9,9 @@
  *   - the contract exists on mainnet;
  *   - runtime-declared operations exist in the live ABI;
  *   - the safe ABI surface published by the COMMITTED contract build manifest
- *     (contracts/build/<Contract>.manifest.json) is still exposed by the live
- *     contract — for EVERY contract-backed app, not just ones that declare
- *     runtime.modules operations;
+ *     (the platform repo or its canonical AA/Morpheus sibling repository) is
+ *     still exposed by the live contract — for EVERY contract-backed app, not
+ *     just ones that declare runtime.modules operations;
  *   - safe ABI methods can be invoked with deterministic smoke parameters.
  *
  * Contract-backed apps are enumerated from the shared live-harness coverage map
@@ -59,6 +59,16 @@ const RPC_CANDIDATES = [
   .map((value) => String(value || "").trim())
   .filter(Boolean)
   .filter((value, index, list) => list.indexOf(value) === index);
+
+function canonicalSiblingBuildDirs({ root = ROOT } = {}) {
+  const siblingRoots = [
+    process.env.NEO_ABSTRACT_ACCOUNT_DIR || process.env.ABSTRACT_ACCOUNT_DIR || path.resolve(root, "../neo-abstract-account"),
+    process.env.NEO_MORPHEUS_ORACLE_DIR || process.env.MORPHEUS_DIR || path.resolve(root, "../neo-morpheus-oracle"),
+  ];
+  return siblingRoots
+    .map((repoRoot) => path.join(repoRoot, "contracts", "build"))
+    .filter((directory, index, directories) => fs.existsSync(directory) && directories.indexOf(directory) === index);
+}
 
 const CORE_APP_SCOPED_READS = new Set([
   "abstractAccount",
@@ -485,15 +495,19 @@ function evaluateBuildAbiDrift({
   const expected = resolveExpectedMethods(contractName, buildAbis);
   if (expected) {
     const missingSafe = findMissingSafeMethods(liveMethods, expected);
+    const manifestLabel = expected.manifestPath
+      ? path.relative(ROOT, expected.manifestPath) || expected.manifestPath
+      : `contracts/build/${expected.manifestFile}`;
     for (const name of missingSafe) {
       failures.push(
-        `build-manifest safe method ${name} (contracts/build/${expected.manifestFile}) missing from live ABI`,
+        `build-manifest safe method ${name} (${manifestLabel}) missing from live ABI`,
       );
     }
     return {
       source: {
         contractName: expected.contractName,
         manifestFile: expected.manifestFile,
+        manifestPath: expected.manifestPath || null,
         expectedSafeMethods: expected.safeMethods.length,
         missingSafeMethods: missingSafe,
       },
@@ -502,11 +516,17 @@ function evaluateBuildAbiDrift({
   }
   if (!hasRuntimeMethodSource) {
     failures.push(
-      `no expected-method source: deployed contract "${contractName || "(unnamed)"}" has no committed build manifest in contracts/build and the manifest declares no runtime operations`,
+      `no expected-method source: deployed contract "${contractName || "(unnamed)"}" has no canonical build manifest and the manifest declares no runtime operations`,
     );
   }
   return {
-    source: { contractName: contractName || null, manifestFile: null, expectedSafeMethods: 0, missingSafeMethods: [] },
+    source: {
+      contractName: contractName || null,
+      manifestFile: null,
+      manifestPath: null,
+      expectedSafeMethods: 0,
+      missingSafeMethods: [],
+    },
     failures,
   };
 }
@@ -536,8 +556,11 @@ async function main() {
   const { loadBuildManifestAbis, resolveExpectedMethods, findMissingSafeMethods } = await import(
     "./lib/contract_build_abi.mjs"
   );
-  const buildAbis = loadBuildManifestAbis({ repoRoot: ROOT });
-  logProgress(`loaded ${buildAbis.byName.size} committed contract build manifest(s)`);
+  const buildAbis = loadBuildManifestAbis({
+    repoRoot: ROOT,
+    additionalDirs: canonicalSiblingBuildDirs({ root: ROOT }),
+  });
+  logProgress(`loaded ${buildAbis.byName.size} canonical contract build manifest(s)`);
 
   // Authoritative mainnet-contract-backed app set from the shared live-harness
   // coverage map, so this mainnet drift check enumerates EVERY app with a
@@ -797,6 +820,7 @@ module.exports = {
   evaluateBuildAbiDrift,
   reconcileCoverageBackedApps,
   coverageMainnetContractAppIds,
+  canonicalSiblingBuildDirs,
   extractRuntimeOperations,
   loadApps,
   main,

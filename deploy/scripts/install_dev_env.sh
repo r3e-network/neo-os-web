@@ -181,7 +181,7 @@ install_k3s() {
 
     mkdir -p ~/.kube
     sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-    sudo chown $(id -u):$(id -g) ~/.kube/config
+    sudo chown "$(id -u):$(id -g)" ~/.kube/config
     chmod 600 ~/.kube/config
 
     if ! grep -q "KUBECONFIG" ~/.bashrc; then

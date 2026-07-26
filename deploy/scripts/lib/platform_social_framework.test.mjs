@@ -10,7 +10,7 @@ test("PlatformSocial framework audit accepts exact ABI coverage and wiring", () 
     surfaceSource: 'WRITE_PLATFORM_SOCIAL; invoke("createEnvelope", []); read("getEnvelope", []); invoke("transfer", []); prepayGasCredit; prepayNeoCredit; `${appId()}:credit`;',
     typesSource: "platformSocial?: FrameworkPlatformSocialConfig; readonly platformSocial: FrameworkPlatformSocialSurface;",
     indexSource: "createPlatformSocialSurface; get platformSocial() {}",
-    defineMiniAppSource: 'moduleId !== "platform-social"; platformSocial={resolvedPlatformSocial}',
+    defineMiniAppSource: 'platformSocialConfigFromManifest; platformSocial={resolvedPlatformSocial}',
     timestampProofSource: 'app.platformSocial.available; app.platformSocial.notarize; anchorMethod === "platform-notary"',
   });
   assert.equal(result.passed, true);

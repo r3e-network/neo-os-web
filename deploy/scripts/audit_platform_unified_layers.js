@@ -184,6 +184,7 @@ function scanUnifiedLayers(appName) {
     }
 
     const text = readText(file);
+    const isTestSourceFile = /\.(?:test|spec)\.(?:ts|tsx|js)$/.test(file);
 
     const usesWallet = text.includes("useWallet() as WalletSDK");
     const usesDirectChainMethods = CHAIN_METHOD_MARKERS.some((marker) =>
@@ -221,6 +222,7 @@ function scanUnifiedLayers(appName) {
     }
 
     if (
+      !isTestSourceFile &&
       /uni\.getStorageSync|uni\.setStorageSync|localStorage\.getItem|localStorage\.setItem/.test(
         text,
       )

@@ -57,7 +57,10 @@ test("AA Relay Console exposes a guarded wallet-style relay workspace", () => {
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
   assert.doesNotMatch(styles, /radial-gradient/);
   assert.match(composable, /type PersistedRelayJob/);
-  assert.match(composable, /localStorage\.setItem\(storageKey, JSON\.stringify\(snapshot\)\)/);
+  assert.match(composable, /from "@shared\/utils\/safe-storage"/);
+  assert.match(composable, /safeWriteStorage\(storageKey, JSON\.stringify\(snapshot\)\)/);
+  assert.match(composable, /safeReadStorage\(storageKey\)/);
+  assert.match(composable, /safeRemoveStorage\(storageKey\)/);
   assert.match(composable, /inspectRelayReceipt\(review, receipt, fetcher, now\(\)\)/);
   assert.match(composable, /async function loadAll\(\)/);
   assert.match(messages, /relayHeroTitle/);

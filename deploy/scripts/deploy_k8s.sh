@@ -312,14 +312,23 @@ run_tests() {
         return 0
     fi
 
-    local packages
-    packages=$(go list ./... | grep -v '/scripts$' || true)
-    if [[ -z "$packages" ]]; then
+    # One import path per array element, so the list stays a list all the way to
+    # `go test` instead of being re-split out of a single string on $IFS.
+    local packages=()
+    local package
+    while IFS= read -r package; do
+        # `if` rather than `&&`: a false AND-list at the end of the loop body
+        # would be a failing command and abort the script under `set -e`.
+        if [[ -n "$package" ]]; then
+            packages+=("$package")
+        fi
+    done < <(go list ./... | grep -v '/scripts$' || true)
+    if [[ "${#packages[@]}" -eq 0 ]]; then
         log_error "No Go packages found to test."
         exit 1
     fi
 
-    if ! go test -v $packages; then
+    if ! go test -v "${packages[@]}"; then
         log_error "Tests failed. Aborting deployment."
         exit 1
     fi

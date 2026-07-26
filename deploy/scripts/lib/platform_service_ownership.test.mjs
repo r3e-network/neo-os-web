@@ -122,3 +122,15 @@ test("unified-layer audit does not flag neo-sign-anything for off-chain wallet s
     /\[warn\] chain-layer apps\/neo-sign-anything\/src\/composables\/useSignAnything\.ts:/,
   );
 });
+
+test("unified-layer audit ignores test-only storage fixtures", () => {
+  const result = spawnSync(process.execPath, [auditScript], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.doesNotMatch(output, /\[info\] cache-layer .*\.test\.(?:ts|tsx|js):/);
+  assert.doesNotMatch(output, /\[info\] cache-layer .*\.spec\.(?:ts|tsx|js):/);
+});

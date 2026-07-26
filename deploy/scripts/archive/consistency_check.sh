@@ -29,10 +29,15 @@ echo ""
 check_go_formatting() {
     echo -e "${BLUE}=== Go Code Formatting ===${NC}"
 
-    local unformatted=$(find "$PROJECT_ROOT" -name "*.go" \
+    # Declared first and assigned second: assigning on the `local` line reports
+    # `local`'s own status, which is always 0, so a failing search would slip
+    # past `set -e` and be reported below as "no unformatted files". An empty
+    # result is a real outcome here, which is what the `|| true` says.
+    local unformatted
+    unformatted=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
-        -exec gofmt -l {} \; 2>/dev/null)
+        -exec gofmt -l {} \; 2>/dev/null) || true
 
     if [[ -n "$unformatted" ]]; then
         echo -e "${RED}[ERROR] Unformatted Go files:${NC}"
@@ -100,13 +105,20 @@ check_import_consistency() {
     echo -e "${BLUE}=== Import Consistency ===${NC}"
 
     # Check for mixed import styles (should use project module path)
-    local module_name=$(grep "^module " "$PROJECT_ROOT/go.mod" | cut -d' ' -f2)
+    # grep exits non-zero when go.mod has no module line, and this value is only
+    # printed in the warning below, so an empty read is tolerable -- but it has
+    # to be tolerated explicitly rather than by `local` swallowing the status.
+    local module_name
+    module_name=$(grep "^module " "$PROJECT_ROOT/go.mod" | cut -d' ' -f2) || true
 
-    # Find files importing with wrong paths
-    local bad_imports=$(find "$PROJECT_ROOT" -name "*.go" \
+    # Find files importing with wrong paths. `head -5` closes the pipe early on
+    # a long match list, so the upstream stages can die of SIGPIPE under
+    # `pipefail`; that and the no-match case are both expected here.
+    local bad_imports
+    bad_imports=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
-        -exec grep -l "\"service_layer/" {} \; 2>/dev/null | head -5)
+        -exec grep -l "\"service_layer/" {} \; 2>/dev/null | head -5) || true
 
     if [[ -n "$bad_imports" ]]; then
         echo -e "${YELLOW}[WARNING] Files with potentially inconsistent imports:${NC}"
@@ -140,7 +152,8 @@ check_config_consistency() {
 
         for config in "$config_dir"/*.json; do
             [[ -f "$config" ]] || continue
-            local filename=$(basename "$config")
+            local filename
+            filename=$(basename "$config")
             case "$filename" in
                 *_contracts.json|fairy_contracts.json)
                     continue
@@ -148,7 +161,11 @@ check_config_consistency() {
             esac
 
             # Extract top-level keys
-            local keys=$(jq -r 'keys[]' "$config" 2>/dev/null | sort | tr '\n' ' ')
+            # jq fails on malformed JSON, and the comparison below treats the
+            # resulting empty key list as a mismatch worth warning about, so the
+            # failure is tolerated rather than fatal.
+            local keys
+            keys=$(jq -r 'keys[]' "$config" 2>/dev/null | sort | tr '\n' ' ') || true
 
             if [[ -z "$first_file" ]]; then
                 first_file="$filename"
@@ -183,7 +200,8 @@ check_contract_consistency() {
         # Check example contracts implement callbacks
         for example in "$contracts_dir/examples"/*.cs; do
             [[ -f "$example" ]] || continue
-            local filename=$(basename "$example")
+            local filename
+            filename=$(basename "$example")
 
             # Check for callback pattern if contract uses Gateway
             if grep -q "RequestService\|requestService" "$example" && ! grep -q "Callback\|callback" "$example"; then
@@ -216,10 +234,13 @@ check_service_consistency() {
         # Check each service has required components
         for service_dir in "$services_dir"/*/; do
             [[ -d "$service_dir" ]] || continue
-            local service_name=$(basename "$service_dir")
+            local service_name
+            service_name=$(basename "$service_dir")
 
-            # Skip if not a Go service
-            [[ -f "$service_dir"/*.go ]] || continue
+            # Skip if not a Go service. `[[ ]]` never expands globs, so the
+            # pattern has to be expanded into an array before it is tested.
+            local go_files=("$service_dir"*.go)
+            [[ -f "${go_files[0]}" ]] || continue
 
             # Check for ServiceID constant
             if ! grep -rq "ServiceID.*=" "$service_dir"/*.go 2>/dev/null; then
@@ -250,7 +271,10 @@ check_error_handling() {
     # Check for explicitly discarded error variables.
     # The previous ', _ :=' heuristic generated too many false positives
     # for non-error secondary return values (e.g., big.Int conversions).
-    local unchecked=$(find "$PROJECT_ROOT" -name "*.go" \
+    # `wc -l` always yields a count, so no tolerance is needed -- but the split
+    # is: a failing `find` would otherwise be reported below as a clean zero.
+    local unchecked
+    unchecked=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
         ! -path "*_test.go" \
@@ -307,12 +331,14 @@ check_logging_consistency() {
             -exec grep -lE "$log_import_pattern" {} \; 2>/dev/null | wc -l)
     fi
 
-    local infrastructure_logging=$(find "$PROJECT_ROOT" -name "*.go" \
+    local infrastructure_logging
+    infrastructure_logging=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
         -exec grep -l '"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"' {} \; 2>/dev/null | wc -l)
 
-    local direct_logrus=$(find "$PROJECT_ROOT" -name "*.go" \
+    local direct_logrus
+    direct_logrus=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
         ! -path "*/infrastructure/logging/*" \
@@ -349,13 +375,16 @@ check_json_tags() {
     echo -e "${BLUE}=== JSON Tag Consistency ===${NC}"
 
     # Check for struct fields that might be missing JSON tags in API types
-    local missing_tags=$(find "$PROJECT_ROOT" -name "*.go" \
+    # No match, and the SIGPIPE that `head -5` can inflict on the stages above
+    # it, are both expected outcomes of a search that finds nothing to report.
+    local missing_tags
+    missing_tags=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
         -exec grep -l "type.*struct" {} \; 2>/dev/null | \
         xargs grep -A20 "type.*Request\|type.*Response\|type.*Payload" 2>/dev/null | \
         grep -E "^\s+[A-Z][a-zA-Z]+\s+(string|int|bool|\[\])" | \
-        grep -v 'json:' | head -5)
+        grep -v 'json:' | head -5) || true
 
     if [[ -n "$missing_tags" ]]; then
         echo -e "${YELLOW}[WARNING] Potential missing JSON tags in API structs:${NC}"

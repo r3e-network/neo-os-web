@@ -45,11 +45,15 @@ test("live harness coverage summary exposes fix lists", () => {
   const rows = buildCoverageRows({ root: repoRoot });
   const summary = summarizeCoverage(rows);
 
-  // App-count question OWNED (2026-07-18, joint program): the census confirms
-  // 77 active manifests — this literal was stale at 71. Bumped deliberately,
-  // not reflexively; the derived-count gate in goal_validation_report.test.mjs
-  // (expectedActiveMiniAppCount() == rows.length) independently proves 77.
-  assert.equal(summary.totalActive, 77);
+  // App-count question OWNED (2026-07-25): the census confirms 78 active
+  // manifests — this literal was stale at 77. The 78th is miniapp-gomoku,
+  // classified ui-only-flow because it declares no chain surface (no contract
+  // binding, no platform.transactions, no write permission), so it adds no
+  // live-harness obligation and the two fix lists below stay empty. Bumped
+  // deliberately, not reflexively; the derived-count gate in
+  // goal_validation_report.test.mjs (expectedActiveMiniAppCount() ==
+  // rows.length) independently proves 78.
+  assert.equal(summary.totalActive, 78);
   // The gap list is EMPTY as of 2026-07-18: every chain-surface app has a
   // registered live-flow script. The pin's intent — fail on any drift, whether
   // a NEW uncovered app appears or a registration is dropped — is unchanged;

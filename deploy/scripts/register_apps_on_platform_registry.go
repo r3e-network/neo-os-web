@@ -10,8 +10,9 @@
 // Per appId: test-invoke getApp(appId) and skip when already registered
 // (idempotent); otherwise top up the signer's prepaid (appId, signer) GAS
 // credit by ONLY the deficit toward the 1 GAS lite fee (GAS transfer with
-// memo "<appId>:credit") and call registerApp(appId, "", signer, null) —
-// lite tier: no engine, no descriptor, no AppAccount mint.
+// memo "<appId>:credit") and call registerApp for custom ids or
+// registerAppByPlatform for the reserved miniapp-* namespace — lite tier:
+// no engine, no descriptor, no AppAccount mint.
 //
 // Safety:
 //   - Dry-run is the DEFAULT: PLATFORM_REGISTRY_DEPLOY_DRY_RUN unset means
@@ -21,18 +22,22 @@
 //     mainnet 860833102).
 //   - Pre-flight: every roster id is validated against the on-chain charset
 //     [a-z0-9-_.]{1,64} before anything is simulated or sent; invalid ids
-//     are reported and excluded (they would FAULT the registerApp call
+//     are reported and excluded (they would FAULT the registration call
 //     on-chain).
 //   - Per-app failures are recorded and never abort the run; the JSON report
 //     is rewritten after every batch so an interrupted run keeps the txids
 //     confirmed so far. The run aborts early only after 5 CONSECUTIVE app
 //     failures (the signature of a systemic RPC/balance problem).
 //   - A full 77-app registration write run sends up to ~154 confirmed transactions
-//     (credit top-up + registerApp each) — plan for the better part of an
+//     (credit top-up where needed + registration each) — plan for the better part of an
 //     hour on testnet.
 //   - A full account-materialization write run sends one confirmed
 //     ContractManagement.Deploy-backed mintAccount transaction per missing
 //     account. Review the dry-run system-fee total and predicted hashes first.
+//   - A shared-AA write run additionally requires a fresh successful
+//     docs/reports/shared-aa-upgrade-preflight-latest.json and the complete
+//     shared-aa-account-roster-preflight-latest.json; missing or stale gates
+//     fail closed before the first transaction.
 //
 // Key environment:
 //
@@ -58,6 +63,10 @@
 //	                                       (default deploy/config/cohort0-account-materialization-<network>-<date>.json)
 //	PLATFORM_REGISTRY_ABSTRACT_ACCOUNT_REPORT_PATH shared-AA materialization report override
 //	                                       (default deploy/config/cohort0-abstract-account-materialization-<network>-<date>.json)
+//	PLATFORM_REGISTRY_SHARED_AA_PREFLIGHT_PATH upgrade preflight override for shared-AA writes
+//	                                       (default docs/reports/shared-aa-upgrade-preflight-latest.json)
+//	PLATFORM_REGISTRY_SHARED_AA_ROSTER_PREFLIGHT_PATH roster preflight override for shared-AA writes
+//	                                       (default docs/reports/shared-aa-account-roster-preflight-latest.json)
 package main
 
 import (
@@ -99,6 +108,7 @@ const (
 	// length bound (ValidateAppIdFormat, PlatformRegistry.Directory.cs).
 	rrLiteRegistrationFee = int64(100_000_000) // 1 GAS in fractions
 	rrMaxAppIDLength      = 64
+	rrPlatformAppIDPrefix = "miniapp-"
 
 	rrAppsManifestGlob          = "apps/*/neo-manifest.json"
 	rrDefaultBatchSize          = 10
@@ -109,24 +119,27 @@ const (
 )
 
 type rrReport struct {
-	Action              string            `json:"action"`
-	Network             string            `json:"network"`
-	RPCURL              string            `json:"rpc_url"`
-	NetworkMagic        uint32            `json:"network_magic"`
-	Signer              string            `json:"signer"`
-	SignerHash          string            `json:"signer_hash"`
-	SignerInput         string            `json:"signer_input"`
-	DryRun              bool              `json:"dry_run"`
-	PlatformRegistry    string            `json:"platform_registry"`
-	AbstractAccountCore string            `json:"abstract_account_core,omitempty"`
-	RosterSource        string            `json:"roster_source"`
-	Filters             map[string]string `json:"filters,omitempty"`
-	Summary             rrSummary         `json:"summary"`
-	Apps                []rrAppRecord     `json:"apps"`
-	Transactions        []rrTxRecord      `json:"transactions"`
-	Balances            map[string]string `json:"balances"`
-	NextSteps           []string          `json:"next_steps"`
-	GeneratedAtUTC      string            `json:"generated_at_utc"`
+	Action               string            `json:"action"`
+	Status               string            `json:"status,omitempty"`
+	Error                string            `json:"error,omitempty"`
+	Network              string            `json:"network"`
+	RPCURL               string            `json:"rpc_url"`
+	NetworkMagic         uint32            `json:"network_magic"`
+	Signer               string            `json:"signer"`
+	SignerHash           string            `json:"signer_hash"`
+	SignerInput          string            `json:"signer_input"`
+	DryRun               bool              `json:"dry_run"`
+	ChainWritesPerformed bool              `json:"chain_writes_performed"`
+	PlatformRegistry     string            `json:"platform_registry"`
+	AbstractAccountCore  string            `json:"abstract_account_core,omitempty"`
+	RosterSource         string            `json:"roster_source"`
+	Filters              map[string]string `json:"filters,omitempty"`
+	Summary              rrSummary         `json:"summary"`
+	Apps                 []rrAppRecord     `json:"apps"`
+	Transactions         []rrTxRecord      `json:"transactions"`
+	Balances             map[string]string `json:"balances"`
+	NextSteps            []string          `json:"next_steps"`
+	GeneratedAtUTC       string            `json:"generated_at_utc"`
 }
 
 type rrSummary struct {
@@ -338,22 +351,23 @@ func rrRun() error {
 		reportAction = "cohort0-materialize-abstract-accounts"
 	}
 	report := rrReport{
-		Action:           reportAction,
-		Network:          networkID,
-		RPCURL:           rpcURL,
-		NetworkMagic:     actualMagic,
-		Signer:           signerAddress,
-		SignerInput:      signerInput,
-		SignerHash:       "0x" + signerHash.StringLE(),
-		DryRun:           dryRun,
-		PlatformRegistry: "0x" + registryHash.StringLE(),
-		RosterSource:     rosterSource,
-		Filters:          filters,
-		Apps:             apps,
-		Transactions:     []rrTxRecord{},
-		Balances:         map[string]string{"neo": strconv.FormatInt(neoBalance, 10), "gas": rrFormatGas(gasBalance)},
-		NextSteps:        []string{},
-		GeneratedAtUTC:   time.Now().UTC().Format(time.RFC3339),
+		Action:               reportAction,
+		Network:              networkID,
+		RPCURL:               rpcURL,
+		NetworkMagic:         actualMagic,
+		Signer:               signerAddress,
+		SignerInput:          signerInput,
+		SignerHash:           "0x" + signerHash.StringLE(),
+		DryRun:               dryRun,
+		ChainWritesPerformed: false,
+		PlatformRegistry:     "0x" + registryHash.StringLE(),
+		RosterSource:         rosterSource,
+		Filters:              filters,
+		Apps:                 apps,
+		Transactions:         []rrTxRecord{},
+		Balances:             map[string]string{"neo": strconv.FormatInt(neoBalance, 10), "gas": rrFormatGas(gasBalance)},
+		NextSteps:            []string{},
+		GeneratedAtUTC:       time.Now().UTC().Format(time.RFC3339),
 	}
 	report.Summary.DuplicatesDropped = duplicatesDropped
 	reportPath := rrReportPath(network, cohortAction)
@@ -393,19 +407,23 @@ func rrRun() error {
 			}
 			continue
 		}
-		credit, err := rrCallInteger(act, registryHash, "creditOf", rec.AppID, signerHash)
-		if err != nil {
-			rec.Status = "failed"
-			rec.Reason = fmt.Sprintf("read creditOf(%s): %s", rec.AppID, err)
-			continue
+		if rrIsPlatformOwnedAppID(rec.AppID) {
+			rec.Note = "platform-owned namespace: fee-exempt registerAppByPlatform"
+		} else {
+			credit, err := rrCallInteger(act, registryHash, "creditOf", rec.AppID, signerHash)
+			if err != nil {
+				rec.Status = "failed"
+				rec.Reason = fmt.Sprintf("read creditOf(%s): %s", rec.AppID, err)
+				continue
+			}
+			rec.CreditBefore = rrFormatBigGas(credit)
+			if deficit := new(big.Int).Sub(big.NewInt(rrLiteRegistrationFee), credit); deficit.Sign() > 0 {
+				rec.TopUpFractions = deficit.Int64()
+				rec.TopUpGas = rrFormatGas(rec.TopUpFractions)
+			}
+			totalTopUp += rec.TopUpFractions
 		}
-		rec.CreditBefore = rrFormatBigGas(credit)
-		if deficit := new(big.Int).Sub(big.NewInt(rrLiteRegistrationFee), credit); deficit.Sign() > 0 {
-			rec.TopUpFractions = deficit.Int64()
-			rec.TopUpGas = rrFormatGas(rec.TopUpFractions)
-		}
-		totalTopUp += rec.TopUpFractions
-		txCount++ // registerApp
+		txCount++ // registerApp or registerAppByPlatform
 		if rec.TopUpFractions > 0 {
 			txCount++ // credit top-up transfer
 		}
@@ -678,19 +696,36 @@ func rrRunMaterializeAccounts(ctx context.Context, client *rpcclient.Client, act
 func rrRunMaterializeAbstractAccounts(ctx context.Context, client *rpcclient.Client, act *actor.Actor, registry util.Uint160, signerHash util.Uint160, signerAddress string, gasBalance int64, dryRun bool, batchSize int, reportPath string, report *rrReport) error {
 	core, err := rrCallUint160(act, registry, "abstractAccountCore")
 	if err != nil {
-		return fmt.Errorf("PlatformRegistry upgrade required before shared abstract-account materialization: %w", err)
+		return rrBlockMaterializationReport(
+			reportPath,
+			report,
+			fmt.Sprintf("PlatformRegistry upgrade required before shared abstract-account materialization: %s", err),
+		)
 	}
 	if core == (util.Uint160{}) {
-		return fmt.Errorf("shared abstract-account core is not configured; proposeAbstractAccountCore and execute the timelock before materialization")
+		return rrBlockMaterializationReport(
+			reportPath,
+			report,
+			"shared abstract-account core is not configured; proposeAbstractAccountCore and execute the timelock before materialization",
+		)
+	}
+	if !dryRun {
+		if err := rrRequireSharedAaMaterializationPreflight(registry, core); err != nil {
+			return rrBlockMaterializationReport(reportPath, report, err.Error())
+		}
 	}
 	report.AbstractAccountCore = "0x" + core.StringLE()
 
 	admin, err := rrCallUint160(act, registry, "admin")
 	if err != nil {
-		return fmt.Errorf("read registry admin: %w", err)
+		return rrBlockMaterializationReport(reportPath, report, fmt.Sprintf("read registry admin: %s", err))
 	}
 	if admin != signerHash {
-		return fmt.Errorf("cohort shared-account materialization requires the platform admin signer 0x%s; got 0x%s", admin.StringLE(), signerHash.StringLE())
+		return rrBlockMaterializationReport(
+			reportPath,
+			report,
+			fmt.Sprintf("cohort shared-account materialization requires the platform admin signer 0x%s; got 0x%s", admin.StringLE(), signerHash.StringLE()),
+		)
 	}
 
 	accountOwners := map[string]string{}
@@ -885,6 +920,108 @@ func rrRunMaterializeAbstractAccounts(ctx context.Context, client *rpcclient.Cli
 		fmt.Println("\ndry-run: nothing was written. After reviewing this exact report, a separately approved write run would use:")
 		fmt.Printf("  PLATFORM_REGISTRY_COHORT_ACTION=materialize-abstract-accounts PLATFORM_REGISTRY_DEPLOY_DRY_RUN=false CONFIRM_PLATFORM_REGISTRY_DEPLOY=%s NEO_TESTNET_WIF=<wif> \\\n", rrConfirmPhrase)
 		fmt.Println("    go run -tags scripts deploy/scripts/register_apps_on_platform_registry.go")
+	}
+	return nil
+}
+
+func rrBlockMaterializationReport(reportPath string, report *rrReport, reason string) error {
+	report.Status = "blocked"
+	report.Error = reason
+	report.NextSteps = []string{
+		"Upgrade and verify PlatformRegistry and UnifiedSmartWalletV3 before retrying shared-account materialization.",
+		"Re-run this dry-run and review the persisted roster, predictions, and reverse-index gates before any write authorization.",
+	}
+	rrRecomputeMaterializeSummary(report)
+	if err := rrWriteReport(reportPath, *report); err != nil {
+		return fmt.Errorf("%s; failed to persist blocked report: %w", reason, err)
+	}
+	return fmt.Errorf("%s; blocked report flushed to %s", reason, reportPath)
+}
+
+type rrSharedAaUpgradePreflight struct {
+	Evaluation struct {
+		Phase             string `json:"phase"`
+		SafeToMaterialize bool   `json:"safe_to_materialize"`
+	} `json:"evaluation"`
+	Contracts struct {
+		Registry struct {
+			Hash string `json:"hash"`
+		} `json:"registry"`
+		AbstractAccount struct {
+			Hash string `json:"hash"`
+		} `json:"abstract_account"`
+	} `json:"contracts"`
+	ChainWritesPerformed bool `json:"chain_writes_performed"`
+}
+
+type rrSharedAaRosterPreflight struct {
+	Source struct {
+		RegistryHash string `json:"registry_hash"`
+	} `json:"source"`
+	Summary struct {
+		RosterTotal               int  `json:"roster_total"`
+		DerivedAccountIDs         int  `json:"derived_account_ids"`
+		UniquePredictedAccountIDs int  `json:"unique_predicted_account_ids"`
+		Complete                  bool `json:"complete"`
+	} `json:"summary"`
+}
+
+func rrNormalizeHashText(raw string) string {
+	return strings.ToLower(strings.TrimPrefix(strings.TrimSpace(raw), "0x"))
+}
+
+func rrReadJSONFile(path string, target interface{}) error {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", path, err)
+	}
+	if err := json.Unmarshal(raw, target); err != nil {
+		return fmt.Errorf("parse %s: %w", path, err)
+	}
+	return nil
+}
+
+func rrRequireSharedAaMaterializationPreflight(registry, core util.Uint160) error {
+	upgradePath := rrFirstNonEmpty(
+		os.Getenv("PLATFORM_REGISTRY_SHARED_AA_PREFLIGHT_PATH"),
+		filepath.Join("docs", "reports", "shared-aa-upgrade-preflight-latest.json"),
+	)
+	var upgrade rrSharedAaUpgradePreflight
+	if err := rrReadJSONFile(upgradePath, &upgrade); err != nil {
+		return fmt.Errorf("shared-AA write gate: %w", err)
+	}
+	if upgrade.ChainWritesPerformed {
+		return fmt.Errorf("shared-AA write gate: upgrade preflight is marked as having performed chain writes")
+	}
+	if upgrade.Evaluation.Phase != "ready_to_materialize_dry_run" || !upgrade.Evaluation.SafeToMaterialize {
+		return fmt.Errorf(
+			"shared-AA write gate: upgrade preflight is not ready (phase=%s safe_to_materialize=%t)",
+			upgrade.Evaluation.Phase,
+			upgrade.Evaluation.SafeToMaterialize,
+		)
+	}
+	if rrNormalizeHashText(upgrade.Contracts.Registry.Hash) != rrNormalizeHashText("0x"+registry.StringLE()) {
+		return fmt.Errorf("shared-AA write gate: upgrade preflight Registry hash does not match the live target")
+	}
+	if rrNormalizeHashText(upgrade.Contracts.AbstractAccount.Hash) != rrNormalizeHashText("0x"+core.StringLE()) {
+		return fmt.Errorf("shared-AA write gate: upgrade preflight AA core hash does not match the active Registry core")
+	}
+
+	rosterPath := rrFirstNonEmpty(
+		os.Getenv("PLATFORM_REGISTRY_SHARED_AA_ROSTER_PREFLIGHT_PATH"),
+		filepath.Join("docs", "reports", "shared-aa-account-roster-preflight-latest.json"),
+	)
+	var roster rrSharedAaRosterPreflight
+	if err := rrReadJSONFile(rosterPath, &roster); err != nil {
+		return fmt.Errorf("shared-AA write gate: %w", err)
+	}
+	if !roster.Summary.Complete || roster.Summary.RosterTotal == 0 ||
+		roster.Summary.DerivedAccountIDs != roster.Summary.RosterTotal ||
+		roster.Summary.UniquePredictedAccountIDs != roster.Summary.RosterTotal {
+		return fmt.Errorf("shared-AA write gate: roster preflight is incomplete or non-unique")
+	}
+	if rrNormalizeHashText(roster.Source.RegistryHash) != rrNormalizeHashText("0x"+registry.StringLE()) {
+		return fmt.Errorf("shared-AA write gate: roster preflight Registry hash does not match the live target")
 	}
 	return nil
 }
@@ -1145,10 +1282,11 @@ func rrExecuteApp(ctx context.Context, client *rpcclient.Client, act *actor.Acto
 
 	// Lite registration: empty engineId, null descriptor (the registry
 	// asserts descriptor == null || empty when no engine is attached).
-	inv, err := act.Call(registry, "registerApp", rec.AppID, "", signerHash, nil)
+	method := rrRegistrationMethod(rec.AppID)
+	inv, err := act.Call(registry, method, rec.AppID, "", signerHash, nil)
 	if err != nil {
 		rec.Status = "failed"
-		rec.Reason = fmt.Sprintf("simulate registerApp: %s", err)
+		rec.Reason = fmt.Sprintf("simulate %s: %s", method, err)
 		return
 	}
 	if inv.State != "HALT" {
@@ -1156,22 +1294,22 @@ func rrExecuteApp(ctx context.Context, client *rpcclient.Client, act *actor.Acto
 		case dryRun && rec.TopUpFractions > 0 && strings.Contains(inv.FaultException, "insufficient credit"):
 			// Expected in dry-run: the top-up above was simulated, not sent.
 			rec.Status = "planned"
-			rec.Reason = "registration becomes eligible after the simulated credit top-up"
+			rec.Reason = method + " becomes eligible after the simulated credit top-up"
 		case strings.Contains(inv.FaultException, "appId already registered"):
 			rec.Status = "skipped"
 			rec.Reason = "already registered (registered concurrently with the run)"
 		default:
 			rec.Status = "failed"
-			rec.Reason = fmt.Sprintf("simulate registerApp fault: %s", inv.FaultException)
+			rec.Reason = fmt.Sprintf("simulate %s fault: %s", method, inv.FaultException)
 		}
 		return
 	}
 	if dryRun {
 		rec.Status = "planned"
-		rec.Reason = "registerApp simulation HALT (eligible)"
+		rec.Reason = method + " simulation HALT (eligible)"
 		return
 	}
-	txid, _, err := rrSendAndWait(ctx, client, act, registry, "registerApp", report, "registerApp "+rec.AppID, rec.AppID, "", signerHash, nil)
+	txid, _, err := rrSendAndWait(ctx, client, act, registry, method, report, method+" "+rec.AppID, rec.AppID, "", signerHash, nil)
 	if err != nil {
 		rec.Status = "failed"
 		rec.Reason = err.Error()
@@ -1187,6 +1325,17 @@ func rrExecuteApp(ctx context.Context, client *rpcclient.Client, act *actor.Acto
 	if credit, err := rrCallInteger(act, registry, "creditOf", rec.AppID, signerHash); err == nil {
 		rec.CreditAfter = rrFormatBigGas(credit)
 	}
+}
+
+func rrIsPlatformOwnedAppID(appID string) bool {
+	return strings.HasPrefix(appID, rrPlatformAppIDPrefix)
+}
+
+func rrRegistrationMethod(appID string) string {
+	if rrIsPlatformOwnedAppID(appID) {
+		return "registerAppByPlatform"
+	}
+	return "registerApp"
 }
 
 func rrProgressLine(rec *rrAppRecord) string {
@@ -1483,6 +1632,7 @@ func rrSendAndWait(ctx context.Context, client *rpcclient.Client, act *actor.Act
 	if err != nil {
 		return util.Uint256{}, nil, fmt.Errorf("%s (%s): %w", label, method, err)
 	}
+	report.ChainWritesPerformed = true
 	report.Transactions = append(report.Transactions, rrTxRecord{Label: label, TxID: "0x" + txid.StringLE(), VUB: vub})
 	appLog, err := rrWaitForTx(ctx, client, txid)
 	if err != nil {

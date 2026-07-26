@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { hasPlatformBinding } from "./lib/platform_binding_source.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..");
@@ -46,8 +47,9 @@ function sharedDeFiBindings() {
     const manifestPath = path.join(appsDir, slug, "src", "manifest.ts");
     if (!fs.existsSync(manifestPath)) continue;
     const source = fs.readFileSync(manifestPath, "utf8");
-    if (!/mode:\s*["']shared["']/.test(source)) continue;
-    if (!/moduleId:\s*["'](?:PlatformDeFi|platform-defi)["']/.test(source)) continue;
+    if (!hasPlatformBinding(source, "defi") &&
+      (!/mode:\s*["']shared["']/.test(source) ||
+        !/moduleId:\s*["'](?:PlatformDeFi|platform-defi)["']/.test(source))) continue;
     bindings.push(slug);
   }
   return bindings;

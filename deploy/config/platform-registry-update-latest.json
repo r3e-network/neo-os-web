@@ -1,0 +1,21 @@
+{
+  "action": "status",
+  "network": "neo-n3-testnet",
+  "network_magic": 894710606,
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "signer": "",
+  "signer_input": "",
+  "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "dry_run": true,
+  "chain_writes_performed": false,
+  "transactions": [],
+  "validation": {
+    "admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "admin_matches_signer": "not-checked",
+    "pending_update_storage_read_error": "Unknown storage item (-104)"
+  },
+  "next_steps": [
+    "pending update storage could not be read; do not schedule, execute, or cancel until the read succeeds"
+  ],
+  "generated_at_utc": "2026-07-24T19:19:41Z"
+}

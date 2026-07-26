@@ -23,8 +23,15 @@ test("root package exposes the repo verification command", () => {
 test("repo verification script runs the canonical local validation stack", () => {
   const script = read("scripts/verify_repo.sh");
 
-  assert.match(script, /npm audit --omit=dev --audit-level=high/);
-  assert.match(script, /audit --workspace platform\/host-app --omit=dev --audit-level=high/);
+  // The two inline `npm audit` blocks were factored into a single
+  // run_npm_audit_scope helper, so the flags now live in one place and the
+  // scopes are its call sites. Both halves are asserted separately so the test
+  // keeps its original teeth: dropping the production-only/high-severity flags
+  // fails the first assertion, and dropping either audited scope fails the
+  // matching call-site assertion.
+  assert.match(script, /npm audit "\$@" --omit=dev --audit-level=high/);
+  assert.match(script, /^run_npm_audit_scope "root audit"$/m);
+  assert.match(script, /^run_npm_audit_scope "host-app audit" --workspace platform\/host-app$/m);
   assert.match(script, /test:deploy-scripts/);
   assert.match(script, /check:platform:contracts/);
   assert.match(script, /check:platform:social-framework/);

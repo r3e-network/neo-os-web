@@ -23,7 +23,10 @@ const expectedRegistryMethods = {
 
 const expectedAaMethods = {
   computePlatformAccountId: [["ByteArray", "Hash160", "Integer"], "Hash160", true],
+  computeStablePlatformAccountId: [["ByteArray", "Integer"], "Hash160", true],
   registerPlatformAccount: [["Hash160", "ByteArray", "Hash160", "Integer"], "Void", false],
+  registerStablePlatformAccount: [["Hash160", "ByteArray", "Hash160", "Integer"], "Void", false],
+  rotatePlatformAccountOwner: [["Hash160", "ByteArray", "Hash160"], "Void", false],
   proposePlatformRegistrar: [["Hash160"], "Void", false],
   confirmPlatformRegistrar: [[], "Void", false],
   cancelPlatformRegistrar: [[], "Void", false],
@@ -63,7 +66,13 @@ export function validateJointAbstractAccountInterface({
       .every(([name, expected]) => methodMatches(aaManifest, name, expected)),
     registry_least_privilege_calls: hasDynamicMethods(
       registryManifest,
-      ["computePlatformAccountId", "registerPlatformAccount"],
+      [
+        "computePlatformAccountId",
+        "registerPlatformAccount",
+        "computeStablePlatformAccountId",
+        "registerStablePlatformAccount",
+        "rotatePlatformAccountOwner",
+      ],
     ),
     registry_binding_domain_separated:
       registrySource.includes("Runtime.ExecutingScriptHash") &&
@@ -83,6 +92,10 @@ export function validateJointAbstractAccountInterface({
       aaSource.includes("RegisterAccountCore(") &&
       aaSource.includes("backupOwner") &&
       aaSource.includes("false"),
+    aa_platform_owner_rotation_bound:
+      aaSource.includes("Prefix_PlatformAccountBinding") &&
+      aaSource.includes("RotatePlatformAccountOwner") &&
+      aaSource.includes("AssertNoMarketEscrow(accountId)"),
   };
   return { checks, passed: Object.values(checks).every(Boolean) };
 }
@@ -109,9 +122,10 @@ function writeReport(report) {
     "",
     "## Verified Boundary",
     "",
-    "- PlatformRegistry and UnifiedSmartWalletV3 local artifacts agree on the registrar/account ABI.",
+    "- PlatformRegistry and UnifiedSmartWalletV3 local artifacts agree on the registrar/account ABI, including stable account derivation and registration.",
     "- New registrations auto-create a shared AA only after an AA core is configured; existing rows use `materializeAbstractAccount`.",
     "- The platform registrar creates a zero-plugin account owned by appAdmin; appAdmin can later install verifier/hook modules.",
+    "- App-admin rotation preserves the deterministic account id and updates the stored backup owner only through the registrar-bound app binding; escrow and escape-active accounts fail closed.",
     "- Registry core activation and disable both use the same 24-hour timelock; disabling preserves existing app identities.",
     "- This report is local artifact evidence only. It does not prove either upgraded contract is deployed or configured on testnet.",
   ];
@@ -120,7 +134,7 @@ function writeReport(report) {
 
 export function buildCurrentReport({ aaRoot = process.env.NEO_ABSTRACT_ACCOUNT_ROOT || defaultAaRoot } = {}) {
   const registryManifestPath = path.join(repoRoot, "contracts/build/PlatformRegistry.manifest.json");
-  const aaManifestPath = path.join(aaRoot, "contracts/bin/v3/UnifiedSmartWalletV3.manifest.json");
+  const aaManifestPath = path.join(aaRoot, "contracts/build/UnifiedSmartWalletV3.manifest.json");
   const registrySourcePath = path.join(
     repoRoot,
     "contracts/platform/PlatformRegistry/PlatformRegistry.AbstractAccounts.cs",

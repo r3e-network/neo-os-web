@@ -58,6 +58,7 @@
 //	PLATFORM_REGISTRY_DEPLOY_NETWORK       testnet (default) | mainnet
 //	NEO_TESTNET_WIF / FLAGSHIP_TESTNET_WIF signer WIF — must be the app admin of every roster row
 //	                                       (mainnet: NEO_MAINNET_WIF / FLAGSHIP_MAINNET_WIF)
+//	PLATFORM_REGISTRY_DRY_RUN_SIGNER    public signer address/hash for dry-run simulation when no WIF is configured
 //	NEO_TESTNET_RPC_URL / NEO_RPC_URL      RPC endpoint (default https://testnet1.neo.coz.io:443)
 //	PLATFORM_REGISTRY_TESTNET_HASH         registry hash override (mainnet: PLATFORM_REGISTRY_MAINNET_HASH,
 //	                                       generic: PLATFORM_REGISTRY_HASH); otherwise resolved from the
@@ -84,6 +85,7 @@ import (
 
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
+	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
 	"github.com/nspcc-dev/neo-go/pkg/neorpc/result"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient/actor"
@@ -136,26 +138,27 @@ var atgDescriptorParamOrder = []string{
 }
 
 type atgReport struct {
-	Action           string                 `json:"action"`
-	Network          string                 `json:"network"`
-	RPCURL           string                 `json:"rpc_url"`
-	NetworkMagic     uint32                 `json:"network_magic"`
-	Signer           string                 `json:"signer"`
-	SignerHash       string                 `json:"signer_hash"`
-	DryRun           bool                   `json:"dry_run"`
-	PlatformRegistry string                 `json:"platform_registry"`
-	EngineID         string                 `json:"engine_id"`
-	EngineHash       string                 `json:"engine_hash,omitempty"`
-	EngineActive     bool                   `json:"engine_active"`
-	NotReadyReason   string                 `json:"not_ready_reason,omitempty"`
-	ManifestPath     string                 `json:"manifest_path"`
-	Summary          atgSummary             `json:"summary"`
-	Apps             []atgAppRecord         `json:"apps"`
-	Transactions     []atgTxRecord          `json:"transactions"`
-	Balances         map[string]string      `json:"balances"`
-	Validation       map[string]interface{} `json:"validation"`
-	NextSteps        []string               `json:"next_steps"`
-	GeneratedAtUTC   string                 `json:"generated_at_utc"`
+	Action               string                 `json:"action"`
+	Network              string                 `json:"network"`
+	RPCURL               string                 `json:"rpc_url"`
+	NetworkMagic         uint32                 `json:"network_magic"`
+	Signer               string                 `json:"signer"`
+	SignerHash           string                 `json:"signer_hash"`
+	DryRun               bool                   `json:"dry_run"`
+	ChainWritesPerformed bool                   `json:"chain_writes_performed"`
+	PlatformRegistry     string                 `json:"platform_registry"`
+	EngineID             string                 `json:"engine_id"`
+	EngineHash           string                 `json:"engine_hash,omitempty"`
+	EngineActive         bool                   `json:"engine_active"`
+	NotReadyReason       string                 `json:"not_ready_reason,omitempty"`
+	ManifestPath         string                 `json:"manifest_path"`
+	Summary              atgSummary             `json:"summary"`
+	Apps                 []atgAppRecord         `json:"apps"`
+	Transactions         []atgTxRecord          `json:"transactions"`
+	Balances             map[string]string      `json:"balances"`
+	Validation           map[string]interface{} `json:"validation"`
+	NextSteps            []string               `json:"next_steps"`
+	GeneratedAtUTC       string                 `json:"generated_at_utc"`
 }
 
 type atgSummary struct {
@@ -254,10 +257,6 @@ func atgRun() error {
 	if err != nil {
 		return err
 	}
-	if wif == "" {
-		return fmt.Errorf("%s signer WIF is not configured (set NEO_%s_WIF)", network, strings.ToUpper(network))
-	}
-
 	batchSize, err := atgBatchSize()
 	if err != nil {
 		return err
@@ -305,18 +304,49 @@ func atgRun() error {
 		return fmt.Errorf("RPC network magic mismatch: got %d, expected %d for %s", actualMagic, expectedMagic, network)
 	}
 
-	priv, err := keys.NewPrivateKeyFromWIF(wif)
-	if err != nil {
-		return fmt.Errorf("invalid %s signer WIF", network)
-	}
-	acc := wallet.NewAccountFromPrivateKey(priv)
-	signerHash := priv.GetScriptHash()
-	act, err := actor.New(client, []actor.SignerAccount{{
-		Signer:  transaction.Signer{Account: acc.Contract.ScriptHash(), Scopes: transaction.Global},
-		Account: acc,
-	}})
-	if err != nil {
-		return fmt.Errorf("create actor: %w", err)
+	var (
+		act           *actor.Actor
+		signerHash    util.Uint160
+		signerAddress string
+	)
+	if wif != "" {
+		priv, err := keys.NewPrivateKeyFromWIF(wif)
+		if err != nil {
+			return fmt.Errorf("invalid %s signer WIF", network)
+		}
+		acc := wallet.NewAccountFromPrivateKey(priv)
+		signerHash = priv.GetScriptHash()
+		signerAddress = acc.Address
+		act, err = actor.New(client, []actor.SignerAccount{{
+			Signer:  transaction.Signer{Account: acc.Contract.ScriptHash(), Scopes: transaction.Global},
+			Account: acc,
+		}})
+		if err != nil {
+			return fmt.Errorf("create actor: %w", err)
+		}
+	} else if dryRun {
+		signerInput := strings.TrimSpace(os.Getenv("PLATFORM_REGISTRY_DRY_RUN_SIGNER"))
+		if signerInput == "" {
+			return fmt.Errorf("dry-run signer is required: set PLATFORM_REGISTRY_DRY_RUN_SIGNER to a Neo address or script hash")
+		}
+		signerHash, err = atgParseSignerIdentity(signerInput)
+		if err != nil {
+			return fmt.Errorf("dry-run signer: %w", err)
+		}
+		signerAddress = address.Uint160ToString(signerHash)
+		watchOnly := &wallet.Account{
+			Address:  signerAddress,
+			Contract: &wallet.Contract{Deployed: true},
+		}
+		act, err = actor.New(client, []actor.SignerAccount{{
+			Signer:  transaction.Signer{Account: signerHash, Scopes: transaction.Global},
+			Account: watchOnly,
+		}})
+		if err != nil {
+			return fmt.Errorf("create watch-only dry-run actor: %w", err)
+		}
+	} else {
+		return fmt.Errorf("%s signer WIF is not configured (set NEO_%s_WIF)", network, strings.ToUpper(network))
 	}
 
 	neoBalance, gasBalance, err := atgSignerBalances(client, signerHash)
@@ -331,29 +361,30 @@ func atgRun() error {
 	if dryRun {
 		mode = "dry-run"
 	}
-	fmt.Printf("Signer: %s\n", acc.Address)
+	fmt.Printf("Signer: %s\n", signerAddress)
 	fmt.Printf("Network: %s (magic %d)\n", networkID, actualMagic)
 	fmt.Printf("Mode: %s\n", mode)
 	fmt.Printf("Balances: %d NEO, %s GAS\n", neoBalance, atgFormatGas(gasBalance))
 	fmt.Printf("PlatformRegistry: 0x%s\n\n", registryHash.StringLE())
 
 	report := atgReport{
-		Action:           "engine-attach",
-		Network:          networkID,
-		RPCURL:           rpcURL,
-		NetworkMagic:     actualMagic,
-		Signer:           acc.Address,
-		SignerHash:       "0x" + signerHash.StringLE(),
-		DryRun:           dryRun,
-		PlatformRegistry: "0x" + registryHash.StringLE(),
-		EngineID:         engineID,
-		ManifestPath:     manifestPath,
-		Apps:             apps,
-		Transactions:     []atgTxRecord{},
-		Balances:         map[string]string{"neo": strconv.FormatInt(neoBalance, 10), "gas": atgFormatGas(gasBalance)},
-		Validation:       map[string]interface{}{"manifest_schema": manifest.Schema},
-		NextSteps:        []string{},
-		GeneratedAtUTC:   time.Now().UTC().Format(time.RFC3339),
+		Action:               "engine-attach",
+		Network:              networkID,
+		RPCURL:               rpcURL,
+		NetworkMagic:         actualMagic,
+		Signer:               signerAddress,
+		SignerHash:           "0x" + signerHash.StringLE(),
+		DryRun:               dryRun,
+		ChainWritesPerformed: false,
+		PlatformRegistry:     "0x" + registryHash.StringLE(),
+		EngineID:             engineID,
+		ManifestPath:         manifestPath,
+		Apps:                 apps,
+		Transactions:         []atgTxRecord{},
+		Balances:             map[string]string{"neo": strconv.FormatInt(neoBalance, 10), "gas": atgFormatGas(gasBalance)},
+		Validation:           map[string]interface{}{"manifest_schema": manifest.Schema},
+		NextSteps:            []string{},
+		GeneratedAtUTC:       time.Now().UTC().Format(time.RFC3339),
 	}
 	reportPath := atgReportPath(network)
 
@@ -394,7 +425,7 @@ func atgRun() error {
 			message := fmt.Sprintf("insufficient GAS: signer %s holds %s GAS, the attach plan requires at least %.8g GAS "+
 				"(~%s GAS estimated tx fees for %d transactions; tune with PLATFORM_REGISTRY_MIN_GAS). "+
 				"To continue, %s.",
-				acc.Address, atgFormatGas(gasBalance), requiredGas,
+				signerAddress, atgFormatGas(gasBalance), requiredGas,
 				atgFormatGas(txCount*atgPerTxFeeEstimateFractions), txCount, atgTestnetFaucetInstruction)
 			if !dryRun {
 				return fmt.Errorf("%s", message)
@@ -1286,6 +1317,7 @@ func atgSendAndWait(ctx context.Context, client *rpcclient.Client, act *actor.Ac
 	if err != nil {
 		return util.Uint256{}, nil, fmt.Errorf("%s (%s): %w", label, method, err)
 	}
+	report.ChainWritesPerformed = true
 	report.Transactions = append(report.Transactions, atgTxRecord{Label: label, TxID: "0x" + txid.StringLE(), VUB: vub})
 	appLog, err := atgWaitForTx(ctx, client, txid)
 	if err != nil {
@@ -1411,6 +1443,25 @@ func atgSignerBalances(client *rpcclient.Client, signer util.Uint160) (int64, in
 func atgParseHash(raw string) (util.Uint160, error) {
 	trimmed := strings.TrimPrefix(strings.TrimSpace(raw), "0x")
 	return util.Uint160DecodeStringLE(trimmed)
+}
+
+func atgParseSignerIdentity(raw string) (util.Uint160, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return util.Uint160{}, fmt.Errorf("public signer identity is required as a Neo address or script hash (set PLATFORM_REGISTRY_DRY_RUN_SIGNER)")
+	}
+	if strings.HasPrefix(trimmed, "0x") || len(trimmed) == 40 {
+		hash, err := atgParseHash(trimmed)
+		if err != nil {
+			return util.Uint160{}, fmt.Errorf("invalid PLATFORM_REGISTRY_DRY_RUN_SIGNER script hash")
+		}
+		return hash, nil
+	}
+	hash, err := address.StringToUint160(trimmed)
+	if err != nil {
+		return util.Uint160{}, fmt.Errorf("invalid PLATFORM_REGISTRY_DRY_RUN_SIGNER Neo address")
+	}
+	return hash, nil
 }
 
 func atgReportPath(network string) string {

@@ -82,7 +82,12 @@ check_pattern() {
     fi
 
     # Search with exclusions using find + grep (more reliable for exclusions)
-    local results=$(find "$PROJECT_ROOT" \
+    # The pipeline below already ends in `|| true`, so the substitution cannot
+    # fail; the declaration is still split from the assignment so that stays a
+    # deliberate statement about this search rather than a side effect of
+    # `local` always returning 0.
+    local results
+    results=$(find "$PROJECT_ROOT" \
         -type f \( -name "*.go" -o -name "*.cs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.py" -o -name "*.sh" -o -name "*.yaml" -o -name "*.yml" \) \
         ! -path "*/node_modules/*" \
         ! -path "*/.git/*" \

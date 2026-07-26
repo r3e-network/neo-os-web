@@ -8,7 +8,7 @@ const { spawn } = require("child_process");
 
 const { chromium } = require("playwright");
 
-const ROOT = path.resolve(__dirname, "../..");
+const ROOT = path.resolve(__dirname, "../../..");
 const PUBLIC_ROOT = path.join(ROOT, "platform/host-app/public");
 const HOST_APP_ROOT = path.join(ROOT, "platform/host-app");
 const STANDALONE_SERVER_ROOT = path.join(
@@ -209,8 +209,8 @@ function loadCatalogSlugs() {
     .filter(Boolean)
     .sort();
 
-  if (Number(catalog.count) !== 60 || slugs.length !== 60) {
-    throw new Error(`Expected 60 catalog miniapps, got count=${catalog.count} slugs=${slugs.length}`);
+  if (slugs.length === 0 || Number(catalog.count) !== slugs.length) {
+    throw new Error(`Catalog count does not match discovered miniapps: count=${catalog.count} slugs=${slugs.length}`);
   }
 
   return slugs;
@@ -470,7 +470,15 @@ async function inspectMiniapp(context, slug, viewport, options) {
     const enabledControls = visibleControls.filter((element) => {
       return !Boolean(element.disabled || element.getAttribute("aria-disabled") === "true");
     });
-    const smallTouchTargets = enabledControls
+    const touchControls = enabledControls.filter((element) => {
+      if (element.tagName.toLowerCase() !== "input") return true;
+      const type = String(element.getAttribute("type") || "text").toLowerCase();
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return !["checkbox", "file", "radio"].includes(type) ||
+        (rect.width > 4 && rect.height > 4 && style.opacity !== "0");
+    });
+    const smallTouchTargets = touchControls
       .map((element) => {
         const rect = element.getBoundingClientRect();
         const label =
@@ -510,7 +518,7 @@ async function inspectMiniapp(context, slug, viewport, options) {
 
   let screenshot = null;
   if (options.screenshots) {
-    const fileName = `${safeFilePart(slug)}-${safeFilePart(viewport.label)}-${viewport.width}x${viewport.height}.webp`;
+    const fileName = `${safeFilePart(slug)}-${safeFilePart(viewport.label)}-${viewport.width}x${viewport.height}.png`;
     const screenshotPath = path.join(options.screenshotDir, fileName);
     try {
       fs.mkdirSync(options.screenshotDir, { recursive: true });
@@ -692,7 +700,7 @@ function writeReports(report) {
   }
 
   lines.push("");
-  fs.writeFileSync(MD_REPORT, `${lines.join("\n")}\n`);
+  fs.writeFileSync(MD_REPORT, `${lines.join("\n").replace(/\n+$/, "")}\n`);
 }
 
 async function main() {

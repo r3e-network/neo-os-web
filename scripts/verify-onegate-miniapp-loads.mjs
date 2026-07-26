@@ -464,6 +464,14 @@ async function installPlatformApiMocks(context, options) {
       });
     }
 
+    if (url.pathname === "/api/morpheus/neodid/providers") {
+      return json({
+        network: url.searchParams.get("network") || options.network,
+        source: "onegate_validation_mock",
+        providers: [],
+      });
+    }
+
     if (url.pathname === "/api/morpheus/confidential/store") {
       return json({
         ok: true,
@@ -613,7 +621,11 @@ async function validateEntry(browser, entry, options, index, total) {
           document.querySelector("[data-testid='miniapp-detail-layout']"),
         ),
         hasHostNav:
-          Boolean(document.querySelector("header nav, nav[aria-label]")) ||
+          Boolean(
+            document.querySelector(
+              "[data-testid='miniapp-detail-layout'] header nav, [data-testid='miniapp-detail-layout'] nav[aria-label]",
+            ),
+          ) ||
           text.includes("Yiwu 小程序"),
         hasYiwuText: text.includes("Yiwu"),
         hasFrameworkOverlay:
