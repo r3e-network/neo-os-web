@@ -15,10 +15,12 @@ import { getMiniAppContractHash } from "../constants/rpc";
  *      unknown/undeployed moduleId is a hard "not configured" error (never a
  *      silent per-app fallback; the shared engine's appId-first ABI is
  *      incompatible with the per-app clone ABI)
- *   1. manifest contracts entry (neo-n3-<network> / <network>)
- *   2. generated MINIAPP_CONTRACTS registry keyed by the manifest's app id
- *   3. URL ?app_id registry fallback
- *   4. MiniAppError("Contract address not configured")
+ *   1. typed custom contract hash
+ *   2. manifest contracts entry (neo-n3-<network> / <network>)
+ *   3. generated MINIAPP_CONTRACTS registry keyed by the manifest's app id
+ *   4. caller-supplied app id registry fallback
+ *   5. URL ?app_id registry fallback
+ *   6. MiniAppError("Contract address not configured")
  */
 describe("wallet-sdk getContractAddress resolution", () => {
   // A real registry-backed app id used purely as the registry-fallback
@@ -81,6 +83,13 @@ describe("wallet-sdk getContractAddress resolution", () => {
 
     const wallet = useWallet();
     await expect(wallet.getContractAddress()).resolves.toBe(REGISTRY_HASH);
+  });
+
+  it("falls back to the caller app id when no manifest or URL id resolves", async () => {
+    stubManifestFetch({}, false);
+
+    const wallet = useWallet();
+    await expect(wallet.getContractAddress(APP_ID)).resolves.toBe(REGISTRY_HASH);
   });
 
   it("throws the configured error when nothing resolves", async () => {
@@ -178,5 +187,18 @@ describe('wallet-sdk getContractAddress — ContractBinding mode "shared"', () =
 
     const wallet = useWallet();
     await expect(wallet.getContractAddress()).resolves.toBe(configured);
+  });
+
+  it("resolves a typed primary hash without treating platform bindings as primary", async () => {
+    const primary = "0x2222222222222222222222222222222222222222";
+    stubManifestFetch({
+      id: APP_ID,
+      contract: { mode: "custom", hash: primary },
+      platformBindings: { game: PLATFORM_GAME_TESTNET },
+      contracts: { "neo-n3-testnet": "0x3333333333333333333333333333333333333333" },
+    });
+
+    const wallet = useWallet();
+    await expect(wallet.getContractAddress()).resolves.toBe(primary);
   });
 });

@@ -65,7 +65,10 @@ export interface FrameworkPlatformAnchorSurface {
   userStake(account?: string): Promise<bigint>;
   pendingRewards(account?: string): Promise<bigint>;
   credit(asset: "NEO" | "GAS", account?: string): Promise<bigint>;
+  totalNeoCredit(): Promise<bigint>;
   totalGasCredit(): Promise<bigint>;
+  legacyCredit(asset: "NEO" | "GAS", account?: string): Promise<bigint>;
+  legacyTotalGasCredit(): Promise<bigint>;
   agent(agentId: string | number | bigint): Promise<unknown>;
   agentCandidate(agentId: string | number | bigint): Promise<unknown>;
   agentAccount(agentId: string | number | bigint): Promise<string>;
@@ -92,6 +95,12 @@ export interface FrameworkPlatformAnchorSurface {
     account?: string,
     options?: FrameworkPlatformAnchorInvokeOptions,
   ): Promise<FrameworkPlatformAnchorTx>;
+  legacyWithdrawCredit(
+    asset: "NEO" | "GAS",
+    amount: string | number | bigint,
+    account?: string,
+    options?: FrameworkPlatformAnchorInvokeOptions,
+  ): Promise<FrameworkPlatformAnchorTx>;
   registerAgent(account: string, candidate: string, verificationScriptHash: string): Promise<FrameworkPlatformAnchorTx>;
   registerAgents(agents: Array<{ account: string; candidate: string; verificationScriptHash: string }>): Promise<FrameworkPlatformAnchorTx>;
   setAgentCandidate(agentId: string | number | bigint, candidate: string): Promise<FrameworkPlatformAnchorTx>;
@@ -100,7 +109,9 @@ export interface FrameworkPlatformAnchorSurface {
   voteAgent(agentId: string | number | bigint): Promise<FrameworkPlatformAnchorTx>;
   harvestRewards(amount: string | number | bigint): Promise<FrameworkPlatformAnchorTx>;
   fundRewards(amount: string | number | bigint, funder?: string): Promise<FrameworkPlatformAnchorTx>;
+  legacyFundRewards(amount: string | number | bigint, funder?: string): Promise<FrameworkPlatformAnchorTx>;
   stakeFromCredit(amount: string | number | bigint, account?: string): Promise<FrameworkPlatformAnchorTx>;
+  legacyStakeFromCredit(amount: string | number | bigint, account?: string): Promise<FrameworkPlatformAnchorTx>;
 }
 
 function positive(value: string | number | bigint, label: string): string {
@@ -194,10 +205,15 @@ export function createPlatformAnchorSurface(
     pendingRewards: async (value) => parseBigInt(await read("getPendingRewards", [
       ...tenantArgs(), accountArg(await account(value)),
     ])),
-    credit: async (asset, value) => parseBigInt(await read("getCredit", [
+    credit: async (asset, value) => parseBigInt(await read("getAppCredit", [
+      ...tenantArgs(), accountArg(await account(value)), { type: "String", value: asset },
+    ])),
+    totalNeoCredit: async () => parseBigInt(await read("getAppTotalNeoCredit", tenantArgs())),
+    totalGasCredit: async () => parseBigInt(await read("getAppTotalGasCredit", tenantArgs())),
+    legacyCredit: async (asset, value) => parseBigInt(await read("getCredit", [
       accountArg(await account(value)), { type: "String", value: asset },
     ])),
-    totalGasCredit: async () => parseBigInt(await read("getTotalGasCredit")),
+    legacyTotalGasCredit: async () => parseBigInt(await read("getTotalGasCredit")),
     agent: async (agentId) => read("getAgent", [...tenantArgs(), idArg(agentId, "agentId")]),
     agentCandidate: async (agentId) => read("getAgentCandidate", [...tenantArgs(), idArg(agentId, "agentId")]),
     agentAccount: async (agentId) => parseHash160(await read("getAgentAccount", [
@@ -210,7 +226,7 @@ export function createPlatformAnchorSurface(
       accountArg(await account(value)),
       accountArg(anchorHash()),
       idArg(amount, "amount"),
-      { type: "String", value: `stake:${appId()}` },
+      { type: "String", value: `appstake:${appId()}` },
     ], { ...(options ?? {}), scriptHash: neoHash() })),
     withdraw: write(async (amount, value, options) => invoke("withdraw", [
       ...tenantArgs(), accountArg(await account(value)), idArg(amount, "amount"),
@@ -218,7 +234,10 @@ export function createPlatformAnchorSurface(
     claimRewards: write(async (value, options) => invoke("claimRewards", [
       ...tenantArgs(), accountArg(await account(value)),
     ], options)),
-    withdrawCredit: write(async (asset, amount, value, options) => invoke("withdrawCredit", [
+    withdrawCredit: write(async (asset, amount, value, options) => invoke("withdrawAppCredit", [
+      ...tenantArgs(), accountArg(await account(value)), { type: "String", value: asset }, idArg(amount, "amount"),
+    ], options)),
+    legacyWithdrawCredit: write(async (asset, amount, value, options) => invoke("withdrawCredit", [
       accountArg(await account(value)), { type: "String", value: asset }, idArg(amount, "amount"),
     ], options)),
     registerAgent: write(async (value, candidate, verificationScriptHash) => invoke("registerAgent", [
@@ -254,10 +273,16 @@ export function createPlatformAnchorSurface(
     harvestRewards: write(async (amount) => invoke("harvestRewards", [
       ...tenantArgs(), idArg(amount, "amount"),
     ])),
-    fundRewards: write(async (amount, funder) => invoke("fundRewards", [
+    fundRewards: write(async (amount, funder) => invoke("fundRewardsFromAppCredit", [
       ...tenantArgs(), accountArg(await account(funder)), idArg(amount, "amount"),
     ])),
-    stakeFromCredit: write(async (amount, value) => invoke("stake", [
+    legacyFundRewards: write(async (amount, funder) => invoke("fundRewards", [
+      ...tenantArgs(), accountArg(await account(funder)), idArg(amount, "amount"),
+    ])),
+    stakeFromCredit: write(async (amount, value) => invoke("stakeFromAppCredit", [
+      ...tenantArgs(), accountArg(await account(value)), idArg(amount, "amount"),
+    ])),
+    legacyStakeFromCredit: write(async (amount, value) => invoke("stake", [
       ...tenantArgs(), accountArg(await account(value)), idArg(amount, "amount"),
     ])),
   };

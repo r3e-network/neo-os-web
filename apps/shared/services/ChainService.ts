@@ -318,6 +318,10 @@ export class ChainService {
     return this.contractAddressObservable;
   }
 
+  async resolveContractAddress(): Promise<string> {
+    return this.interaction.ensureContractAddress();
+  }
+
   // -- Processing state -----------------------------------------------------
 
   /** Whether a write operation is currently in flight. */

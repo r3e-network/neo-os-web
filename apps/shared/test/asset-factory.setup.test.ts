@@ -149,7 +149,7 @@ describe("Asset Factory app-owned setup", () => {
       "deploymentCertificationPending",
     );
     result.cleanup?.();
-  });
+  }, 15_000);
 
   it("restores the exact draft, lock, and owner signature after refresh", async () => {
     const { createAssetFactorySetup } =

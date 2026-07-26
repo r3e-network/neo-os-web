@@ -39,6 +39,8 @@ import { createPlatformSocialSurface } from "./platform-social-surface";
 import { createPlatformAnchorSurface } from "./platform-anchor-surface";
 import { createPlatformDeFiSurface } from "./platform-defi-surface";
 import { createPlatformFactorySurface } from "./platform-factory-surface";
+import { createPlatformVestingSurface } from "./platform-vesting-surface";
+import { createPlatformEscrowSurface } from "./platform-escrow-surface";
 import { createChainPendingSurface } from "./chain-pending";
 import { createBusSurface, createEventsSurface } from "./events";
 import type { FrameworkBusChannel } from "./events";
@@ -400,6 +402,38 @@ export function createMiniAppFramework(
       config: options.platformDeFi,
     }),
   );
+  const getPlatformVesting = lazyModule(() =>
+    createPlatformVestingSurface({
+      appId,
+      chain: {
+        address: chain.address,
+        ensureWallet: () => chain.ensureWallet(),
+        read: (operation, args, readOptions) =>
+          chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+        invoke: (operation, args, invokeOptions) =>
+          chain.invoke(operation, args as FrameworkContractArg[], invokeOptions),
+        invokeMultiple: invokePlatformBatch,
+      },
+      guards: guardDeps,
+      config: options.platformVesting,
+    }),
+  );
+  const getPlatformEscrow = lazyModule(() =>
+    createPlatformEscrowSurface({
+      appId,
+      chain: {
+        address: chain.address,
+        ensureWallet: () => chain.ensureWallet(),
+        read: (operation, args, readOptions) =>
+          chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+        invoke: (operation, args, invokeOptions) =>
+          chain.invoke(operation, args as FrameworkContractArg[], invokeOptions),
+        invokeMultiple: invokePlatformBatch,
+      },
+      guards: guardDeps,
+      config: options.platformEscrow,
+    }),
+  );
   const getPlatformFactory = lazyModule(() =>
     createPlatformFactorySurface({
       chain: {
@@ -607,6 +641,12 @@ export function createMiniAppFramework(
     },
     get platformDeFi() {
       return getPlatformDeFi();
+    },
+    get platformVesting() {
+      return getPlatformVesting();
+    },
+    get platformEscrow() {
+      return getPlatformEscrow();
     },
     get platformFactory() {
       return getPlatformFactory();
@@ -897,6 +937,32 @@ export type {
   PlatformDeFiSurfaceChain,
   PlatformDeFiSurfaceDeps,
 } from "./platform-defi-surface";
+
+export { createPlatformVestingSurface } from "./platform-vesting-surface";
+export type {
+  FrameworkPlatformVestingConfig,
+  FrameworkPlatformVestingCreateInput,
+  FrameworkPlatformVestingInvokeOptions,
+  FrameworkPlatformVestingSurface,
+  FrameworkPlatformVestingTx,
+  FrameworkPlatformVestingAmount,
+  FrameworkVestingAsset,
+  PlatformVestingSurfaceChain,
+  PlatformVestingSurfaceDeps,
+} from "./platform-vesting-surface";
+
+export { createPlatformEscrowSurface } from "./platform-escrow-surface";
+export type {
+  FrameworkEscrowAsset,
+  FrameworkPlatformEscrowAmount,
+  FrameworkPlatformEscrowConfig,
+  FrameworkPlatformEscrowCreateInput,
+  FrameworkPlatformEscrowInvokeOptions,
+  FrameworkPlatformEscrowSurface,
+  FrameworkPlatformEscrowTx,
+  PlatformEscrowSurfaceChain,
+  PlatformEscrowSurfaceDeps,
+} from "./platform-escrow-surface";
 
 export { createPlatformFactorySurface } from "./platform-factory-surface";
 export type {

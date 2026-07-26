@@ -46,6 +46,8 @@ export const PLATFORM_INVOKE_PERMISSIONS = {
   social: "invoke:platform-social",
   anchor: "invoke:platform-anchor",
   defi: "invoke:platform-defi",
+  vesting: "invoke:platform-vesting",
+  escrow: "invoke:platform-escrow",
   factory: "invoke:platform-factory",
 } as const;
 

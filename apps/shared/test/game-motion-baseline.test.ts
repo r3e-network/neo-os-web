@@ -24,6 +24,7 @@ const phaserGames = [
   "fruit-funnel",
   "game-2048",
   "gas-lucky-pool",
+  "gomoku",
   "jump-rush",
   "last-survivor",
   "merge-kingdom",

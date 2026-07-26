@@ -59,13 +59,15 @@ embeds; app entrypoints use the runtime-provided `ctx.framework`.
 | `app.platformSocial` | Shared envelope, range-pool, trust, vault and Notary primitives plus tenant-scoped GAS/NEO credit prepayment and recovery |
 | `app.platformAnchor` | Shared staking, reward, credit and AA-agent operations with appId auto-threading |
 | `app.platformDeFi` | Shared capsule, lending, flash-loan, liquidity and fee operations with guarded writes |
+| `app.platformVesting` | Shared GAS/NEO prepaid linear/cliff streams with appId auto-threading and guarded writes |
+| `app.platformEscrow` | Shared native-asset milestone escrow with appId auto-threading and guarded writes |
 | `app.platformFactory` | Governed template reads and allowlisted deployment calls across network-specific Factory hashes |
 | `app.mode` | Guest/gamefi two-mode surface, guest guard, guest leaderboard |
 | `app.game` | Reward-game SDK (`reward(config)` + lifecycle `runner(hooks)`), `rules(config)`, player/stats/leaderboard/session helpers |
 | `app.oracle` | HTTP/VRF/compute/seal envelopes + `dispatch`, dataFeed reader, seal client |
 | `app.credits` | Platform credits: on-chain buys, instant feeless spends, stale-flagged fallback reads |
 | `app.permissions` | S11 manifest gating with distinct `invoke:platform-*` grants per shared module |
-| `app.aa` | Sponsorship / relay / session keys (typed capability errors when absent) |
+| `app.aa` | Sponsorship / relay / host-provided session keys (typed capability errors when absent) |
 | `app.clipboard` / `app.share` / `app.resources` | Copy with toasts, share sheet, host-base asset resolution |
 | `app.stats` / `app.achievements` / `app.db` | Legacy OS lanes — partially deprecated, see the guide |
 

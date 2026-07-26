@@ -122,6 +122,7 @@ describe("app.registry tenant surface", () => {
     await app.registry.abstractAccountCoreAvailableAt();
     await app.registry.materializeAbstractAccount();
     await app.registry.getAbstractAccount();
+    await app.registry.getPredictedAbstractAccount();
     await app.registry.appIdOfAbstractAccount(OTHER_HASH, REGISTRY_HASH);
     await app.registry.mintAccount();
     await app.registry.setShimUpgradeConsent(true);

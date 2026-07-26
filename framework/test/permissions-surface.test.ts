@@ -24,9 +24,11 @@ describe("S11 app.permissions", () => {
       social: "invoke:platform-social",
       anchor: "invoke:platform-anchor",
       defi: "invoke:platform-defi",
+      vesting: "invoke:platform-vesting",
+      escrow: "invoke:platform-escrow",
       factory: "invoke:platform-factory",
     });
-    expect(new Set(Object.values(PLATFORM_INVOKE_PERMISSIONS)).size).toBe(6);
+    expect(new Set(Object.values(PLATFORM_INVOKE_PERMISSIONS)).size).toBe(8);
     expect(Object.values(PLATFORM_INVOKE_PERMISSIONS)).not.toContain("invoke:primary");
   });
 

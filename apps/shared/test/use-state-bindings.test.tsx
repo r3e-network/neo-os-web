@@ -27,6 +27,8 @@ function readBindings(state: ObservableState) {
     seen.numNoFallback = num("value");
     seen.bool = bool("value");
     seen.val = val("value");
+    seen.valNullFallback = val<number>("value", null);
+    seen.valFallback = val<number>("value", 11);
     return null;
   }
   render(<Probe />);
@@ -50,10 +52,20 @@ describe("useStateBindings accessors", () => {
     expect(seen.strNoFallback).toBe("");
     expect(seen.bool).toBe(false);
 
-    // val stays RAW on purpose: callers reach for it precisely to see the true
-    // state (explorer/graveyard adopted it to dodge the NaN above) and supply
-    // their own default with `??` at the call site.
+    // val stays RAW when no fallback is offered: callers reach for it precisely
+    // to see the true state (explorer/graveyard adopted it to dodge the NaN
+    // above), and an explicit `null` fallback keeps asking for that raw view.
     expect(seen.val).toBeUndefined();
+    expect(seen.valNullFallback).toBeUndefined();
+
+    // But a caller who DID name a fallback gets it, exactly like str/num. This
+    // is the same defect those two were fixed for: `readStateValue` only
+    // applies its fallback to a missing key, so an observable holding
+    // `undefined` handed the raw `undefined` back to a caller who had already
+    // said what "nothing known" should read as. Sites then repaired it a second
+    // time with `?? 0` at the call site — a fallback duplicated because the
+    // first one was ignored.
+    expect(seen.valFallback).toBe(11);
   });
 
   it("honours the fallback when an observable holds null", () => {
@@ -62,6 +74,8 @@ describe("useStateBindings accessors", () => {
     expect(seen.num).toBe(7);
     expect(seen.str).toBe("fallback-copy");
     expect(seen.bool).toBe(false);
+    expect(seen.valFallback).toBe(11);
+    expect(seen.valNullFallback).toBeNull();
   });
 
   it("passes real values through, including a settled zero", () => {
@@ -72,6 +86,9 @@ describe("useStateBindings accessors", () => {
     expect(zero.num).toBe(0);
     expect(zero.str).toBe("0");
     expect(zero.val).toBe(0);
+    // The same rule binds `val`: a settled 0 outranks the fallback, or a real
+    // balance of 0 reads as "unknown" through this accessor too.
+    expect(zero.valFallback).toBe(0);
 
     const real = readBindings({ value: createObservable(42) } as ObservableState);
     expect(real.num).toBe(42);
@@ -84,5 +101,25 @@ describe("useStateBindings accessors", () => {
     expect(seen.num).toBe(7);
     expect(seen.str).toBe("fallback-copy");
     expect(seen.bool).toBe(false);
+    expect(seen.valFallback).toBe(11);
+  });
+
+  it("keeps a named fallback out of the way of falsy-but-real values", () => {
+    function probe<T>(raw: unknown, fallback: T): T {
+      let out!: T;
+      function Probe() {
+        const { val } = useStateBindings({ value: createObservable(raw) } as ObservableState);
+        out = val<T>("value", fallback);
+        return null;
+      }
+      render(<Probe />);
+      return out;
+    }
+
+    // `false` and `""` are answers an app can settle on, so only nullish may
+    // reach the fallback — the same boundary str/num draw with `value == null`.
+    expect(probe(false, true)).toBe(false);
+    expect(probe("", "fallback-copy")).toBe("");
+    expect(probe(undefined, true)).toBe(true);
   });
 });

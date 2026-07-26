@@ -187,6 +187,18 @@ export function createChainSurface(deps: ChainSurfaceDeps): FrameworkChainSurfac
     get contractReady(): Observable<boolean> {
       return contractReadyObservable;
     },
+    async resolveContractAddress(): Promise<string> {
+      const current = contractAddressAccessor.get();
+      if (current) return current;
+      const resolved = await chain.resolveContractAddress?.();
+      if (!resolved) {
+        throw new Error("Contract address not configured");
+      }
+      if (contractAddressAccessor.get() !== resolved) {
+        contractAddressAccessor.set(resolved);
+      }
+      return resolved;
+    },
     async ensureWallet() {
       return chain.ensureWallet();
     },

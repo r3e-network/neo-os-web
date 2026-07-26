@@ -2,8 +2,32 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { createObservable } from "../react/context";
 import { createMiniAppFramework } from "../react";
+import { createUseI18n } from "../composables/useI18n";
+import { messages } from "../../wallet-health/src/locale/messages";
 import { useHealthScore } from "../../wallet-health/src/composables/useHealthScore";
 import type { ChecklistStore } from "../../wallet-health/src/composables/useHealthScore";
+
+// `useHealthScore` exposes user-facing STRINGS (it calls `t(...)` internally), so
+// expectations resolve through the same catalog the composable uses. Asserting the
+// raw key would only pass via the missing-key fallback in `useI18n` — which is how
+// these assertions used to "pass" while `@/locale/messages` mis-resolved to
+// apps/shared's catalog under this test program. Resolving here keeps the
+// assertions locale-independent without hardcoding English copy.
+const { t } = createUseI18n(messages)();
+
+// Every user-facing key these tests compare against. `useI18n` returns the key
+// itself when a catalog entry is missing, so a mis-resolved catalog would make
+// `toContain(t(key))` compare a key against a key and pass regardless of the
+// composable's behaviour. Pinning resolution here keeps that failure mode loud.
+const ASSERTED_MESSAGE_KEYS = [
+  "recommendation2fa",
+  "recommendationBackup",
+  "recommendationDevice",
+  "recommendationGasLow",
+  "recommendationHardware",
+  "recommendationPermissions",
+  "reviewNotStarted",
+] as const;
 
 /**
  * wallet-health findings:
@@ -30,10 +54,15 @@ function memoryStore(): ChecklistStore {
   };
 }
 
+describe("wallet-health test-catalog resolution", () => {
+  it.each(ASSERTED_MESSAGE_KEYS)("resolves %s to real copy, not the key", (key) => {
+    const resolved = t(key);
+    expect(resolved).not.toBe(key);
+    expect(resolved.trim().length).toBeGreaterThan(0);
+  });
+});
+
 describe("wallet-health useHealthScore — pre-connect gating", () => {
-  // The composable resolves its own `t` (createUseI18n(messages)) which, outside
-  // a React render, yields the message KEY — so assertions check the keys, which
-  // are the stable identifiers we care about regardless of locale resolution.
   it("treats the GAS check as pending (not failed) while disconnected", () => {
     const gasOk = createObservable(false);
     const isConnected = createObservable(false);
@@ -47,7 +76,7 @@ describe("wallet-health useHealthScore — pre-connect gating", () => {
     expect(health.totalChecklistCount.get()).toBe(5);
 
     // No GAS recommendation while disconnected.
-    expect(health.recommendations.get()).not.toContain("recommendationGasLow");
+    expect(health.recommendations.get()).not.toContain(t("recommendationGasLow"));
   });
 
   it("does not report an alarming High-risk score from the GAS default pre-connect", () => {
@@ -59,7 +88,7 @@ describe("wallet-health useHealthScore — pre-connect gating", () => {
     // counting the un-evaluable GAS item as a failure (which would make the
     // denominator 6 and still read 0). The key guarantee: GAS isn't counted.
     expect(health.totalChecklistCount.get()).toBe(5);
-    expect(health.riskLabel.get()).toBe("reviewNotStarted");
+    expect(health.riskLabel.get()).toBe(t("reviewNotStarted"));
     expect(health.riskClass.get()).toBe("review-empty");
   });
 
@@ -71,7 +100,7 @@ describe("wallet-health useHealthScore — pre-connect gating", () => {
     const gas = health.checklistItems.get().find((i) => i.id === "gas");
     expect(gas?.pending).toBeFalsy();
     expect(health.totalChecklistCount.get()).toBe(6);
-    expect(health.recommendations.get()).toContain("recommendationGasLow");
+    expect(health.recommendations.get()).toContain(t("recommendationGasLow"));
   });
 });
 
@@ -86,11 +115,11 @@ describe("wallet-health useHealthScore — recommendations match the checklist",
     // to "All checks look good" while items are pending.
     const recs = health.recommendations.get();
     expect(recs.length).toBe(5);
-    expect(recs).toContain("recommendationBackup");
-    expect(recs).toContain("recommendationDevice");
-    expect(recs).toContain("recommendationHardware");
-    expect(recs).toContain("recommendation2fa");
-    expect(recs).toContain("recommendationPermissions");
+    expect(recs).toContain(t("recommendationBackup"));
+    expect(recs).toContain(t("recommendationDevice"));
+    expect(recs).toContain(t("recommendationHardware"));
+    expect(recs).toContain(t("recommendation2fa"));
+    expect(recs).toContain(t("recommendationPermissions"));
   });
 
   it("clears a recommendation once its item is toggled done", () => {
@@ -99,7 +128,7 @@ describe("wallet-health useHealthScore — recommendations match the checklist",
     const health = useHealthScore(gasOk, isConnected, memoryStore());
 
     health.toggleChecklist("backup");
-    expect(health.recommendations.get()).not.toContain("recommendationBackup");
+    expect(health.recommendations.get()).not.toContain(t("recommendationBackup"));
   });
 });
 

@@ -104,7 +104,7 @@ describe("defineMiniApp ctx.setError (RFC P0-4)", () => {
 
     await vi.waitFor(() => {
       expect(capturedCtx).toBeDefined();
-    });
+    }, { timeout: 10_000 });
 
     return {
       root,

@@ -65,6 +65,14 @@ export const WRITE_PLATFORM_ANCHOR: FrameworkWritePolicy = {
 export const WRITE_PLATFORM_DEFI: FrameworkWritePolicy = {
   permission: PLATFORM_INVOKE_PERMISSIONS.defi,
 };
+/** Shared PlatformVesting writes; independent from other platform modules. */
+export const WRITE_PLATFORM_VESTING: FrameworkWritePolicy = {
+  permission: PLATFORM_INVOKE_PERMISSIONS.vesting,
+};
+/** Shared PlatformEscrow writes; independent from other platform modules. */
+export const WRITE_PLATFORM_ESCROW: FrameworkWritePolicy = {
+  permission: PLATFORM_INVOKE_PERMISSIONS.escrow,
+};
 /** Shared MiniAppFactory writes; independent from other platform modules. */
 export const WRITE_PLATFORM_FACTORY: FrameworkWritePolicy = {
   permission: PLATFORM_INVOKE_PERMISSIONS.factory,

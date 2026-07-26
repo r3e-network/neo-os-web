@@ -266,3 +266,30 @@ describe("S7 chain.contractReady", () => {
     expect(app.chain.contractReady.get()).toBe(false);
   });
 });
+
+describe("S7 chain.resolveContractAddress", () => {
+  it("delegates resolution and publishes the resolved address", async () => {
+    const contractAddress = createObservable<string | null>(null);
+    const resolveContractAddress = vi.fn(async () => "0xresolved");
+    const { app } = makeFramework({
+      contractAddress,
+      resolveContractAddress,
+    });
+
+    await expect(app.chain.resolveContractAddress()).resolves.toBe("0xresolved");
+    expect(contractAddress.get()).toBe("0xresolved");
+    expect(resolveContractAddress).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns an already-published address without resolving again", async () => {
+    const contractAddress = createObservable<string | null>("0xcached");
+    const resolveContractAddress = vi.fn(async () => "0xother");
+    const { app } = makeFramework({
+      contractAddress,
+      resolveContractAddress,
+    });
+
+    await expect(app.chain.resolveContractAddress()).resolves.toBe("0xcached");
+    expect(resolveContractAddress).not.toHaveBeenCalled();
+  });
+});

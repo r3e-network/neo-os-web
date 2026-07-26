@@ -52,7 +52,7 @@ describe("platform module permission declarations", () => {
       .filter((manifest) =>
         manifest.mode === "shared" && manifest.moduleId === "platform-game");
 
-    expect(sharedGames).toHaveLength(11);
+    expect(sharedGames).toHaveLength(12);
     for (const manifest of sharedGames) {
       expect(manifest.permissions ?? []).not.toContain("invoke:primary");
     }

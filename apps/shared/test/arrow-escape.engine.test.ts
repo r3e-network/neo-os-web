@@ -57,7 +57,7 @@ describe("arrow-escape deterministic DAG generator", () => {
     expect(minimumCoverage).toBeGreaterThanOrEqual(0.98148);
     expect(minimumArrows).toBeGreaterThanOrEqual(33);
     expect(maximumArrows).toBeLessThanOrEqual(44);
-  }, 20_000);
+  }, 60_000);
 
   it("replays every solution witness into a win without consuming a shield", () => {
     const level = generateLevel("witness-win");

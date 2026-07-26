@@ -5,7 +5,9 @@ import {
   defineMiniApp,
   platformAnchorConfigFromManifest,
   platformDeFiConfigFromManifest,
+  platformEscrowConfigFromManifest,
   platformSocialConfigFromManifest,
+  platformVestingConfigFromManifest,
 } from "../react/defineMiniApp";
 import { PlatformServices } from "../services";
 
@@ -24,9 +26,22 @@ describe("defineMiniApp service ownership", () => {
   });
 
   it("creates platform services once, passes them through context and play area, and destroys them on unmount", async () => {
+    let contractResolved = false;
+    let setupObservedResolvedContract = false;
     const fakeServices = {
       appId: "miniapp-test-service-ownership",
-      chain: { address: { value: null } },
+      chain: {
+        address: { value: null },
+        contractAddress: {
+          get: () => contractResolved ? "0xresolved" : null,
+          set: () => {},
+          subscribe: () => () => {},
+        },
+        resolveContractAddress: vi.fn(async () => {
+          contractResolved = true;
+          return "0xresolved";
+        }),
+      },
       balance: {},
       transfer: {},
       oracle: {},
@@ -70,6 +85,7 @@ describe("defineMiniApp service ownership", () => {
         tabs: [{ key: "main", labelKey: "title", icon: "app-window", default: true }],
       },
       setup(ctx) {
+        setupObservedResolvedContract = contractResolved;
         setupServices = ctx.services;
         return {
           state: {},
@@ -87,6 +103,8 @@ describe("defineMiniApp service ownership", () => {
     expect(createSpy).toHaveBeenCalled();
     expect(setupServices).toBe(fakeServices);
     expect(playAreaServices).toBe(fakeServices);
+    expect(fakeServices.chain.resolveContractAddress).toHaveBeenCalledTimes(1);
+    expect(setupObservedResolvedContract).toBe(true);
     expect(fakeServices.lifecycle.mount).toHaveBeenCalledTimes(1);
 
     root.unmount();
@@ -143,6 +161,29 @@ describe("platform defi manifest config", () => {
     expect(platformDeFiConfigFromManifest({
       name: "Custom",
       contract: { mode: "custom", hash },
+    })).toBeUndefined();
+  });
+});
+
+describe("platform vesting and escrow manifest config", () => {
+  it("derives appId-first shared engine hashes and rejects custom bindings", () => {
+    const vestingHash = `0x${"ab".repeat(20)}`;
+    const escrowHash = `0x${"cd".repeat(20)}`;
+    expect(platformVestingConfigFromManifest({
+      name: "Vesting",
+      contract: { mode: "shared", moduleId: "PlatformVesting", engine: vestingHash },
+    })).toEqual({ vestingHash });
+    expect(platformVestingConfigFromManifest({
+      name: "Vesting",
+      contract: { mode: "shared", moduleId: "platform-vesting", engine: vestingHash },
+    })).toEqual({ vestingHash });
+    expect(platformEscrowConfigFromManifest({
+      name: "Escrow",
+      contract: { mode: "shared", moduleId: "PlatformEscrow", engine: escrowHash },
+    })).toEqual({ escrowHash });
+    expect(platformEscrowConfigFromManifest({
+      name: "Escrow",
+      contract: { mode: "custom", hash: escrowHash },
     })).toBeUndefined();
   });
 });

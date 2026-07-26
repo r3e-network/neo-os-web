@@ -34,6 +34,9 @@ function makeInteraction(overrides: Record<string, unknown> = {}) {
     ),
     isProcessing: createObservable(false),
     ensureWallet: vi.fn(async () => "NMockWalletAddressForTest000000000"),
+    ensureContractAddress: vi.fn(async () =>
+      "0x1234567890abcdef1234567890abcdef12345678"
+    ),
     read: vi.fn(async () => null),
     readArray: vi.fn(async () => [] as unknown[]),
     invokeDirectly: vi.fn(async () => ({ txid: "0xtx", tx: {} })),
@@ -118,6 +121,29 @@ describe("ChainService read cache", () => {
       await chain.readArray("getInfo", [], { cache: true, scriptHash: "0xbbb" }),
     ).toEqual(["0xbbb"]);
     expect(interaction.readArray).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("ChainService contract address", () => {
+  it("exposes the shared resolver and publishes its result", async () => {
+    const contractAddress = createObservable<string | null>(null);
+    const ensureContractAddress = vi.fn(async () => {
+      const resolved = "0x1234567890abcdef1234567890abcdef12345678";
+      contractAddress.set(resolved);
+      return resolved;
+    });
+    const { chain } = makeChain(makeInteraction({
+      contractAddress,
+      ensureContractAddress,
+    }));
+
+    await expect(chain.resolveContractAddress()).resolves.toBe(
+      "0x1234567890abcdef1234567890abcdef12345678",
+    );
+    expect(chain.contractAddress.get()).toBe(
+      "0x1234567890abcdef1234567890abcdef12345678",
+    );
+    expect(ensureContractAddress).toHaveBeenCalledTimes(1);
   });
 });
 

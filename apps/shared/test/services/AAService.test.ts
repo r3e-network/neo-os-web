@@ -71,4 +71,10 @@ describe("AAService", () => {
       "AA relay not submitted: AA relay URL is not configured",
     );
   });
+
+  it("does not advertise session-key writes before a shared verifier adapter exists", () => {
+    const service = new AAService("miniapp-aa-session-key-lab", events);
+
+    expect(service).not.toHaveProperty("createSessionKey");
+  });
 });

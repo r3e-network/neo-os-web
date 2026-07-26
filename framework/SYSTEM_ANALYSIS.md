@@ -50,7 +50,7 @@ Miniapps should own product logic and presentation:
 - `ctx.framework.game.reward(...)` wraps `@framework/gamefi` with current app id,
   chain adapter, OneGate/platform-compatible storage, reward credit, settlement,
   and confidential op-log helpers.
-- `ctx.framework.registry` owns all 48 current non-control-plane
+- `ctx.framework.registry` owns all 49 current non-control-plane
   PlatformRegistry methods plus GAS-credit prepayment. It auto-threads the host
   app id and excludes platform-admin governance, artifacts, fees, and updates.
 - `ctx.framework.platformAccount` composes the Registry directory, shared

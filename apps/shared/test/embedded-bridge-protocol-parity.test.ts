@@ -44,12 +44,11 @@ import {
   SUPPORTED_APPS as HOST_STORAGE_SUPPORTED_APPS,
 } from "../../../platform/host-app/components/playarea/bridge/use-embedded-storage-bridge";
 import {
-  STORAGE_REQUEST as ALBUM_STORAGE_REQUEST,
-  STORAGE_RESPONSE as ALBUM_STORAGE_RESPONSE,
-  STORAGE_PROTOCOL_VERSION as ALBUM_STORAGE_VERSION,
-  ALBUM_APP_ID,
-  ALBUM_KEY_PREFIX,
-} from "../../forever-album/src/utils/album-store";
+  EMBEDDED_STORAGE_REQUEST as ALBUM_STORAGE_REQUEST,
+  EMBEDDED_STORAGE_RESPONSE as ALBUM_STORAGE_RESPONSE,
+  EMBEDDED_STORAGE_PROTOCOL_VERSION as ALBUM_STORAGE_VERSION,
+} from "../utils/embedded-storage-client";
+import { ALBUM_APP_ID, ALBUM_KEY_PREFIX } from "../../forever-album/src/utils/album-store";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const gameStoragePath = resolve(

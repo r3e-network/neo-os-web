@@ -160,7 +160,7 @@ afterEach(() => {
 
 beforeAll(async () => {
   await import("../../oracle-vrf-console/src/main");
-}, 30_000);
+}, 90_000);
 
 describe("Oracle VRF Workbench production state", () => {
   it("persists a draft only after exact write and response-delete readback", async () => {

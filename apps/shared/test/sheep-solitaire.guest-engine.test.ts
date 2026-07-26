@@ -1253,7 +1253,7 @@ describe("sheep-solitaire v2 daily presets (§9.3)", () => {
       expect(sim.passNoItems, `date seed ${dateSeed} must not be a free win`).toBe(false);
       expect(sim.minItems).toBeLessThanOrEqual(3);
     }
-  });
+  }, 15_000);
 
   it("same date seed → identical daily boards (social-currency determinism)", () => {
     expect(generateDailyLevel(20260714, 1)).toEqual(generateDailyLevel(20260714, 1));

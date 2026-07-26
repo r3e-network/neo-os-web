@@ -1,8 +1,8 @@
 /**
  * AAService - Account Abstraction integration for miniapps.
  *
- * Wraps useAbstractAccount with a class-based API for gas sponsorship,
- * relay transaction submission, and future session key management.
+ * Wraps useAbstractAccount with a class-based API for gas sponsorship and
+ * relay transaction submission.
  * Integrates with the platform EventBus for cross-component reactivity.
  *
  * @example
@@ -174,27 +174,6 @@ export class AAService {
   async submitRelay(payload: AARelayPayload): Promise<RelayResult> {
     const result = await this.aa.submitRelayTransaction(payload);
     return normalizeRelayResult(result as Record<string, unknown>);
-  }
-
-  // -- Session keys (future) ------------------------------------------------
-
-  /**
-   * Create a session key with scoped permissions.
-   * Session keys allow limited contract interactions without per-tx wallet approval.
-   *
-   * Note: This is a forward-looking API. Session key management is currently
-   * implemented in the AA miniapp itself. This will be promoted to the shared
-   * layer once the verifier plugin API stabilizes.
-   */
-  async createSessionKey(permissions: unknown, expiresAt: number): Promise<unknown> {
-    // Session key creation is an on-chain verifier-plugin mutation.
-    // For now, return a placeholder that documents the intended interface.
-    return {
-      created: false,
-      reason: "Session key creation is not yet available in the shared service layer",
-      permissions,
-      expiresAt,
-    };
   }
 
   // -- AA address management ------------------------------------------------

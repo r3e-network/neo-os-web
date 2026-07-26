@@ -12,6 +12,11 @@ export type { StatusMessage, StatusType } from "./useStatusMessage";
 export { useContractInteraction } from "./useContractInteraction";
 export type { ContractInteractionOptions } from "./useContractInteraction";
 
+// Transaction waiting, event parsing and balance polling are NOT exported here:
+// they are owned by the framework SDK (ctx.framework) so that every app shares
+// one implementation with the host bridge. Adding parallel composables for them
+// re-creates the duplication the SDK exists to remove.
+
 // Advanced platform capabilities
 export { useAbstractAccount } from "./useAbstractAccount";
 export type { AAConfig } from "./useAbstractAccount";

@@ -75,6 +75,7 @@ describe("app.platformAccount", () => {
         ...deriveVirtualAAAccount(AA_CORE_HASH, AA_ACCOUNT_ID),
         materialized: true,
       },
+      predictedIdentity: null,
       treasuryAccountHash: TREASURY_HASH,
     });
     expect(read).toHaveBeenNthCalledWith(1, "getApp", [
@@ -128,7 +129,32 @@ describe("app.platformAccount", () => {
     await expect(app.platformAccount.get()).resolves.toMatchObject({
       registered: true,
       sharedIdentity: null,
+      predictedIdentity: null,
       treasuryAccountHash: null,
+    });
+  });
+
+  it("exposes the deterministic shared identity before materialization", async () => {
+    const { app, read } = makeHarness();
+    read.mockImplementation(async (operation: string): Promise<unknown> => {
+      if (operation === "getApp") {
+        return ["", chainHex(ZERO_HASH), chainHex(ADMIN_HASH), chainHex(ZERO_HASH), false, true];
+      }
+      if (operation === "getAppAbstractAccount") {
+        return [chainHex(ZERO_HASH), chainHex(ZERO_HASH), false];
+      }
+      if (operation === "getPredictedAbstractAccount") {
+        return [chainHex(AA_CORE_HASH), chainHex(AA_ACCOUNT_ID), false];
+      }
+      return null;
+    });
+
+    await expect(app.platformAccount.get()).resolves.toMatchObject({
+      sharedIdentity: null,
+      predictedIdentity: {
+        ...deriveVirtualAAAccount(AA_CORE_HASH, AA_ACCOUNT_ID),
+        materialized: false,
+      },
     });
   });
 

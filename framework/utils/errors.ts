@@ -159,7 +159,14 @@ export function formatErrorMessage(
   defaultMessage: string = "An error occurred",
 ): string {
   if (isMiniAppError(error)) {
-    return error.translatedUserMessage || error.userMessage || error.message;
+    // A MiniAppError constructed with an empty message and no user message
+    // would otherwise render an empty toast, which reads as a silent failure.
+    return (
+      error.translatedUserMessage ||
+      error.userMessage ||
+      error.message ||
+      defaultMessage
+    );
   }
 
   if (error instanceof Error) {
