@@ -241,7 +241,11 @@ const parseEscrowDetails = (raw: unknown, id: string): EscrowItem | null => {
   // An unknown / zeroed escrow yields an empty map (no creator key).
   if (!v.creator) return null;
 
-  const assetValue = String(v.assetSymbol ?? "");
+  const assetHashValue = String(v.asset ?? "").toLowerCase();
+  const assetValue = String(v.assetSymbol ?? (
+    assetHashValue === BLOCKCHAIN_CONSTANTS.NEO_HASH.toLowerCase() ? "NEO" :
+      assetHashValue === BLOCKCHAIN_CONSTANTS.GAS_HASH.toLowerCase() ? "GAS" : ""
+  ));
   if (assetValue !== "NEO" && assetValue !== "GAS") return null;
   const assetSymbol: "NEO" | "GAS" = assetValue;
   const milestoneCountValue = parseExactInteger(v.milestoneCount);
@@ -486,6 +490,9 @@ export function useMilestoneEscrow({
     pendingOperation.set(stored.operation);
   };
 
+  const sharedEscrow = app.platformEscrow;
+  const sharedEscrowEnabled = sharedEscrow.available;
+
   // Contract readiness reflects whether the app's contract is configured for the
   // network (what the deploymentPending copy actually describes) — NOT whether a
   // wallet is connected. Deriving it from the address made the disconnected case
@@ -494,7 +501,10 @@ export function useMilestoneEscrow({
   // app.chain.contractReady (S7) is exactly this derivation — a read-only
   // observable over the deployed contract address, subscription-compatible
   // with the manifest/PlayArea bindings.
-  const contractReady = app.chain.contractReady;
+  const contractReady = createDerived(
+    () => sharedEscrowEnabled || app.chain.contractReady.get(),
+    [app.chain.contractReady],
+  );
 
   // ── Display helpers (exposed for PlayArea) ────────────────────────────
 
@@ -522,6 +532,16 @@ export function useMilestoneEscrow({
    * direct-credit read used by the withdrawal recovery path.
    */
   const refreshDeploymentState = async (): Promise<EscrowDeploymentStatus> => {
+    if (sharedEscrowEnabled) {
+      try {
+        await sharedEscrow.getPlatformStats();
+        recoveryCapabilityVerified.set(true);
+        return setDeployment("ready", "deploymentReady");
+      } catch {
+        recoveryCapabilityVerified.set(false);
+        return setDeployment("unavailable", "deploymentUnavailable");
+      }
+    }
     if (!contractReady.get()) {
       recoveryCapabilityVerified.set(false);
       return setDeployment("unavailable", "deploymentPendingDesc");
@@ -598,6 +618,7 @@ export function useMilestoneEscrow({
   };
 
   const readRecoveryCredit = async (asset: "NEO" | "GAS", payer: string): Promise<bigint> => {
+    if (sharedEscrowEnabled) return sharedEscrow.creditOf(asset, payer);
     const payerArg = hash160ArgOrNull(payer);
     if (!payerArg) throw new Error(t("walletNotConnected"));
     const raw = await app.chain.readRaw("directAssetCreditOf", [
@@ -655,6 +676,43 @@ export function useMilestoneEscrow({
     addr: string,
   ): Promise<EscrowItem[]> => {
     if (!addr) return [];
+    if (sharedEscrowEnabled) {
+      const idsRaw = op === "getCreatorEscrows"
+        ? await sharedEscrow.getCreatorEscrows(addr, 0, LIST_PAGE_LIMIT)
+        : await sharedEscrow.getBeneficiaryEscrows(addr, 0, LIST_PAGE_LIMIT);
+      if (!Array.isArray(idsRaw) || idsRaw.length > LIST_PAGE_LIMIT) {
+        throw new Error(t("chainSnapshotUnavailable"));
+      }
+      const ids = idsRaw.map(toIdString);
+      if (ids.some((id) => !id) || new Set(ids).size !== ids.length) {
+        throw new Error(t("chainSnapshotUnavailable"));
+      }
+      const items = await Promise.all(ids.map(async (id) => {
+        const item = parseEscrowDetails(await sharedEscrow.getEscrowDetails(id), id);
+        if (!item) throw new Error(t("chainSnapshotUnavailable"));
+        const approvedTimes = await Promise.all(
+          item.milestoneApproved.map(async (approved, index) => {
+            if (!approved || item.milestoneClaimed[index]) return 0n;
+            const raw = await sharedEscrow.getMilestoneDetails(id, index + 1);
+            if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+              throw new Error(t("chainSnapshotUnavailable"));
+            }
+            const detail = raw as Record<string, unknown>;
+            const amount = parseExactInteger(detail.amount);
+            const approvedValue = parseExactBool(detail.approved);
+            const claimed = parseExactBool(detail.claimed);
+            const approvedTime = parseExactInteger(detail.approvedTime);
+            if (
+              amount !== item.milestoneAmounts[index] || approvedValue !== true ||
+              claimed !== false || approvedTime === null || approvedTime <= 0n
+            ) throw new Error(t("chainSnapshotUnavailable"));
+            return approvedTime;
+          }),
+        );
+        return { ...item, milestoneApprovedTimes: approvedTimes };
+      }));
+      return items;
+    }
     // arg.hash160 THROWS on an empty/invalid address, so the empty guard above
     // mirrors the old `if (!hash) return []` behavior before we build the arg.
     const creatorArg = app.chain.arg.hash160(addr);
@@ -732,6 +790,11 @@ export function useMilestoneEscrow({
   const readEscrowById = async (id: string): Promise<EscrowItem> => {
     const normalizedId = toIdString(id);
     if (!normalizedId) throw new Error(t("chainSnapshotUnavailable"));
+    if (sharedEscrowEnabled) {
+      const item = parseEscrowDetails(await sharedEscrow.getEscrowDetails(normalizedId), normalizedId);
+      if (!item) throw new Error(t("chainSnapshotUnavailable"));
+      return item;
+    }
     const raw = await app.chain.readRaw("getEscrowDetails", [
       app.chain.arg.integer(normalizedId),
     ]);
@@ -938,14 +1001,6 @@ export function useMilestoneEscrow({
 
     await requireFundingWriteReady();
 
-    // Contract must be configured before any funds move — the prepay lane
-    // resolves the deposit recipient from this same accessor.
-    const contractHash = app.chain.contractAddress.get();
-    if (!contractHash) {
-      throw new Error(t("contractMissing"));
-    }
-    const assetArg = app.chain.arg.hash160(assetHash(asset));
-
     // Truncate by UTF-8 BYTES (the contract's unit), not UTF-16 chars — see
     // MAX_TITLE_BYTES. Computed once so the sent args and the pending-write
     // reconciliation record can never disagree.
@@ -954,6 +1009,30 @@ export function useMilestoneEscrow({
 
     isCreating.set(true);
     try {
+      if (sharedEscrowEnabled) {
+        const result = await sharedEscrow.createEscrow({
+          beneficiary: beneficiaryAddr,
+          asset,
+          totalAmount,
+          milestoneAmounts: milestoneBaseUnits,
+          title: escrowTitle,
+          notes: escrowNotes,
+          creator: creatorAddr,
+          fundAmount: totalAmount,
+        });
+        if (result.success === false) throw new Error(t("transactionConfirmationPending"));
+        await refreshAfterConfirmedWrite();
+        return;
+      }
+
+      // Contract must be configured before any funds move — the prepay lane
+      // resolves the deposit recipient from this same accessor.
+      const contractHash = app.chain.contractAddress.get();
+      if (!contractHash) {
+        throw new Error(t("contractMissing"));
+      }
+      const assetArg = app.chain.arg.hash160(assetHash(asset));
+
       // Deposit-then-act on the framework prepay lane (S3):
       //   1. DEPOSIT — NEP-17 transfer of the total to the contract on the
       //      *asset* token (deposit.scriptHash targets the token contract,
@@ -1070,6 +1149,19 @@ export function useMilestoneEscrow({
 
     try {
       approvingId.set(`${escrow.id}-${idx}`);
+      if (sharedEscrowEnabled) {
+        const result = await sharedEscrow.approveMilestone(
+          liveEscrow.id,
+          idx + 1,
+          creatorAddr,
+        );
+        if (!result.txid || result.success === false) {
+          throw new Error(t("transactionConfirmationPending"));
+        }
+        clearPendingWrite();
+        await refreshAfterConfirmedWrite();
+        return;
+      }
       const result = await app.chain.invoke(
         "approveMilestone",
         [
@@ -1136,6 +1228,19 @@ export function useMilestoneEscrow({
 
     try {
       claimingId.set(`${escrow.id}-${idx}`);
+      if (sharedEscrowEnabled) {
+        const result = await sharedEscrow.claimMilestone(
+          liveEscrow.id,
+          idx + 1,
+          beneficiaryAddr,
+        );
+        if (!result.txid || result.success === false) {
+          throw new Error(t("transactionConfirmationPending"));
+        }
+        clearPendingWrite();
+        await refreshAfterConfirmedWrite();
+        return;
+      }
       const result = await app.chain.invoke(
         "claimMilestone",
         [
@@ -1199,6 +1304,15 @@ export function useMilestoneEscrow({
 
     try {
       cancellingId.set(escrow.id);
+      if (sharedEscrowEnabled) {
+        const result = await sharedEscrow.cancelEscrow(liveEscrow.id, creatorAddr);
+        if (!result.txid || result.success === false) {
+          throw new Error(t("transactionConfirmationPending"));
+        }
+        clearPendingWrite();
+        await refreshAfterConfirmedWrite();
+        return;
+      }
       const result = await app.chain.invoke(
         "cancelEscrow",
         [
@@ -1251,10 +1365,12 @@ export function useMilestoneEscrow({
       throw new Error(t("escrowStateChanged"));
     }
 
-    const milestoneRaw = await app.chain.readRaw("getMilestoneDetails", [
-      app.chain.arg.integer(liveEscrow.id),
-      app.chain.arg.integer(idx + 1),
-    ]);
+    const milestoneRaw = sharedEscrowEnabled
+      ? await sharedEscrow.getMilestoneDetails(liveEscrow.id, idx + 1)
+      : await app.chain.readRaw("getMilestoneDetails", [
+        app.chain.arg.integer(liveEscrow.id),
+        app.chain.arg.integer(idx + 1),
+      ]);
     if (!milestoneRaw || typeof milestoneRaw !== "object" || Array.isArray(milestoneRaw)) {
       throw new Error(t("chainSnapshotUnavailable"));
     }
@@ -1270,12 +1386,34 @@ export function useMilestoneEscrow({
     ) {
       throw new Error(t("chainSnapshotUnavailable"));
     }
-    if (BigInt(Date.now()) < approvedTime + APPROVAL_GRACE_PERIOD_MS) {
+    let approvalGracePeriod = APPROVAL_GRACE_PERIOD_MS;
+    if (sharedEscrowEnabled) {
+      const stats = await sharedEscrow.getPlatformStats();
+      const configuredGrace = readMapInteger(stats, "approvalGraceMs");
+      if (configuredGrace === null || configuredGrace <= 0n) {
+        throw new Error(t("chainSnapshotUnavailable"));
+      }
+      approvalGracePeriod = configuredGrace;
+    }
+    if (BigInt(Date.now()) < approvedTime + approvalGracePeriod) {
       throw new Error(t("gracePeriodNotElapsed"));
     }
 
     try {
       reclaimingId.set(`${liveEscrow.id}-${idx}`);
+      if (sharedEscrowEnabled) {
+        const result = await sharedEscrow.reclaimApprovedMilestone(
+          liveEscrow.id,
+          idx + 1,
+          creatorAddr,
+        );
+        if (!result.txid || result.success === false) {
+          throw new Error(t("transactionConfirmationPending"));
+        }
+        clearPendingWrite();
+        await refreshAfterConfirmedWrite();
+        return;
+      }
       const result = await app.chain.invoke(
         "reclaimApprovedMilestone",
         [
@@ -1322,6 +1460,33 @@ export function useMilestoneEscrow({
 
     isRecoveringCredit.set(asset);
     try {
+      if (sharedEscrowEnabled) {
+        const result = await sharedEscrow.withdrawCredit(asset, before, payer);
+        if (!result.txid || result.success === false) {
+          throw new Error(t("transactionConfirmationPending"));
+        }
+
+        let after: bigint | null = null;
+        try {
+          const immediate = await readRecoveryCredit(asset, payer);
+          if (immediate === 0n) after = immediate;
+        } catch {
+          // The node may not have indexed the fresh transaction yet.
+        }
+        if (after === null) {
+          after = await app.chain.waitForState(
+            () => readRecoveryCredit(asset, payer),
+            (value) => value === 0n,
+          );
+        }
+        if (after !== 0n) throw new Error(t("transactionConfirmationPending"));
+
+        if (asset === "GAS") gasRecoveryCredit.set(0n);
+        else neoRecoveryCredit.set(0n);
+        recoveryCreditError.set("");
+        clearPendingWrite();
+        return;
+      }
       const result = await app.chain.invoke(
         "reclaimDirectAssetCredit",
         [

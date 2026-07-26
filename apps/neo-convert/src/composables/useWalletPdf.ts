@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import type { NeoAccount } from "@/services/neo";
+import type { NeoAccount } from "../services/neo";
 
 export function useWalletPdf(t: (key: string) => string) {
   const generate = (account: NeoAccount, addressQr: string, wifQr: string) => {

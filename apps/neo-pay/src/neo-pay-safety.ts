@@ -8,6 +8,7 @@ export const NEO_PAY_EVENT_WAIT_MS = 30_000;
 
 export type NeoPayNetwork = "mainnet" | "testnet";
 export type NeoPayPendingKind = "create" | "legacy-create" | "claim" | "cancel";
+export type NeoPayPendingEngine = "legacy" | "platform-vesting";
 export type NeoPayEventName = "StreamCreated" | "StreamClaimed" | "StreamCancelled";
 
 export interface NeoPayChainContext {
@@ -22,6 +23,7 @@ export interface NeoPayContextOptions {
 
 export interface PendingNeoPayOperation {
   version: 1;
+  engine?: NeoPayPendingEngine;
   kind: NeoPayPendingKind;
   eventName: NeoPayEventName;
   network: NeoPayNetwork;
@@ -110,15 +112,17 @@ export function isPendingNeoPayOperation(value: unknown): value is PendingNeoPay
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const pending = value as Partial<PendingNeoPayOperation>;
   const kinds: NeoPayPendingKind[] = ["create", "legacy-create", "claim", "cancel"];
+  const engine = pending.engine ?? "legacy";
   const network = explicitNetwork(pending.network);
   const contractHash = normalizeNeoPayAccount(pending.contractHash);
   const expectedContract = network
     ? normalizeNeoPayAccount(getMiniAppContractHash(NEO_PAY_APP_ID, resolveNeoNetwork(network)))
     : "";
   if (
+    (engine !== "legacy" && engine !== "platform-vesting") ||
     pending.version !== 1 || !kinds.includes(pending.kind as NeoPayPendingKind) ||
     pending.eventName !== eventFor(pending.kind as NeoPayPendingKind) ||
-    !network || !contractHash || contractHash !== expectedContract ||
+    !network || !contractHash || (engine === "legacy" && contractHash !== expectedContract) ||
     !normalizeNeoPayAccount(pending.actorHash) || !isExactNeoPayTxid(pending.txid) ||
     !Number.isSafeInteger(pending.createdAt) || Number(pending.createdAt) <= 0
   ) return false;

@@ -32,5 +32,4 @@ export const manifest: MiniAppManifest = {
 
   permissions: { datafeed: true, automation: true },
 
-  contract: { mode: "custom" },
 };

@@ -1,7 +1,7 @@
 import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { messages } from "@/locale/messages";
+import { messages } from "../locale/messages";
 
 /**
  * Synchronous device-local checklist store — structurally satisfied by
