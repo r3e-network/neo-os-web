@@ -107,14 +107,27 @@ export function renderSdkFiles() {
       typecheck: "tsc -p tsconfig.json --noEmit",
     },
     devDependencies: {
+      // react/react-dom are pinned here on purpose: without them npm resolves
+      // react 19 from @testing-library/react's loose peer range, which collides
+      // with the packages' react@^18.3.1 peer and fails install outright.
+      "@douyinfe/semi-ui": "^2.101.0",
       "@testing-library/react": "^16.3.2",
       "@testing-library/user-event": "^14.6.1",
       "@types/react": "^18.3.28",
       "@types/react-dom": "^18.3.7",
       "@vue/test-utils": "^2.4.6",
+      ethers: "^6.16.0",
       glob: "^10.5.0",
       jsdom: "^25.0.1",
+      "lucide-react": "^0.562.0",
+      phaser: "^3.90.0",
+      react: "^18.3.1",
+      "react-dom": "^18.3.1",
+      // The shared package ships .scss beside its components and vite 7
+      // resolves .scss through sass-embedded.
+      "sass-embedded": "^1.98.0",
       typescript: "^5.9.3",
+      vite: "^7.3.6",
       vitest: "^4.1.0",
       vue: "^3.5.33",
     },
@@ -133,7 +146,7 @@ export function renderSdkFiles() {
     publishConfig: { registry: "https://npm.pkg.github.com" },
     repository: { type: "git", url: "git+https://github.com/r3e-network/neo-miniapp-sdk.git", directory: "framework" },
     dependencies: {
-      "@noble/curves": "^1.9.7",
+      "@noble/curves": "^1.2.0",
       "@noble/hashes": "^1.8.0",
     },
     peerDependencies: {
@@ -193,6 +206,9 @@ export function renderSdkFiles() {
       isolatedModules: true,
       skipLibCheck: true,
       noEmit: true,
+      // Both packages import Vite-transformed assets (`*.svg?url`) and read
+      // import.meta.env, and the suites use vitest globals.
+      types: ["vite/client", "vitest/globals"],
       baseUrl: ".",
       paths: {
         "@framework": ["./framework/index.ts"],
@@ -206,8 +222,40 @@ export function renderSdkFiles() {
   files["tsconfig.json"] = json({
     extends: "./tsconfig.base.json",
     include: ["framework/**/*.ts", "framework/**/*.tsx", "shared/**/*.ts", "shared/**/*.tsx"],
-    exclude: ["node_modules", "**/node_modules"],
+    // Typecheck what the packages publish. The suites are verified by running
+    // them and use fixture typing the published surface must not adopt - the
+    // `files` field excludes them from the tarball for the same reason.
+    exclude: [
+      "node_modules",
+      "**/node_modules",
+      "**/test/**",
+      "**/test-utils/**",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/vitest.config.ts",
+      "**/vitest.cross-repo.config.ts",
+    ],
   });
+
+  // Both packages carried a tsconfig extending a monorepo path
+  // (../apps/tsconfig.miniapp.json) that does not exist here, which failed the
+  // transform for every test file. Regenerate them against this repo's base.
+  const packageTsconfig = (patterns) =>
+    json({
+      extends: "../tsconfig.base.json",
+      compilerOptions: {
+        baseUrl: "..",
+        paths: {
+          "@framework/*": ["framework/*"],
+          "@shared/*": ["shared/*"],
+        },
+        types: ["vite/client", "vitest/globals"],
+      },
+      include: patterns,
+      exclude: ["node_modules", "dist"],
+    });
+  files["framework/tsconfig.json"] = packageTsconfig(["**/*.ts", "**/*.tsx"]);
+  files["shared/tsconfig.json"] = packageTsconfig(["**/*.ts", "**/*.tsx", "**/*.vue"]);
 
   // Both packages sit one level below the repo root now (they used to be
   // `framework/` and `apps/shared/`), so the vitest configs are regenerated
@@ -403,6 +451,7 @@ export function renderAppRepoFiles(repoName, kind, apps) {
       // full app catalogue in places, so they report rather than gate until
       // their hardcoded app lists are made subset-tolerant.
       "test:conformance": "vitest run --dir apps/tests/conformance",
+      "test:apps": "node scripts/run-app-tests.mjs",
       "publish:cdn": "node scripts/publish-bundles-r2.mjs",
       "publish:cdn:dry-run": "node scripts/publish-bundles-r2.mjs --dry-run",
       "check:devpack-drift": "node scripts/check-devpack-drift.mjs",
@@ -415,7 +464,10 @@ export function renderAppRepoFiles(repoName, kind, apps) {
       "@douyinfe/semi-ui": "^2.101.0",
       "@noble/curves": "^1.2.0",
       "@noble/hashes": "^1.8.0",
-      "@r3e/neo-js-sdk": "^0.3.7",
+      // npm only publishes up to 0.3.6; the platform pins the r3e tarball, and
+      // neo-convert / neo-multisig depend on APIs only in that build.
+      "@r3e/neo-js-sdk":
+        "https://codeload.github.com/r3e-network/neo-js-sdk/tar.gz/refs/tags/v0.3.7-r3e.1",
       bs58: "^6.0.0",
       "cannon-es": "^0.20.0",
       ethers: "^6.16.0",
@@ -472,7 +524,11 @@ export default defineConfig({
   test: {
     testTimeout: 30_000,
     environment: "jsdom",
-    include: ["tests/unit/**/*.test.ts", "tests/unit/**/*.test.tsx", "*/src/**/*.test.ts", "*/src/**/*.test.tsx"],
+    // Only the tests this config actually owns. Apps that declare their own
+    // \`test\` script bring their own vitest setup (asset stubs, audio and physics
+    // shims), so those run in the app directory via \`npm run test:apps\` - the
+    // same way the monorepo ran them.
+    include: ["tests/unit/**/*.test.ts", "tests/unit/**/*.test.tsx"],
     // apps/tests/conformance is excluded from the default run; see
     // "test:conformance" in package.json.
     exclude: ["**/node_modules/**", "**/dist/**", "tests/conformance/**"],
@@ -552,6 +608,92 @@ console.log(JSON.stringify({ built: apps.length - failures.length, failed: failu
 if (failures.length > 0) process.exit(1);
 `;
 
+  files["scripts/run-app-tests.mjs"] = `#!/usr/bin/env node
+/**
+ * Aggregate runner for per-app test suites.
+ *
+ * Apps that declare their own \`test\` script own their vitest config - jsdom
+ * mocks, asset stubs, physics and audio shims. Running those files from the
+ * repo-level config instead would fail on setup the app config provides, so
+ * each suite runs in its own directory exactly as it did in the monorepo.
+ *
+ * Suites run in parallel with bounded concurrency, output is buffered so logs
+ * do not interleave, and every suite runs even if some fail - a failure is
+ * reported by app name rather than reduced to an anonymous count.
+ */
+import { spawn } from "node:child_process";
+import { readdirSync, readFileSync, existsSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const appsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "apps");
+const NON_APP_DIRS = new Set(["tests"]);
+const selected = new Set(process.argv.slice(2).filter((arg) => !arg.startsWith("-")));
+
+function findAppsWithTests() {
+  const out = [];
+  for (const entry of readdirSync(appsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || NON_APP_DIRS.has(entry.name)) continue;
+    if (selected.size > 0 && !selected.has(entry.name)) continue;
+    const pkgPath = path.join(appsDir, entry.name, "package.json");
+    if (!existsSync(pkgPath)) continue;
+    try {
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+      if (typeof pkg.scripts?.test === "string") {
+        out.push({ name: entry.name, dir: path.join(appsDir, entry.name) });
+      }
+    } catch {
+      // Unparseable package.json is a separate concern; skip rather than abort.
+    }
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function runSuite(app) {
+  return new Promise((resolve) => {
+    const child = spawn("npm", ["test", "--silent"], { cwd: app.dir, stdio: ["ignore", "pipe", "pipe"] });
+    const chunks = [];
+    child.stdout.on("data", (d) => chunks.push(d));
+    child.stderr.on("data", (d) => chunks.push(d));
+    child.on("close", (code) =>
+      resolve({ name: app.name, ok: code === 0, output: Buffer.concat(chunks).toString("utf8") }),
+    );
+  });
+}
+
+const apps = findAppsWithTests();
+if (apps.length === 0) {
+  console.log("[app-tests] no app declares a test script");
+  process.exit(0);
+}
+
+const concurrency = Math.max(1, Math.min(apps.length, os.cpus().length - 1 || 1));
+const queue = [...apps];
+const failures = [];
+
+async function worker() {
+  for (;;) {
+    const app = queue.shift();
+    if (!app) return;
+    const result = await runSuite(app);
+    console.log(\`\\n===== \${result.name} \${result.ok ? "PASS" : "FAIL"} =====\`);
+    if (!result.ok) {
+      console.log(result.output);
+      failures.push(result.name);
+    }
+  }
+}
+
+await Promise.all(Array.from({ length: concurrency }, worker));
+
+console.log(\`\\n[app-tests] \${apps.length - failures.length}/\${apps.length} suites passed\`);
+if (failures.length > 0) {
+  console.log(\`[app-tests] failing: \${failures.join(", ")}\`);
+  process.exit(1);
+}
+`;
+
   files["scripts/publish-bundles-r2.mjs"] = renderR2Publisher(kind);
 
   if (withContracts.length > 0) {
@@ -626,6 +768,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
       - run: npm test
+      - run: npm run test:apps
       - run: npm run build
 ${
   withContracts.length > 0
