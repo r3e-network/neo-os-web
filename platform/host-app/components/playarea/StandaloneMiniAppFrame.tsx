@@ -65,7 +65,16 @@ export function StandaloneMiniAppFrame({
   const showFailure = showLoader && timedOut && !loaded;
 
   return (
-    <div className="fixed inset-0 bg-[#faf9f7]">
+    // Sized in viewport units rather than by `inset-0` alone. The host's page
+    // wrapper carries an entry animation on `transform`, which makes it the
+    // containing block for fixed descendants - so `inset-0` resolved against a
+    // zero-height wrapper and collapsed this surface to nothing. dvh also keeps
+    // the app clear of mobile browser chrome, which matters inside OneGate;
+    // the h-screen class is the 100vh fallback where dvh is unsupported.
+    <div
+      className="fixed inset-0 h-screen w-screen bg-[#faf9f7]"
+      style={{ height: "100dvh" }}
+    >
       <iframe
         key={`${url}#${attempt}`}
         ref={iframeRef}
@@ -87,7 +96,8 @@ export function StandaloneMiniAppFrame({
       />
       {showFailure ? (
         <div
-          className="fixed inset-0 z-10 grid place-items-center bg-[#faf9f7] px-6 text-center"
+          className="fixed inset-0 z-10 grid h-screen w-screen place-items-center bg-[#faf9f7] px-6 text-center"
+          style={{ height: "100dvh" }}
           data-testid="standalone-miniapp-frame-error"
           role="status"
           aria-live="polite"
