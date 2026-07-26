@@ -11,6 +11,12 @@ import {
 import { logger } from "./logger";
 import { canonicalizeMiniAppId } from "./miniapp-id";
 import { isArchivedMiniAppId, isArchivedMiniAppSlug } from "./archived-miniapps";
+import {
+  buildDefinitionFromCdnApp,
+  isMiniAppCdnEnabled,
+  loadMiniAppCdnCatalog,
+  type MiniAppCdnApp,
+} from "./miniapp-cdn";
 
 type Dict = Record<string, unknown>;
 
@@ -726,6 +732,76 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
   }
 }
 
+/**
+ * Points every app at its published CDN bundle, and adds definitions for apps
+ * that exist only on the CDN.
+ *
+ * The overlay runs after the local definition sources so it works in both
+ * worlds: while apps/ is still in this repo the CDN entry simply replaces the
+ * locally staged `/miniapps/<slug>/index.html`, and once apps/ is gone the
+ * catalogue becomes the source of the definitions themselves. A CDN that is
+ * unreachable degrades to whatever the local sources produced rather than
+ * emptying the catalogue.
+ */
+async function applyCdnBundles(apps: MiniAppInfo[]): Promise<MiniAppInfo[]> {
+  if (!isMiniAppCdnEnabled()) return apps;
+
+  let catalog: MiniAppCdnApp[] = [];
+  try {
+    catalog = await loadMiniAppCdnCatalog();
+  } catch (error: unknown) {
+    logger.warn(
+      "[miniapp-definitions] CDN catalog unavailable, serving locally staged bundles",
+      error instanceof Error ? error.message : String(error),
+    );
+    return apps;
+  }
+  if (catalog.length === 0) return apps;
+
+  const byKey = new Map<string, MiniAppCdnApp>();
+  for (const entry of catalog) {
+    byKey.set(entry.app_id.toLowerCase(), entry);
+    byKey.set(entry.slug.toLowerCase(), entry);
+  }
+
+  const claimed = new Set<string>();
+  const merged = apps.map((app) => {
+    const slug = resolveMiniAppSlugForCdn(app);
+    const entry =
+      byKey.get(app.app_id.toLowerCase()) || (slug ? byKey.get(slug.toLowerCase()) : undefined);
+    if (!entry) return app;
+    claimed.add(entry.app_id.toLowerCase());
+    return {
+      ...app,
+      entry_url: entry.entry_url,
+      dapp_url: entry.entry_url,
+      logo_url: app.logo_url || entry.icon_url || null,
+      banner_url: app.banner_url || entry.banner_url || null,
+    };
+  });
+
+  for (const entry of catalog) {
+    if (claimed.has(entry.app_id.toLowerCase())) continue;
+    if (isArchivedMiniAppId(entry.app_id) || isArchivedMiniAppSlug(entry.slug)) continue;
+    const app = coerceMiniAppInfo(buildDefinitionFromCdnApp(entry));
+    if (!app) continue;
+    merged.push({ ...applyBuiltInMiniAppDefaults(app), source: "miniapp" });
+  }
+
+  return merged;
+}
+
+/**
+ * The catalogue is keyed by the app's directory slug. A definition may only
+ * carry its canonical app id, so recover the slug from whichever bundle URL it
+ * already has before falling back to the id.
+ */
+function resolveMiniAppSlugForCdn(app: MiniAppInfo): string {
+  const fromUrl = String(app.dapp_url || app.entry_url || "").match(/\/miniapps\/([^/?#]+)/);
+  if (fromUrl?.[1]) return fromUrl[1];
+  return app.app_id.replace(/^miniapp-/, "");
+}
+
 export async function loadMiniAppDefinitions(): Promise<MiniAppInfo[]> {
   // Jest/unit tests run with NODE_ENV=test and often omit MINIAPP_DEFINITIONS_DIR to avoid
   // walking the repository filesystem. Playwright E2E runs also set NODE_ENV=test, but it
@@ -755,7 +831,7 @@ export async function loadMiniAppDefinitions(): Promise<MiniAppInfo[]> {
       if (isArchivedMiniAppId(app.app_id)) continue;
       apps.push({ ...applyBuiltInMiniAppDefaults(app), source: "miniapp" });
     }
-    return apps;
+    return applyCdnBundles(apps);
   })();
 
   if (ttlMs <= 0) return loader;

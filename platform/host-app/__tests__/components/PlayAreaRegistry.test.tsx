@@ -9,6 +9,8 @@ import {
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
+import { openEmbeddedBundles } from "../test-utils/embedded-bundle";
+
 import {
   PlayAreaRegistry,
   getNativePlayAreaKind,
@@ -115,7 +117,7 @@ function renderPlayarea(
   app: Partial<MiniAppInfo>,
   launchContext?: React.ComponentProps<typeof PlayAreaRegistry>["launchContext"],
 ) {
-  return render(
+  const result = render(
     <PlayAreaRegistry
       app={{ ...baseApp, ...app }}
       stats={[
@@ -163,6 +165,9 @@ function renderPlayarea(
       onRefresh={jest.fn()}
     />,
   );
+  // Bundles are deferred behind the poster; these tests assert on the frame.
+  openEmbeddedBundles();
+  return result;
 }
 
 describe("PlayAreaRegistry", () => {
@@ -487,6 +492,7 @@ describe("PlayAreaRegistry", () => {
         onRefresh={jest.fn()}
       />,
     );
+    openEmbeddedBundles();
 
     expect(
       screen.getByRole("heading", { name: "Oracle VRF workbench" }),
@@ -838,6 +844,7 @@ describe("PlayAreaRegistry", () => {
         onRefresh={jest.fn()}
       />,
     );
+    openEmbeddedBundles();
 
     expect(screen.getByText("Next round is ready to start")).toBeVisible();
     // The LastSurvivor native play area now embeds the actual dApp iframe,
@@ -1155,6 +1162,7 @@ describe("PlayAreaRegistry", () => {
         onRefresh={jest.fn()}
       />,
     );
+    openEmbeddedBundles();
 
     expect(
       screen.getByTestId("native-playarea-miniapp-gas-lucky-pool"),
@@ -1784,6 +1792,7 @@ describe("PlayAreaRegistry", () => {
         onRefresh={jest.fn()}
       />,
     );
+    openEmbeddedBundles();
 
     const frame = screen.getByTestId("neo-x-bridge-dapp-frame");
     expect(frame).toHaveAttribute(
