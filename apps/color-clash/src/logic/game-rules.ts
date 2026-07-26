@@ -1,7 +1,10 @@
 /**
  * Game rules constants for Color Clash (Simon Says).
  */
-import { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
+import {
+  createDifficultyRuleSelector,
+  DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS,
+} from "@framework/game-rules";
 
 export const ENTRY_MEMO = "miniapp-color-clash:entry";
 export const FUND_MEMO = "miniapp-color-clash:fund";
@@ -39,11 +42,7 @@ export const CUE_TIMINGS: readonly [CueTiming, CueTiming, CueTiming] = [
   { leadInMs: 280, litMs: 290, gapMs: 140, pressLockMs: 150 },
 ];
 
-export function ruleOf(difficulty: number): DifficultyRule {
-  const r = DIFFICULTY_RULES.find(d => d.difficulty === difficulty);
-  if (!r) throw new Error(`unknown difficulty ${difficulty}`);
-  return r;
-}
+export const ruleOf = createDifficultyRuleSelector(DIFFICULTY_RULES, { strict: true });
 
 export function cueTimingOf(difficulty: number): CueTiming {
   const index = Math.max(0, Math.min(2, Number.isFinite(difficulty) ? Math.round(difficulty) : 0));

@@ -1,8 +1,6 @@
 /**
- * Economic + timing constants of the MiniAppSudoku contract, mirrored for the
- * UI. Values are FIXED8 base units (1 GAS = 1e8) and milliseconds; keep in
- * lockstep with contracts/MiniAppSudoku (getConfig() exposes the live values
- * for cross-checks).
+ * Economic + timing constants for Gomoku Arena.
+ * Mirrors the platform-game shared economics pattern.
  */
 import { formatClock as fleetFormatClock } from "@framework/fmt-surface";
 import {
@@ -10,22 +8,19 @@ import {
   DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS,
 } from "@framework/game-rules";
 import { formatGas } from "@framework/utils/format";
-import type { Difficulty } from "./sudoku-engine";
+import type { Difficulty } from "./gomoku-engine";
 
-export const ENTRY_MEMO = "miniapp-sudoku:entry";
-export const FUND_MEMO = "miniapp-sudoku:fund";
+export const ENTRY_MEMO = "miniapp-gomoku:entry";
+export const FUND_MEMO = "miniapp-gomoku:fund";
 
 /**
- * New paid entries stay disabled until a complete testnet start -> sealed deal
- * -> move/undo -> signed settlement -> withdraw run has been witnessed. The
- * dormant paid client remains available for a future certified release, but
- * the published guest Sudoku never consults this flag or the chain.
+ * Paid entries disabled — same pattern as Sudoku. The guest game is fully
+ * local and never consults this flag or the chain.
  */
 export const GAMEFI_NEW_ENTRIES_ENABLED = false;
 
 export const MAX_UNDOS = 3;
-export const UNDO_PENALTY_PCT = 30;
-export const BEACON_BLOCKS = 1;
+export const UNDO_PENALTY_PCT = 20;
 export { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 
 export interface DifficultyRule {
@@ -42,8 +37,8 @@ const EASY_RULE: DifficultyRule = {
   key: "easy",
   entryFixed8: 2_000_000n,
   rewardFixed8: 10_000_000n,
-  limitMs: 900_000,
-  minSolveMs: 90_000,
+  limitMs: 600_000,   // 10 min
+  minSolveMs: 30_000,
 };
 
 const MEDIUM_RULE: DifficultyRule = {
@@ -51,8 +46,8 @@ const MEDIUM_RULE: DifficultyRule = {
   key: "medium",
   entryFixed8: 10_000_000n,
   rewardFixed8: 50_000_000n,
-  limitMs: 1_500_000,
-  minSolveMs: 150_000,
+  limitMs: 900_000,   // 15 min
+  minSolveMs: 60_000,
 };
 
 const HARD_RULE: DifficultyRule = {
@@ -60,8 +55,8 @@ const HARD_RULE: DifficultyRule = {
   key: "hard",
   entryFixed8: 20_000_000n,
   rewardFixed8: 100_000_000n,
-  limitMs: 2_400_000,
-  minSolveMs: 240_000,
+  limitMs: 1_200_000, // 20 min
+  minSolveMs: 90_000,
 };
 
 export const DIFFICULTY_RULES: readonly DifficultyRule[] = [EASY_RULE, MEDIUM_RULE, HARD_RULE];
@@ -77,12 +72,10 @@ export function payoutFixed8(difficulty: number, undos: number): bigint {
   return (ruleOf(difficulty).rewardFixed8 * BigInt(rewardPctAfterUndos(undos))) / 100n;
 }
 
-/** Full-precision fixed8 display — delegates to the framework formatter (RFC P0-3). */
 export function gasDisplay(fixed8: bigint): string {
   return formatGas(fixed8, 8);
 }
 
-/** Zero-padded mm:ss — delegates to the fleet-standard clock (RFC P0-3). */
 export function formatClock(ms: number): string {
   return fleetFormatClock(ms);
 }
@@ -97,24 +90,15 @@ export type GameStatus =
 
 export function statusOf(raw: number): GameStatus {
   switch (raw) {
-    case 1:
-      return "dealt";
-    case 2:
-      return "solved";
-    case 3:
-      return "expired";
-    case 4:
-      return "refunded";
-    case 5:
-      // The contract has accepted the sealed operation log and is waiting for
-      // the oracle callback. It is neither solved nor safe to restart yet.
-      return "unknown";
-    default:
-      return "committed";
+    case 1: return "dealt";
+    case 2: return "solved";
+    case 3: return "expired";
+    case 4: return "refunded";
+    case 5: return "unknown";
+    default: return "committed";
   }
 }
 
-/** The contract permits expireGame only after deadline + settlement grace. */
 export function canExpireAfterGrace(
   deadline: number,
   now = Date.now(),

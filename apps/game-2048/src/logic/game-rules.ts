@@ -5,7 +5,10 @@
  * values for cross-checks).
  */
 import { formatClock as fleetFormatClock } from "@framework/fmt-surface";
-import { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
+import {
+  createDifficultyRuleSelector,
+  DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS,
+} from "@framework/game-rules";
 import { formatGas } from "@framework/utils/format";
 
 export const ENTRY_MEMO = "miniapp-game-2048:entry";
@@ -66,16 +69,7 @@ const SUMMIT_RULE: DifficultyRule = {
 
 export const DIFFICULTY_RULES: readonly DifficultyRule[] = [SPRINT_RULE, CLIMB_RULE, SUMMIT_RULE];
 
-export function ruleOf(difficulty: number): DifficultyRule {
-  switch (difficulty) {
-    case 1:
-      return CLIMB_RULE;
-    case 2:
-      return SUMMIT_RULE;
-    default:
-      return SPRINT_RULE;
-  }
-}
+export const ruleOf = createDifficultyRuleSelector(DIFFICULTY_RULES);
 
 export function rewardPctAfterUndos(undos: number): number {
   const clamped = Math.max(0, Math.min(MAX_UNDOS, undos));

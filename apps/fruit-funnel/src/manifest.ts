@@ -51,5 +51,4 @@ export const manifest: MiniAppManifest = {
     comments: true,
   },
   permissions: { payments: false, randomness: false, compute: false, oracle: false },
-  contract: { mode: "custom" },
 };

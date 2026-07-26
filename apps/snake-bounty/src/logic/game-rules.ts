@@ -5,7 +5,10 @@
  * for cross-checks).
  */
 import { formatClock as fleetFormatClock } from "@framework/fmt-surface";
-import { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
+import {
+  createDifficultyRuleSelector,
+  DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS,
+} from "@framework/game-rules";
 import { formatGas } from "@framework/utils/format";
 
 export type Difficulty = 0 | 1 | 2;
@@ -57,16 +60,7 @@ const HARD_RULE: DifficultyRule = {
 
 export const DIFFICULTY_RULES: readonly DifficultyRule[] = [EASY_RULE, MEDIUM_RULE, HARD_RULE];
 
-export function ruleOf(difficulty: number): DifficultyRule {
-  switch (difficulty) {
-    case 1:
-      return MEDIUM_RULE;
-    case 2:
-      return HARD_RULE;
-    default:
-      return EASY_RULE;
-  }
-}
+export const ruleOf = createDifficultyRuleSelector(DIFFICULTY_RULES);
 
 /**
  * Arcade movement cadence is intentionally separate from the on-chain economy.

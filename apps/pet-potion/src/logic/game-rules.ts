@@ -1,7 +1,10 @@
 /**
  * Game rules constants for Pet Potion (virtual pet care).
  */
-import { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
+import {
+  createDifficultyRuleSelector,
+  DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS,
+} from "@framework/game-rules";
 
 export const ENTRY_MEMO = "miniapp-pet-potion:entry";
 export const FUND_MEMO = "miniapp-pet-potion:fund";
@@ -27,11 +30,7 @@ export const DIFFICULTY_RULES: DifficultyRule[] = [
   { difficulty: 2, entry: 20_000_000, reward: 100_000_000, limitMs: 600_000, minSolveMs: 120_000, targetHappiness: 100 },
 ];
 
-export function ruleOf(difficulty: number): DifficultyRule {
-  const r = DIFFICULTY_RULES.find(d => d.difficulty === difficulty);
-  if (!r) throw new Error(`unknown difficulty ${difficulty}`);
-  return r;
-}
+export const ruleOf = createDifficultyRuleSelector(DIFFICULTY_RULES, { strict: true });
 
 export function rewardPctAfterUndos(undos: number): number {
   return 100 - UNDO_PENALTY_PCT * undos;

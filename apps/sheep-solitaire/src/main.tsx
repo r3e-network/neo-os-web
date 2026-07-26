@@ -1,6 +1,7 @@
 import { createObservable, defineMiniApp } from "@shared/react";
 import { parseBigInt } from "@shared/utils/parsers";
 import { eventStateValue } from "@shared/utils/chain-events";
+import { getLocale, normalizeLocale, type Locale } from "@shared/utils/i18n";
 import type { SolveRow as FrameworkSolveRow } from "@framework/game";
 import type { RewardGameConfig, RewardGameSession } from "@framework/gamefi";
 import type { FrameworkPlatformGameSnapshot } from "@framework/platform-game-surface";
@@ -76,6 +77,12 @@ defineMiniApp({
 
   setup(ctx) {
     const app = ctx.framework;
+    const storedLanguage = app.storage.local.get<string>("language", null);
+    const language = createObservable<Locale>(
+      storedLanguage === "zh" || storedLanguage === "ja" || storedLanguage === "en"
+        ? storedLanguage
+        : getLocale(),
+    );
     const rewardGame = app.game.reward<SheepSessionOp>(rewardGameConfig, {
       storagePrefix: `neo:${appId}:ops/`,
     });
@@ -670,6 +677,14 @@ defineMiniApp({
       if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
     });
+    ctx.framework.actions.register("setLanguage", async (...args: unknown[]) => {
+      const next = normalizeLocale(String(args[0] ?? ""));
+      language.set(next);
+      app.storage.local.set("language", next);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("languageChange", { detail: { language: next } }));
+      }
+    });
 
     return {
       state: {
@@ -712,6 +727,7 @@ defineMiniApp({
         playMode,
         lastStatus,
         appMode,
+        language,
       },
       loadData: async () => {
         if (app.mode.isGuest()) { await guest.enter(); return; }

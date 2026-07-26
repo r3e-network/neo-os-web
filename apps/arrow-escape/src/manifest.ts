@@ -82,6 +82,4 @@ export const manifest: MiniAppManifest = {
     oracle: false,
   },
 
-  contract: { mode: "custom" },
 };
-
