@@ -232,7 +232,9 @@ export function useDevTippingWallet({
     runtimeChecksum.set(null);
     try {
       const detected = normalizeDevTippingNetwork(await app.chain.detectNetwork());
-      const contract = normalizeScriptHash(app.chain.contractAddress.get() ?? "");
+      const contract = normalizeScriptHash(
+        await app.chain.resolveContractAddress(),
+      );
       // No resolvable network means no wallet has told us one yet (detectNetwork
       // reports a bare "neo-n3" until a wallet connects). Nothing mismatches
       // nothing — hold in a neutral pre-connect state instead of erroring.
@@ -294,7 +296,9 @@ export function useDevTippingWallet({
       throw new Error(t("walletChangedDuringAction"));
     }
     const detected = normalizeDevTippingNetwork(await app.chain.detectNetwork());
-    const contract = normalizeScriptHash(app.chain.contractAddress.get() ?? "");
+    const contract = normalizeScriptHash(
+      await app.chain.resolveContractAddress(),
+    );
     if (
       !detected
       || detected !== scope.network

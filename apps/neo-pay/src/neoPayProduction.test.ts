@@ -154,6 +154,23 @@ describe("neo-pay durable pending binding", () => {
     expect(neoPayAccountMatches(CREATOR_CHAIN_ORDER, CREATOR)).toBe(true);
     expect(neoPayAccountMatches(CREATOR, BENEFICIARY)).toBe(false);
   });
+
+  it("accepts a platform-vesting journal with its configured engine hash", () => {
+    expect(isPendingNeoPayOperation({
+      ...pending,
+      engine: "platform-vesting",
+    })).toBe(true);
+    expect(isPendingNeoPayOperation({
+      ...pending,
+      engine: "platform-vesting",
+      contractHash: BENEFICIARY,
+    })).toBe(true);
+    expect(isPendingNeoPayOperation({
+      ...pending,
+      engine: "platform-vesting",
+      contractHash: "not-a-hash",
+    })).toBe(false);
+  });
 });
 
 function productionApp(options: {
@@ -161,6 +178,7 @@ function productionApp(options: {
   deletePendingNoop?: boolean;
   initialPending?: PendingNeoPayOperation | null;
   detectNetwork?: "neo-n3-testnet" | "neo-n3-mainnet" | "unavailable";
+  sharedVesting?: boolean;
 } = {}) {
   const address = createObservable<string | null>(CREATOR);
   const contractAddress = createObservable<string | null>("0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e");
@@ -182,6 +200,76 @@ function productionApp(options: {
   const invokeMultiple = vi.fn();
   const invoke = vi.fn();
   const waitFor = vi.fn();
+  const sharedStreams: Array<Record<string, unknown>> = options.sharedVesting
+    ? [
+      rawStream({ id: 1, creator: CREATOR, beneficiary: BENEFICIARY }),
+      rawStream({ id: 2, creator: BENEFICIARY, beneficiary: CREATOR }),
+    ]
+    : [];
+  const sharedStream = (id: string) => sharedStreams.find((stream) => String(stream.id) === id);
+  const platformVesting = {
+    available: options.sharedVesting === true,
+    configuredHash: options.sharedVesting ? "0x" + "ab".repeat(20) : null,
+    getUserStreams: vi.fn(async (creator?: string, offset = 0, limit = 20) => sharedStreams
+      .filter((stream) => neoPayAccountMatches(stream.creator, creator))
+      .slice(Number(offset), Number(offset) + Number(limit))
+      .map((stream) => stream.id)),
+    getBeneficiaryStreams: vi.fn(async (beneficiary?: string, offset = 0, limit = 20) => sharedStreams
+      .filter((stream) => neoPayAccountMatches(stream.beneficiary, beneficiary))
+      .slice(Number(offset), Number(offset) + Number(limit))
+      .map((stream) => stream.id)),
+    getStreamDetails: vi.fn(async (id: string) => sharedStream(String(id)) ?? {}),
+    createStream: vi.fn(async (input: {
+      beneficiary: string;
+      asset: "GAS" | "NEO";
+      totalAmount: bigint;
+      rateAmount: bigint;
+      intervalSeconds: bigint;
+      title?: string;
+      notes?: string;
+      options?: { onTransactionSent?: (txid: string) => void };
+    }) => {
+      sharedStreams.push(rawStream({
+        id: 7,
+        creator: CREATOR,
+        beneficiary: input.beneficiary,
+        asset: input.asset === "GAS" ? BLOCKCHAIN_CONSTANTS.GAS_HASH : BLOCKCHAIN_CONSTANTS.NEO_HASH,
+        totalAmount: input.totalAmount,
+        releasedAmount: 0,
+        remainingAmount: input.totalAmount,
+        rateAmount: input.rateAmount,
+        intervalSeconds: input.intervalSeconds,
+        claimable: 0,
+        title: input.title,
+        notes: input.notes,
+      }));
+      input.options?.onTransactionSent?.(TXID);
+      return { txid: TXID, success: true };
+    }),
+    claimStream: vi.fn(async (id: string, _beneficiary?: string, options?: { onTransactionSent?: (txid: string) => void }) => {
+      const stream = sharedStream(String(id));
+      if (stream) {
+        const claimable = BigInt(String(stream.claimable ?? "0"));
+        const released = BigInt(String(stream.releasedAmount ?? "0")) + claimable;
+        stream.releasedAmount = released;
+        stream.remainingAmount = BigInt(String(stream.remainingAmount ?? "0")) - claimable;
+        stream.claimable = 0;
+        if (stream.remainingAmount === 0n) stream.status = "completed";
+      }
+      options?.onTransactionSent?.(TXID);
+      return { txid: TXID, success: true };
+    }),
+    cancelStream: vi.fn(async (id: string, _creator?: string, options?: { onTransactionSent?: (txid: string) => void }) => {
+      const stream = sharedStream(String(id));
+      if (stream) {
+        stream.remainingAmount = 0;
+        stream.claimable = 0;
+        stream.status = "cancelled";
+      }
+      options?.onTransactionSent?.(TXID);
+      return { txid: TXID, success: true };
+    }),
+  };
   const app = {
     platform: { launch: { network: "neo-n3-testnet" } },
     state: { persisted: () => persisted },
@@ -217,6 +305,7 @@ function productionApp(options: {
       },
     },
     events: { waitFor, value: eventValue },
+    platformVesting,
     // Harness mirror of the framework surfaces the composable adopted in the
     // RFC migration (wallet.onAccountChanged identity diff + errors.messageOf
     // Error-message extraction). No assertion depends on these bodies beyond
@@ -244,7 +333,7 @@ function productionApp(options: {
             : fallback ?? "error",
     },
   } as unknown as MiniAppFramework;
-  return { app, address, persisted, storage, readArray, readRaw, invokeMultiple, invoke, waitFor };
+  return { app, address, persisted, storage, readArray, readRaw, invokeMultiple, invoke, waitFor, platformVesting };
 }
 
 function prepareConfirmedCreate(
@@ -299,6 +388,109 @@ describe("neo-pay production orchestration", () => {
     await vi.waitFor(() => expect(pay.listSource.get()).toBe("none"));
     expect(pay.createdStreams.get()).toEqual([]);
     expect(pay.beneficiaryStreams.get()).toEqual([]);
+    pay.cleanup();
+  });
+
+  it("uses the shared vesting surface for reads instead of the legacy contract", async () => {
+    const mock = productionApp({ sharedVesting: true });
+    const pay = useNeoPayProduction({ app: mock.app, t: (key) => key });
+
+    await pay.refreshStreams();
+
+    expect(mock.platformVesting.getUserStreams).toHaveBeenCalled();
+    expect(mock.platformVesting.getBeneficiaryStreams).toHaveBeenCalled();
+    expect(mock.platformVesting.getStreamDetails).toHaveBeenCalled();
+    expect(mock.readArray).not.toHaveBeenCalled();
+    expect(mock.readRaw).not.toHaveBeenCalled();
+    expect(pay.createdStreams.get().map((stream) => stream.id)).toEqual(["1"]);
+    expect(pay.beneficiaryStreams.get().map((stream) => stream.id)).toEqual(["2"]);
+    expect(pay.listSource.get()).toBe("chain");
+    pay.cleanup();
+  });
+
+  it("creates through shared vesting with atomic native funding and durable confirmation", async () => {
+    const mock = productionApp({ sharedVesting: true });
+    const pay = useNeoPayProduction({ app: mock.app, t: (key) => key });
+
+    const result = await pay.createStream({
+      recipient: BENEFICIARY,
+      amount: "1",
+      durationDays: "3",
+      asset: "GAS",
+      notes: "Quarterly grant",
+    });
+
+    expect(result.status).toBe("confirmed");
+    expect(mock.platformVesting.createStream).toHaveBeenCalledWith(expect.objectContaining({
+      beneficiary: BENEFICIARY,
+      asset: "GAS",
+      totalAmount: 100_000_000n,
+      fundAmount: 100_000_000n,
+    }));
+    expect(mock.invokeMultiple).not.toHaveBeenCalled();
+    expect(mock.invoke).not.toHaveBeenCalled();
+    expect(pay.pendingOperation.get()).toBeNull();
+    pay.cleanup();
+  });
+
+  it("routes shared beneficiary claims and creator cancellations without legacy invokes", async () => {
+    const claimMock = productionApp({ sharedVesting: true });
+    const claimPay = useNeoPayProduction({ app: claimMock.app, t: (key) => key });
+    const claimResult = await claimPay.claimStream("2");
+    expect(claimResult.status).toBe("confirmed");
+    expect(claimMock.platformVesting.claimStream).toHaveBeenCalledWith(
+      "2",
+      CREATOR,
+      expect.objectContaining({ waitForEvent: "StreamClaimed" }),
+    );
+    expect(claimMock.invoke).not.toHaveBeenCalled();
+    claimPay.cleanup();
+
+    const cancelMock = productionApp({ sharedVesting: true });
+    const cancelPay = useNeoPayProduction({ app: cancelMock.app, t: (key) => key });
+    const cancelResult = await cancelPay.cancelStream("1");
+    expect(cancelResult.status).toBe("confirmed");
+    expect(cancelMock.platformVesting.cancelStream).toHaveBeenCalledWith(
+      "1",
+      CREATOR,
+      expect.objectContaining({ waitForEvent: "StreamCancelled" }),
+    );
+    expect(cancelMock.invoke).not.toHaveBeenCalled();
+    cancelPay.cleanup();
+  });
+
+  it("recovers a shared pending claim from stream readback without replaying it", async () => {
+    const pending: PendingNeoPayOperation = {
+      version: 1,
+      engine: "platform-vesting",
+      kind: "claim",
+      eventName: "StreamClaimed",
+      network: "testnet",
+      contractHash: "0x" + "ab".repeat(20),
+      actorHash: CREATOR,
+      txid: TXID,
+      createdAt: 1,
+      streamId: "2",
+      beforeReleased: "100000000",
+    };
+    const mock = productionApp({ sharedVesting: true, initialPending: pending });
+    mock.platformVesting.getStreamDetails.mockResolvedValue(rawStream({
+      id: 2,
+      creator: BENEFICIARY,
+      beneficiary: CREATOR,
+      releasedAmount: 175_000_000,
+      remainingAmount: 125_000_000,
+      claimable: 0,
+    }));
+    const pay = useNeoPayProduction({ app: mock.app, t: (key) => key });
+
+    const result = await pay.recoverPending();
+
+    expect(result?.status).toBe("confirmed");
+    expect(mock.platformVesting.claimStream).not.toHaveBeenCalled();
+    expect(mock.invoke).not.toHaveBeenCalled();
+    expect(mock.invokeMultiple).not.toHaveBeenCalled();
+    expect(pay.pendingOperation.get()).toBeNull();
     pay.cleanup();
   });
 

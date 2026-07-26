@@ -22,13 +22,20 @@
  * quota-rejected write must surface to the user, never silently drop photos.
  */
 
-// Wire constants of the host storage bridge. Exported so
-// apps/shared/test/embedded-bridge-protocol-parity.test.ts pins them against
-// the host-side declarations (use-embedded-storage-bridge.ts) — drift on
-// either side is a test failure.
-export const STORAGE_REQUEST = "neo-miniapp-storage:request";
-export const STORAGE_RESPONSE = "neo-miniapp-storage:response";
-export const STORAGE_PROTOCOL_VERSION = 1;
+import {
+  canUseNativeStorage,
+  createEmbeddedStorageClient,
+  EmbeddedStorageBridgeError,
+  EMBEDDED_STORAGE_PROTOCOL_VERSION,
+  EMBEDDED_STORAGE_REQUEST,
+  EMBEDDED_STORAGE_RESPONSE,
+} from "../../../shared/utils/embedded-storage-client";
+
+// Re-export the protocol constants for the album/host parity tests and any
+// first-party adapter that needs to document the wire contract.
+export const STORAGE_REQUEST = EMBEDDED_STORAGE_REQUEST;
+export const STORAGE_RESPONSE = EMBEDDED_STORAGE_RESPONSE;
+export const STORAGE_PROTOCOL_VERSION = EMBEDDED_STORAGE_PROTOCOL_VERSION;
 export const ALBUM_APP_ID = "miniapp-forever-album";
 // Matches the defineMiniApp storagePrefix — bridged keys must stay
 // byte-identical to the direct-mode framework keys.
@@ -55,14 +62,6 @@ export interface AlbumLocalStorageLike {
   list(prefix: string): Record<string, unknown>;
 }
 
-interface BridgeResponse {
-  type?: unknown;
-  requestId?: unknown;
-  ok?: unknown;
-  value?: unknown;
-  error?: unknown;
-}
-
 function parseJson<T>(raw: string | null, fallback: T): T {
   if (raw === null) return fallback;
   try {
@@ -72,81 +71,49 @@ function parseJson<T>(raw: string | null, fallback: T): T {
   }
 }
 
-function bridgeRequest(
-  op: "get" | "set" | "remove",
-  key: string,
-  value?: string,
-): Promise<BridgeResponse> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === "undefined") {
-      reject(new Error("album storage bridge unavailable outside a browser window"));
-      return;
-    }
-    // resolveAlbumStore only selects this lane inside an embedded frame;
-    // window.parent is the host window there.
-    const parent = window.parent;
-    const requestId = `${op}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    const cleanup = (): void => {
-      window.clearTimeout(timeout);
-      window.removeEventListener("message", onMessage);
-    };
-    const onMessage = (event: MessageEvent): void => {
-      if (event.source !== parent) return;
-      const data = event.data as BridgeResponse | null;
-      if (!data || data.type !== STORAGE_RESPONSE || data.requestId !== requestId) return;
-      cleanup();
-      resolve(data);
-    };
-    const timeout = window.setTimeout(() => {
-      cleanup();
-      reject(new Error("album storage bridge timed out"));
-    }, REQUEST_TIMEOUT_MS);
-    window.addEventListener("message", onMessage);
-    // The opaque origin cannot name the host origin in targetOrigin, so "*"
-    // is used — safe because the request carries no secret and the response
-    // listener validates the exact parent window reference.
-    parent.postMessage({
-      type: STORAGE_REQUEST,
-      version: STORAGE_PROTOCOL_VERSION,
-      requestId,
-      appId: ALBUM_APP_ID,
-      op,
-      key,
-      ...(value === undefined ? {} : { value }),
-    }, "*");
-  });
-}
-
-function bridgeError(response: BridgeResponse): Error {
-  if (response.error === "quota-exceeded") {
+function bridgeError(error: unknown): Error {
+  if (error instanceof EmbeddedStorageBridgeError && error.code === "quota-exceeded") {
     // The composable's isQuotaError() keys off this DOMException name, so a
     // host-side quota failure surfaces as the "storage full" product state.
     const error = new Error("album storage quota exceeded on the host device");
     error.name = "QuotaExceededError";
     return error;
   }
-  return new Error("album storage bridge request failed");
+  return error instanceof Error ? error : new Error("album storage bridge request failed");
 }
 
 /** Every album operation round-trips to the host's localStorage. */
 export function createBridgedAlbumStore(): AlbumStore {
   const wireKey = (key: string): string => `${ALBUM_KEY_PREFIX}${key}`;
+  const bridge = createEmbeddedStorageClient({
+    appId: ALBUM_APP_ID,
+    keyPrefix: ALBUM_KEY_PREFIX,
+    timeoutMs: REQUEST_TIMEOUT_MS,
+  });
   const readRaw = async (key: string): Promise<string | null> => {
-    const response = await bridgeRequest("get", wireKey(key));
-    if (response.ok !== true) throw bridgeError(response);
-    return typeof response.value === "string" ? response.value : null;
+    try {
+      return await bridge.get(wireKey(key));
+    } catch (error) {
+      throw bridgeError(error);
+    }
   };
   return {
     async get<T>(key: string, fallback: T | null = null): Promise<T | null> {
       return parseJson<T | null>(await readRaw(key), fallback);
     },
     async set(key: string, value: unknown): Promise<void> {
-      const response = await bridgeRequest("set", wireKey(key), JSON.stringify(value));
-      if (response.ok !== true) throw bridgeError(response);
+      try {
+        await bridge.set(wireKey(key), JSON.stringify(value));
+      } catch (error) {
+        throw bridgeError(error);
+      }
     },
     async delete(key: string): Promise<void> {
-      const response = await bridgeRequest("remove", wireKey(key));
-      if (response.ok !== true) throw bridgeError(response);
+      try {
+        await bridge.remove(wireKey(key));
+      } catch (error) {
+        throw bridgeError(error);
+      }
     },
     async list(prefix: string): Promise<Record<string, unknown>> {
       // The album composable only ever lists an exact key (the album envelope
@@ -179,19 +146,6 @@ export function createDirectAlbumStore(local: AlbumLocalStorageLike): AlbumStore
   };
 }
 
-function nativeLocalStorageWritable(): boolean {
-  // In a sandboxed iframe without allow-same-origin even the property getter
-  // throws, so probe with a real write instead of a presence check.
-  try {
-    const probeKey = `${ALBUM_KEY_PREFIX}__bridge-probe__`;
-    window.localStorage.setItem(probeKey, "1");
-    window.localStorage.removeItem(probeKey);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Pick the storage lane for the current runtime: the framework's direct
  * localStorage path whenever it works (standalone, pop-out, tests), the host
@@ -201,7 +155,7 @@ export function resolveAlbumStore(local: AlbumLocalStorageLike): AlbumStore {
   if (
     typeof window !== "undefined"
     && window.parent !== window
-    && !nativeLocalStorageWritable()
+    && !canUseNativeStorage(`${ALBUM_KEY_PREFIX}__bridge-probe__`)
   ) {
     return createBridgedAlbumStore();
   }

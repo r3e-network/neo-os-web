@@ -10,7 +10,7 @@ import type { MiniAppFramework } from "@shared/react";
 import { useMorpheusDataFeed } from "@shared/composables/useMorpheusDataFeed";
 import { normalizeScriptHash } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import type { NativeTokenSymbol, Token } from "@/types";
+import type { NativeTokenSymbol, Token } from "../types";
 import {
   applySlippageFloor,
   formatPriceRatio,

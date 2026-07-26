@@ -15,7 +15,7 @@ import {
   OpenUiTextField,
   PlayStage,
 } from "@shared/components-react/v2";
-import type { NativeTokenSymbol, Token } from "@/types";
+import type { NativeTokenSymbol, Token } from "./types";
 import { parseSlippageBps } from "./quoteMath";
 import TokenIcon from "./components/TokenIcon";
 import "./PlayArea.scss";

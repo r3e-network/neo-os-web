@@ -11,6 +11,7 @@ import {
   readNeoPayTransactionOutcome,
   requireCanonicalNeoPayContext,
   type NeoPayChainContext,
+  type NeoPayNetwork,
   type NeoPayPendingKind,
   type PendingNeoPayOperation,
 } from "./neo-pay-safety";
@@ -260,6 +261,8 @@ export function useNeoPayProduction({
   app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
 }) {
+  const sharedVesting = app.platformVesting;
+  const sharedVestingEnabled = sharedVesting.available;
   const isLoading = createObservable(false);
   const isRefreshing = createObservable(false);
   const isCreating = createObservable(false);
@@ -396,7 +399,11 @@ export function useNeoPayProduction({
     }
   }
 
-  const readStream = async (id: string, context: NeoPayChainContext): Promise<StreamItem> => {
+  const readStream = async (id: string, context?: NeoPayChainContext): Promise<StreamItem> => {
+    if (!context && sharedVestingEnabled) {
+      return parseNeoPayStream(await sharedVesting.getStreamDetails(id), id);
+    }
+    if (!context) throw new Error(t("neoPayCriticalDataUnavailable"));
     const raw = await app.chain.readRaw("getStreamDetails", [app.chain.arg.integer(positiveId(id))], {
       scriptHash: context.contractHash,
     });
@@ -406,17 +413,21 @@ export function useNeoPayProduction({
   const readRole = async (
     operation: "getUserStreams" | "getBeneficiaryStreams",
     actorHash: string,
-    context: NeoPayChainContext,
+    context?: NeoPayChainContext,
   ): Promise<RoleRead> => {
     const ids: string[] = [];
     const seen = new Set<string>();
     let truncated = false;
     for (let offset = 0; offset < LIST_MAX_IDS; offset += LIST_PAGE_SIZE) {
-      const raw = await app.chain.readArray(operation, [
-        app.chain.arg.hash160(actorHash),
-        app.chain.arg.integer(offset),
-        app.chain.arg.integer(LIST_PAGE_SIZE),
-      ], { scriptHash: context.contractHash });
+      const raw = sharedVestingEnabled && !context
+        ? operation === "getUserStreams"
+          ? await sharedVesting.getUserStreams(actorHash, offset, LIST_PAGE_SIZE)
+          : await sharedVesting.getBeneficiaryStreams(actorHash, offset, LIST_PAGE_SIZE)
+        : await app.chain.readArray(operation, [
+          app.chain.arg.hash160(actorHash),
+          app.chain.arg.integer(offset),
+          app.chain.arg.integer(LIST_PAGE_SIZE),
+        ], { scriptHash: context?.contractHash });
       if (!Array.isArray(raw) || raw.length > LIST_PAGE_SIZE) {
         throw new Error("Malformed stream list response.");
       }
@@ -428,11 +439,15 @@ export function useNeoPayProduction({
       }
       if (raw.length < LIST_PAGE_SIZE) break;
       if (ids.length >= LIST_MAX_IDS) {
-        const next = await app.chain.readArray(operation, [
-          app.chain.arg.hash160(actorHash),
-          app.chain.arg.integer(ids.length),
-          app.chain.arg.integer(1),
-        ], { scriptHash: context.contractHash });
+        const next = sharedVestingEnabled && !context
+          ? operation === "getUserStreams"
+            ? await sharedVesting.getUserStreams(actorHash, ids.length, 1)
+            : await sharedVesting.getBeneficiaryStreams(actorHash, ids.length, 1)
+          : await app.chain.readArray(operation, [
+            app.chain.arg.hash160(actorHash),
+            app.chain.arg.integer(ids.length),
+            app.chain.arg.integer(1),
+          ], { scriptHash: context?.contractHash });
         if (!Array.isArray(next) || next.length > 1) throw new Error("Malformed stream list response.");
         truncated = next.length > 0;
       }
@@ -467,17 +482,23 @@ export function useNeoPayProduction({
     isRefreshing.set(true);
     listSource.set("loading");
     try {
-      const context = await requireCanonicalNeoPayContext(app, t("neoPayChainContextMismatch"));
+      const context = sharedVestingEnabled
+        ? undefined
+        : await requireCanonicalNeoPayContext(app, t("neoPayChainContextMismatch"));
       const [created, incoming] = await Promise.all([
         readRole("getUserStreams", actorHash, context),
         readRole("getBeneficiaryStreams", actorHash, context),
       ]);
-      const latest = await requireCanonicalNeoPayContext(app, t("neoPayChainContextMismatch"));
+      const latest = sharedVestingEnabled
+        ? undefined
+        : await requireCanonicalNeoPayContext(app, t("neoPayChainContextMismatch"));
       if (
         disposed || generation !== refreshGeneration ||
         !neoPayAccountMatches(app.chain.address.get(), actorHash) ||
-        latest.network !== context.network ||
-        !neoPayAccountMatches(latest.contractHash, context.contractHash)
+        (!sharedVestingEnabled && (
+          !context || !latest || latest.network !== context.network ||
+          !neoPayAccountMatches(latest.contractHash, context.contractHash)
+        ))
       ) {
         refreshQueued = !disposed;
         return;
@@ -529,6 +550,38 @@ export function useNeoPayProduction({
       throw new Error(t("neoPayWriteContextChanged"));
     }
     return { wallet, actorHash, context };
+  };
+
+  const sharedWalletSnapshot = async (): Promise<{
+    wallet: string;
+    actorHash: string;
+    network: NeoPayNetwork;
+    contractHash: string;
+  }> => {
+    const wallet = app.chain.address.get() || await app.chain.ensureWallet();
+    const actorHash = normalizeNeoPayAccount(wallet);
+    const detected = clean(await app.chain.detectNetwork?.());
+    const launchNetwork = clean(app.platform.launch.network);
+    const classifyNetwork = (value: string): NeoPayNetwork | "" =>
+      value.toLowerCase().includes("mainnet")
+        ? "mainnet"
+        : value.toLowerCase().includes("testnet")
+          ? "testnet"
+          : "";
+    const detectedKind = classifyNetwork(detected);
+    const launchKind = classifyNetwork(launchNetwork);
+    if (detectedKind && launchKind && detectedKind !== launchKind) {
+      throw new Error(t("neoPayChainContextMismatch"));
+    }
+    const network = detectedKind || launchKind;
+    if (!network) throw new Error(t("neoPayNetworkUnverified"));
+    const contractHash = sharedVesting.configuredHash;
+    if (!wallet || !actorHash || !contractHash) throw new Error(t("neoPayChainContextMismatch"));
+    const connected = app.chain.address.get();
+    if (connected && !neoPayAccountMatches(connected, actorHash)) {
+      throw new Error(t("neoPayWriteContextChanged"));
+    }
+    return { wallet, actorHash, network, contractHash };
   };
 
   const assertWriteSnapshot = async (actorHash: string, expected: NeoPayChainContext): Promise<void> => {
@@ -664,6 +717,62 @@ export function useNeoPayProduction({
     return stream;
   };
 
+  const readSharedPendingStream = async (pending: PendingNeoPayOperation): Promise<StreamItem | null> => {
+    if (pending.kind === "create") {
+      const role = await readRole("getUserStreams", pending.actorHash);
+      return role.items.find((stream) =>
+        neoPayAccountMatches(stream.creator, pending.actorHash) &&
+        neoPayAccountMatches(stream.beneficiary, pending.beneficiaryHash) &&
+        neoPayAccountMatches(stream.asset, pending.assetHash) &&
+        stream.totalAmount === BigInt(pending.totalBase ?? "0") &&
+        stream.rateAmount === BigInt(pending.rateBase ?? "0") &&
+        stream.intervalSeconds === BigInt(pending.intervalSeconds ?? "0") &&
+        stream.title === clean(pending.title) &&
+        stream.notes === clean(pending.notes),
+      ) ?? null;
+    }
+    if (!pending.streamId) return null;
+    return readStream(positiveId(pending.streamId));
+  };
+
+  const settleSharedPending = async (pending: PendingNeoPayOperation): Promise<NeoPayActionOutcome> => {
+    if (!sharedVestingEnabled || pending.engine !== "platform-vesting") {
+      throw new Error(t("neoPayPendingContextMismatch"));
+    }
+    try {
+      const stream = await readSharedPendingStream(pending);
+      if (!stream) {
+        serviceNotice.set(t("neoPayTransactionPending"));
+        return { status: "pending" };
+      }
+      let confirmed = false;
+      if (pending.kind === "create") {
+        confirmed = neoPayAccountMatches(stream.creator, pending.actorHash);
+      } else if (pending.kind === "claim") {
+        const before = BigInt(pending.beforeReleased ?? "0");
+        confirmed = neoPayAccountMatches(stream.beneficiary, pending.actorHash) &&
+          (stream.releasedAmount > before || stream.status === "completed");
+      } else if (pending.kind === "cancel") {
+        confirmed = neoPayAccountMatches(stream.creator, pending.actorHash) &&
+          stream.status === "cancelled" && stream.remainingAmount === 0n;
+      }
+      if (!confirmed) {
+        serviceNotice.set(t("neoPayTransactionPending"));
+        return { status: "pending" };
+      }
+      clearPending();
+      await refreshStreams();
+      return { status: "confirmed", stream };
+    } catch {
+      serviceNotice.set(
+        recoveryStorageHealthy.get()
+          ? t("neoPayConfirmationNeedsReview")
+          : t("neoPayRecoveryStorageUnavailable"),
+      );
+      return { status: "pending" };
+    }
+  };
+
   const settle = async (pending: PendingNeoPayOperation, candidate?: unknown): Promise<NeoPayActionOutcome> => {
     if (candidate) {
       try {
@@ -719,6 +828,43 @@ export function useNeoPayProduction({
     isCreating.set(true);
     let tracked: PendingNeoPayOperation | null = null;
     try {
+      if (sharedVestingEnabled) {
+        const { wallet, actorHash, network, contractHash } = await sharedWalletSnapshot();
+        const assetHash = canonicalAssetHash(input.asset);
+        const title = `Stream to ${clean(input.recipient).slice(0, 8)}…`.slice(0, 60);
+        const draft: Omit<PendingNeoPayOperation, "txid"> = {
+          version: 1,
+          engine: "platform-vesting",
+          kind: "create",
+          eventName: "StreamCreated",
+          network,
+          contractHash,
+          actorHash,
+          createdAt: Date.now(),
+          beneficiaryHash,
+          assetHash,
+          totalBase: schedule.totalBase.toString(),
+          rateBase: schedule.rateBase.toString(),
+          intervalSeconds: schedule.intervalSeconds.toString(),
+          title,
+          notes,
+        };
+        const result = await sharedVesting.createStream({
+          beneficiary: input.recipient,
+          asset: input.asset,
+          totalAmount: schedule.totalBase,
+          rateAmount: schedule.rateBase,
+          intervalSeconds: schedule.intervalSeconds,
+          title,
+          notes,
+          creator: wallet,
+          fundAmount: schedule.totalBase,
+          options: { onTransactionSent: (txid) => { tracked = persist(draft, txid); } },
+        });
+        tracked ??= persist(draft, result.txid);
+        if (!tracked || result.success === false) throw new Error(t("transactionFailed"));
+        return await settleSharedPending(tracked);
+      }
       const { wallet, actorHash, context } = await walletSnapshot();
       await assertContractWritable(context);
       await assertWriteSnapshot(actorHash, context);
@@ -775,7 +921,11 @@ export function useNeoPayProduction({
       return await waitAndSettle(tracked);
     } catch (error) {
       const pending = tracked ?? pendingOperation.get();
-      if (pending && isPendingNeoPayOperation(pending)) return settle(pending);
+      if (pending && isPendingNeoPayOperation(pending)) {
+        return pending.engine === "platform-vesting"
+          ? settleSharedPending(pending)
+          : settle(pending);
+      }
       throw error;
     } finally {
       isCreating.set(false);
@@ -786,7 +936,14 @@ export function useNeoPayProduction({
   const freshOwnedStream = async (
     id: string,
     role: "beneficiary" | "creator",
-  ): Promise<{ stream: StreamItem; actorHash: string; context: NeoPayChainContext }> => {
+  ): Promise<{ stream: StreamItem; actorHash: string; context?: NeoPayChainContext }> => {
+    if (sharedVestingEnabled) {
+      const { actorHash } = await sharedWalletSnapshot();
+      const stream = await readStream(positiveId(id));
+      if (!neoPayAccountMatches(stream[role], actorHash)) throw new Error(t("neoPayNotAuthorized"));
+      if (stream.status !== "active") throw new Error(t("neoPayStreamFinalized"));
+      return { stream, actorHash };
+    }
     const { actorHash, context } = await walletSnapshot();
     const stream = await readStream(positiveId(id), context);
     if (!neoPayAccountMatches(stream[role], actorHash)) throw new Error(t("neoPayNotAuthorized"));
@@ -798,12 +955,49 @@ export function useNeoPayProduction({
     kind: Extract<NeoPayPendingKind, "claim" | "cancel">,
     stream: StreamItem,
     actorHash: string,
-    context: NeoPayChainContext,
+    context: NeoPayChainContext | undefined,
   ): Promise<NeoPayActionOutcome> => {
-    await assertContractWritable(context);
     assertRecoveryStorageAvailable();
-    await assertWriteSnapshot(actorHash, context);
     const eventName = kind === "claim" ? "StreamClaimed" : "StreamCancelled";
+    let tracked: PendingNeoPayOperation | null = null;
+    if (sharedVestingEnabled) {
+      const { network, contractHash } = await sharedWalletSnapshot();
+      const draft: Omit<PendingNeoPayOperation, "txid"> = {
+        version: 1,
+        engine: "platform-vesting",
+        kind,
+        eventName,
+        network,
+        contractHash,
+        actorHash,
+        createdAt: Date.now(),
+        streamId: stream.id,
+        ...(kind === "claim" ? { beforeReleased: stream.releasedAmount.toString() } : {}),
+      };
+      try {
+        const result = kind === "claim"
+          ? await sharedVesting.claimStream(stream.id, actorHash, {
+            waitForEvent: eventName,
+            waitTimeoutMs: NEO_PAY_EVENT_WAIT_MS,
+            onTransactionSent: (txid) => { tracked = persist(draft, txid); },
+          })
+          : await sharedVesting.cancelStream(stream.id, actorHash, {
+            waitForEvent: eventName,
+            waitTimeoutMs: NEO_PAY_EVENT_WAIT_MS,
+            onTransactionSent: (txid) => { tracked = persist(draft, txid); },
+          });
+        tracked ??= persist(draft, result.txid);
+        if (!tracked || result.success === false) throw new Error(t("transactionFailed"));
+        return await settleSharedPending(tracked);
+      } catch (error) {
+        const pending = tracked ?? pendingOperation.get();
+        if (pending && isPendingNeoPayOperation(pending)) return settleSharedPending(pending);
+        throw error;
+      }
+    }
+    if (!context) throw new Error(t("neoPayCriticalDataUnavailable"));
+    await assertContractWritable(context);
+    await assertWriteSnapshot(actorHash, context);
     const draft: Omit<PendingNeoPayOperation, "txid"> = {
       version: 1,
       kind,
@@ -815,7 +1009,6 @@ export function useNeoPayProduction({
       streamId: stream.id,
       ...(kind === "claim" ? { beforeReleased: stream.releasedAmount.toString() } : {}),
     };
-    let tracked: PendingNeoPayOperation | null = null;
     try {
       const result = await app.chain.invoke(
         kind === "claim" ? "claimStream" : "cancelStream",
@@ -833,7 +1026,11 @@ export function useNeoPayProduction({
       return settle(tracked);
     } catch (error) {
       const pending = tracked ?? pendingOperation.get();
-      if (pending && isPendingNeoPayOperation(pending)) return settle(pending);
+      if (pending && isPendingNeoPayOperation(pending)) {
+        return pending.engine === "platform-vesting"
+          ? settleSharedPending(pending)
+          : settle(pending);
+      }
       throw error;
     }
   };
@@ -879,9 +1076,20 @@ export function useNeoPayProduction({
       if (!writePending(pending)) throw new Error(t("neoPayRecoveryStorageUnavailable"));
       isRecovering.set(true);
       try {
-        const { actorHash, context } = await walletSnapshot();
-        if (!sameContext(pending, context, actorHash)) throw new Error(t("neoPayPendingContextMismatch"));
-        const result = await settle(pending);
+        let result: NeoPayActionOutcome;
+        if (pending.engine === "platform-vesting") {
+          const { actorHash, network, contractHash } = await sharedWalletSnapshot();
+          if (
+            pending.network !== network ||
+            !neoPayAccountMatches(pending.contractHash, contractHash) ||
+            !neoPayAccountMatches(pending.actorHash, actorHash)
+          ) throw new Error(t("neoPayPendingContextMismatch"));
+          result = await settleSharedPending(pending);
+        } else {
+          const { actorHash, context } = await walletSnapshot();
+          if (!sameContext(pending, context, actorHash)) throw new Error(t("neoPayPendingContextMismatch"));
+          result = await settle(pending);
+        }
         if (result.status === "confirmed") serviceNotice.set(t("neoPayTransactionRecovered"));
         if (result.status === "fault") serviceNotice.set(t("neoPayTransactionFault"));
         return result;
