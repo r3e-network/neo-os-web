@@ -1,0 +1,61 @@
+{
+  "generated_at_utc": "2026-07-24T16:23:58.764Z",
+  "passed": true,
+  "tenant_abi_method_count": 18,
+  "framework_operation_count": 18,
+  "tenant_abi_methods": [
+    "approveMilestone",
+    "cancelEscrow",
+    "claimMilestone",
+    "createEscrow",
+    "createEscrowWithApprovers",
+    "creditLiabilityOf",
+    "creditOf",
+    "escrowLiabilityOf",
+    "getBeneficiaryEscrows",
+    "getCreatorEscrows",
+    "getEscrowDetails",
+    "getMilestoneDetails",
+    "getPlatformStats",
+    "reclaimApprovedMilestone",
+    "totalCreditLiability",
+    "totalEscrowLiability",
+    "totalEscrows",
+    "withdrawCredit"
+  ],
+  "framework_operations": [
+    "approveMilestone",
+    "cancelEscrow",
+    "claimMilestone",
+    "createEscrow",
+    "createEscrowWithApprovers",
+    "creditLiabilityOf",
+    "creditOf",
+    "escrowLiabilityOf",
+    "getBeneficiaryEscrows",
+    "getCreatorEscrows",
+    "getEscrowDetails",
+    "getMilestoneDetails",
+    "getPlatformStats",
+    "reclaimApprovedMilestone",
+    "totalCreditLiability",
+    "totalEscrowLiability",
+    "totalEscrows",
+    "withdrawCredit"
+  ],
+  "missing_methods": [],
+  "extra_methods": [],
+  "native_operations": [
+    "transfer"
+  ],
+  "wiring": {
+    "options_config": true,
+    "framework_surface": true,
+    "composition_root": true,
+    "scoped_write_guard": true
+  },
+  "configured_consumers": [],
+  "deployment": null,
+  "boundary": "PlatformEscrow is source/build/test accepted and exposed through a guarded framework surface, but it has no retained deployment record or live binding. MiniAppMilestoneEscrow remains a separate legacy consumer until an approved migration, registry binding, funded lifecycle, and exact read-back are proven.",
+  "chain_writes_performed": false
+}

@@ -1,6 +1,6 @@
 # Shared AA Upgrade Preflight
 
-Generated: 2026-07-23T07:22:19.172Z
+Generated: 2026-07-24T14:34:14.742Z
 
 Phase: **upgrade_contracts**
 Safe to materialize: **NO**
@@ -17,7 +17,9 @@ Reason: live contracts do not expose the reciprocal shared-AA configuration ABI
 - Upgrade compatibility: `conditional`.
 - Exact live source revision known: **NO**.
 - Candidate ABI removals: `transferAdmin(Hash160):Void:write`.
-- Changed existing storage prefixes: 0.
+- Changed existing storage prefixes: 1.
+- Legacy prefix migrations with read/cleanup proof: 1.
+- Unmigrated existing storage prefixes: 0.
 - Changed stored-record layouts: 0.
 - Provenance boundary: The tracked historical manifest is a semantic proxy for the live ABI, not exact deployed-source provenance; compatibility remains conditional on the recorded ABI and storage invariants.
 

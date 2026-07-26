@@ -1,15 +1,15 @@
 # Platform Contract Acceptance Ledger
 
-Generated: 2026-07-23T04:43:25.178Z
+Generated: 2026-07-25T11:06:04.432Z
 
 ## Summary
 
-- Contracts inventoried: 7
-- Source/build/test acceptance: 7/7
-- Retained deployment reports: 4/7
-- Partial operational evidence: 2/7
-- No deployment record: 1
-- Current testnet artifact matches: 2/7
+- Contracts inventoried: 9
+- Source/build/test acceptance: 9/9
+- Retained deployment reports: 4/9
+- Partial operational evidence: 2/9
+- No deployment record: 3
+- Current testnet artifact matches: 2/9
 - Testnet artifact drifts: 4
 - Factory templates source/build/lifecycle acceptance: 2/2
 - Boundary: Source acceptance and read-only testnet checks do not prove funded lifecycle behavior, mainnet parity, or operational health. A retained deployment report is historical evidence, not current bytecode equality.
@@ -18,13 +18,15 @@ Generated: 2026-07-23T04:43:25.178Z
 
 | Contract | ABI methods/events | Permissions | Money callback | Update | Tests | Source acceptance | Testnet artifact | Evidence class | Deployment evidence |
 | --- | ---: | ---: | --- | --- | ---: | --- | --- | --- | --- |
-| PlatformRegistry | 74/32 | 5 | yes | yes | 20 | accepted | live-artifact-drift | deployment-report | testnet registry report retained; fresh live read documented separately |
+| PlatformRegistry | 75/32 | 5 | yes | yes | 20 | accepted | live-artifact-drift | deployment-report | testnet registry report retained; fresh live read documented separately |
 | AppAccount | 13/5 | 4 | yes | yes | 11 | accepted | active-artifact-match | artifact-activation | artifact active on testnet registry; no fleet accounts materialized |
 | MiniAppFactory | 20/6 | 3 | yes | yes | 3 | accepted | live-artifact-drift | consumer-binding | consumer bindings exist; no dedicated deployment report retained |
-| PlatformAnchor | 45/8 | 4 | yes | yes | 5 | accepted | live-artifact-drift | deployment-report | testnet and mainnet deployment reports retained |
+| PlatformAnchor | 51/8 | 4 | yes | yes | 5 | accepted | live-artifact-drift | deployment-report | testnet and mainnet deployment reports retained |
 | PlatformGame | 77/36 | 6 | yes | yes | 17 | accepted | live-artifact-match | deployment-report | testnet and mainnet deployment reports retained; testnet Registry row active |
-| PlatformDeFi | 80/35 | 5 | yes | yes | 10 | accepted | live-artifact-drift | deployment-report | testnet hash retained in anchor deployment report; no live app bindings |
+| PlatformDeFi | 83/35 | 5 | yes | yes | 11 | accepted | live-artifact-drift | deployment-report | testnet hash retained in anchor deployment report; no live app bindings |
 | PlatformSocial | 48/25 | 6 | yes | yes | 8 | accepted | no-deployment-record | none | no deployment record |
+| PlatformVesting | 32/8 | 5 | yes | yes | 3 | accepted | not checked | none | source-only; no deployment record |
+| PlatformEscrow | 39/10 | 6 | yes | yes | 3 | accepted | not checked | none | source-only; no deployment record |
 
 ## Factory Templates
 
@@ -63,7 +65,7 @@ Generated: 2026-07-23T04:43:25.178Z
 
 ### PlatformAnchor
 
-- Source files: 5
+- Source files: 6
 - Test files: `contracts/__tests__/AnchorBoundarySafetyTest.cs`, `contracts/__tests__/AnchorRewardAccountingInvariantTest.cs`, `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/MiniAppContractFunctionalTests.cs`, `contracts/__tests__/platform-contracts-only.test.ts`
 - Deployment evidence: `contracts/build/testnet_anchor_deployment.json`, `contracts/build/mainnet_anchor_deployment.json`
 - Current testnet artifact: live-artifact-drift
@@ -79,11 +81,11 @@ Generated: 2026-07-23T04:43:25.178Z
 
 ### PlatformDeFi
 
-- Source files: 18
-- Test files: `contracts/__tests__/AnchorBoundarySafetyTest.cs`, `contracts/__tests__/ContractSecurityRegressionTest.cs`, `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/FinancialTransferSafetyTest.cs`, `contracts/__tests__/FixV_platformdefiliquidation_Tests.cs`, `contracts/__tests__/Fix_platformdefi_Tests.cs`, `contracts/__tests__/MiniAppContractFunctionalTests.cs`, `contracts/__tests__/PlatformDeFiCreditIsolationTests.cs`, `contracts/__tests__/PlatformDeFiLegacyCreditRecoveryTests.cs`, `contracts/__tests__/platform-contracts-only.test.ts`
+- Source files: 19
+- Test files: `contracts/__tests__/AnchorBoundarySafetyTest.cs`, `contracts/__tests__/ContractSecurityRegressionTest.cs`, `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/FinancialTransferSafetyTest.cs`, `contracts/__tests__/FixV_platformdefiliquidation_Tests.cs`, `contracts/__tests__/Fix_platformdefi_Tests.cs`, `contracts/__tests__/MiniAppContractFunctionalTests.cs`, `contracts/__tests__/PlatformDeFiCreditIsolationTests.cs`, `contracts/__tests__/PlatformDeFiLegacyCreditRecoveryTests.cs`, `contracts/__tests__/PlatformDeFiSelfLoanProfileTests.cs`, `contracts/__tests__/platform-contracts-only.test.ts`
 - Deployment evidence: `contracts/build/testnet_anchor_deployment.json`
 - Current testnet artifact: live-artifact-drift
-- Methods missing on current testnet deployment: abandonLoan, activateLegacyCreditRecovery, fundCapsuleYieldReserve, gasCreditLiabilityOf, getCapsuleYieldReserve, getDirectGasCredit, getDirectNeoCredit, getFlashProviderBalance, getFlashTotalLpDeposits, getLastPriceDropTime, getLegacyGasCredit, getLegacyNeoCredit, getLendingLiquidity, getNeoGasPrice, getTotalAbandonedCollateral, getTotalCapsuleFees, getTotalLendingFees, getUnclaimedFlashLoanFees, initializeLegacyCreditRecovery, isLiquidatable, legacyCreditRecoveryState, legacyCreditSnapshotHash, legacyGasCreditLiability, legacyGasCreditRows, legacyNeoCreditLiability, legacyNeoCreditRows, lendingDeposit, liquidateLoan, migrateFlashProviderBalance, neoCreditLiabilityOf, setNeoGasPrice, totalGasCreditLiability, totalNeoCreditLiability, withdrawAbandonedCollateral, withdrawCapsuleFees, withdrawCapsulePenalties, withdrawCapsuleYieldReserve, withdrawFlashLoanFees, withdrawGasCredit, withdrawLegacyGasCredit, withdrawLegacyNeoCredit, withdrawLendingFees, withdrawLendingLiquidity, withdrawNeoCredit
+- Methods missing on current testnet deployment: abandonLoan, activateLegacyCreditRecovery, fundCapsuleYieldReserve, gasCreditLiabilityOf, getActiveLoanId, getCapsuleYieldReserve, getDirectGasCredit, getDirectNeoCredit, getFlashProviderBalance, getFlashTotalLpDeposits, getLastPriceDropTime, getLegacyGasCredit, getLegacyNeoCredit, getLendingLiquidity, getLendingProfile, getNeoGasPrice, getSingleLoanPosition, getTotalAbandonedCollateral, getTotalCapsuleFees, getTotalLendingFees, getUnclaimedFlashLoanFees, initializeLegacyCreditRecovery, isLiquidatable, legacyCreditRecoveryState, legacyCreditSnapshotHash, legacyGasCreditLiability, legacyGasCreditRows, legacyNeoCreditLiability, legacyNeoCreditRows, lendingDeposit, liquidateLoan, migrateFlashProviderBalance, neoCreditLiabilityOf, setNeoGasPrice, totalGasCreditLiability, totalNeoCreditLiability, withdrawAbandonedCollateral, withdrawCapsuleFees, withdrawCapsulePenalties, withdrawCapsuleYieldReserve, withdrawFlashLoanFees, withdrawGasCredit, withdrawLegacyGasCredit, withdrawLegacyNeoCredit, withdrawLendingFees, withdrawLendingLiquidity, withdrawNeoCredit
 - Failed checks: none
 
 ### PlatformSocial
@@ -92,6 +94,22 @@ Generated: 2026-07-23T04:43:25.178Z
 - Test files: `contracts/__tests__/ContractSecurityRegressionTest.cs`, `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/FinancialTransferSafetyTest.cs`, `contracts/__tests__/MiniAppContractFunctionalTests.cs`, `contracts/__tests__/OnNep17PaymentConventionTests.cs`, `contracts/__tests__/PlatformSocialCreditIsolationTests.cs`, `contracts/__tests__/PlatformSocialNotaryTests.cs`, `contracts/__tests__/platform-contracts-only.test.ts`
 - Deployment evidence: none
 - Current testnet artifact: no-deployment-record
+- Failed checks: none
+
+### PlatformVesting
+
+- Source files: 5
+- Test files: `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/OnNep17PaymentConventionTests.cs`, `contracts/__tests__/PlatformVestingTests.cs`
+- Deployment evidence: none
+- Current testnet artifact: not checked
+- Failed checks: none
+
+### PlatformEscrow
+
+- Source files: 7
+- Test files: `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/OnNep17PaymentConventionTests.cs`, `contracts/__tests__/PlatformEscrowTests.cs`
+- Deployment evidence: none
+- Current testnet artifact: not checked
 - Failed checks: none
 
 ## Factory Template Evidence

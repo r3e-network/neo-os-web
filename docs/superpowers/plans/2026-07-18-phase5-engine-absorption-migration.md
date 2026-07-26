@@ -2,6 +2,33 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Current-state addendum — 2026-07-24
+
+The historical preconditions below are not current deployment proof. The latest
+read-only migration ledger reports 11/11 historical PlatformGame attachments and
+framework routing, but 0/11 funded runtime completions; Jump and Sheep still have
+descriptor drift. The shared-AA preflight is in `upgrade_contracts`, so no shared
+account is materialized and no PlatformGame migration may be treated as complete.
+
+- The former scheduled-task/operator-funding statement is historical only; no
+  scheduled write, WIF load, signed transaction, or chain write was performed by
+  this audit.
+- The five zero-drain candidates remain unbound and must receive reviewed
+  descriptors, engine wrappers, framework routing, and a funded lifecycle before
+  attachment.
+- Scope clarification: `arrow-escape`, `bead-workshop`, `fruit-funnel`, `screw-sort`,
+  and `zhuada-e` are not members of the 11-app clone absorption cohort. Their
+  current public manifests are contractless and their product copy is local-only;
+  the migration ledger records them as `future-local-only`. Keep them contractless
+  until a product release decision, reviewed Morpheus wrapper/descriptor, framework
+  route, and funded lifecycle exist. This is deferred design work, not evidence of
+  a completed PlatformGame migration.
+- Keep the 11 legacy clone projects until every app has a confirmed
+  start/finalize/settle/withdraw/recovery lifecycle and a rollback/drain record.
+- Re-run `npm run -s check:platform:game-migration` and the shared-AA preflight
+  after each separately authorized testnet change; these local plan checkboxes do
+  not authorize signing or broadcasting.
+
 **Goal:** Migrate the 11 TEE skill-game clone contracts (8,907 LOC, 96.8% identical) onto the shared `platform-game` engine + private kernel, verify each with a live on-chain settle, and decommission the per-app contracts — the v2 estate's first real absorption cohort.
 
 **Preconditions already satisfied (verified 2026-07-18):**

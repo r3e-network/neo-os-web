@@ -1,6 +1,6 @@
 # MiniAppFactory Framework Interface
 
-Generated: 2026-07-23T09:08:10.237Z
+Generated: 2026-07-23T21:51:48.841Z
 
 - Interface audit: **PASS**
 - Tenant contract ABI: 13 methods

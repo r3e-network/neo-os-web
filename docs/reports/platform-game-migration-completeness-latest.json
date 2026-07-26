@@ -1,12 +1,14 @@
 {
-  "generated_at_utc": "2026-07-23T09:01:21.856Z",
+  "generated_at_utc": "2026-07-24T12:30:00.294Z",
   "engine_id": "platform-game",
   "engine_hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
   "evidence": {
     "absorption_manifest": "deploy/config/rewardgame-absorption-manifest.json",
     "attachment_report": "deploy/config/engine-attach-testnet-2026-07-19.json",
+    "live_state_report": "docs/reports/platform-game-live-state-latest.json",
     "framework_adapter": "framework/gamefi/platform-game-reward-adapter.ts",
-    "framework_adapter_regression": "framework/test/platform-game-reward-adapter.test.ts"
+    "framework_adapter_regression": "framework/test/platform-game-reward-adapter.test.ts",
+    "lifecycle_evidence_directory": "docs/reports/platform-game-lifecycles"
   },
   "framework_adapter": {
     "implemented": true,
@@ -20,13 +22,17 @@
     "attached_routed_to_platform_game": 11,
     "attached_using_legacy_runtime": 0,
     "runtime_migration_complete": 0,
+    "funded_testnet_lifecycle_proven": 0,
+    "attached_with_live_state_evidence": 9,
     "zero_drain_candidates": 5,
+    "future_local_only_candidates": 5,
     "candidate_runtime_ready": 0
   },
   "attached_apps": [
     {
       "app_id": "miniapp-aim-master",
       "slug": "aim-master",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/aim-master/src/manifest.ts",
       "public_manifest": "apps/aim-master/neo-manifest.json",
       "binding": {
@@ -38,6 +44,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": true,
+        "status": "ready",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 9,
+        "descriptor_count": 9,
+        "blockers": []
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 9,
       "checks": {
@@ -59,6 +75,7 @@
     {
       "app_id": "miniapp-color-clash",
       "slug": "color-clash",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/color-clash/src/manifest.ts",
       "public_manifest": "apps/color-clash/neo-manifest.json",
       "binding": {
@@ -70,6 +87,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": true,
+        "status": "ready",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 9,
+        "descriptor_count": 9,
+        "blockers": []
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 9,
       "checks": {
@@ -91,6 +118,7 @@
     {
       "app_id": "miniapp-curve-arrow",
       "slug": "curve-arrow",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/curve-arrow/src/manifest.ts",
       "public_manifest": "apps/curve-arrow/neo-manifest.json",
       "binding": {
@@ -102,6 +130,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": true,
+        "status": "ready",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 9,
+        "descriptor_count": 9,
+        "blockers": []
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 9,
       "checks": {
@@ -123,6 +161,7 @@
     {
       "app_id": "miniapp-flappy-dash",
       "slug": "flappy-dash",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/flappy-dash/src/manifest.ts",
       "public_manifest": "apps/flappy-dash/neo-manifest.json",
       "binding": {
@@ -134,6 +173,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": true,
+        "status": "ready",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 9,
+        "descriptor_count": 9,
+        "blockers": []
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 9,
       "checks": {
@@ -155,6 +204,7 @@
     {
       "app_id": "miniapp-game-2048",
       "slug": "game-2048",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/game-2048/src/manifest.ts",
       "public_manifest": "apps/game-2048/neo-manifest.json",
       "binding": {
@@ -166,6 +216,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": true,
+        "status": "ready",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 9,
+        "descriptor_count": 9,
+        "blockers": []
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 9,
       "checks": {
@@ -187,6 +247,7 @@
     {
       "app_id": "miniapp-jump-rush",
       "slug": "jump-rush",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/jump-rush/src/manifest.ts",
       "public_manifest": "apps/jump-rush/neo-manifest.json",
       "binding": {
@@ -198,6 +259,18 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": false,
+        "status": "blocked",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 0,
+        "descriptor_count": 9,
+        "blockers": [
+          "descriptor_values_match_manifest"
+        ]
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 0,
       "checks": {
@@ -220,6 +293,7 @@
     {
       "app_id": "miniapp-merge-kingdom",
       "slug": "merge-kingdom",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/merge-kingdom/src/manifest.ts",
       "public_manifest": "apps/merge-kingdom/neo-manifest.json",
       "binding": {
@@ -231,6 +305,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": true,
+        "status": "ready",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 9,
+        "descriptor_count": 9,
+        "blockers": []
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 9,
       "checks": {
@@ -252,6 +336,7 @@
     {
       "app_id": "miniapp-pet-potion",
       "slug": "pet-potion",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/pet-potion/src/manifest.ts",
       "public_manifest": "apps/pet-potion/neo-manifest.json",
       "binding": {
@@ -263,6 +348,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": true,
+        "status": "ready",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 9,
+        "descriptor_count": 9,
+        "blockers": []
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 9,
       "checks": {
@@ -284,6 +379,7 @@
     {
       "app_id": "miniapp-sheep-solitaire",
       "slug": "sheep-solitaire",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/sheep-solitaire/src/manifest.ts",
       "public_manifest": "apps/sheep-solitaire/neo-manifest.json",
       "binding": {
@@ -295,6 +391,18 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": false,
+        "status": "blocked",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 3,
+        "descriptor_count": 9,
+        "blockers": [
+          "descriptor_values_match_manifest"
+        ]
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 3,
       "checks": {
@@ -317,6 +425,7 @@
     {
       "app_id": "miniapp-snake-bounty",
       "slug": "snake-bounty",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/snake-bounty/src/manifest.ts",
       "public_manifest": "apps/snake-bounty/neo-manifest.json",
       "binding": {
@@ -328,6 +437,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": true,
+        "status": "ready",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 9,
+        "descriptor_count": 9,
+        "blockers": []
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 9,
       "checks": {
@@ -349,6 +468,7 @@
     {
       "app_id": "miniapp-sudoku",
       "slug": "sudoku",
+      "migration_scope": "absorption-cohort",
       "source_manifest": "apps/sudoku/src/manifest.ts",
       "public_manifest": "apps/sudoku/neo-manifest.json",
       "binding": {
@@ -360,6 +480,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": "kernel-lane",
       "attachment_status": "attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": true,
+        "status": "ready",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": 9,
+        "descriptor_count": 9,
+        "blockers": []
+      },
       "descriptor_count": 9,
       "live_descriptor_count": 9,
       "checks": {
@@ -383,10 +513,11 @@
     {
       "app_id": "miniapp-arrow-escape",
       "slug": "arrow-escape",
+      "migration_scope": "future-local-only",
       "source_manifest": "apps/arrow-escape/src/manifest.ts",
       "public_manifest": "apps/arrow-escape/neo-manifest.json",
       "binding": {
-        "mode": "custom",
+        "mode": "none",
         "module_id": null
       },
       "runtime_adapter": "none",
@@ -394,6 +525,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": null,
       "attachment_status": "not-attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": false,
+        "status": "not-in-scope",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": null,
+        "descriptor_count": null,
+        "blockers": []
+      },
       "descriptor_count": 0,
       "live_descriptor_count": 0,
       "checks": {
@@ -420,10 +561,11 @@
     {
       "app_id": "miniapp-bead-workshop",
       "slug": "bead-workshop",
+      "migration_scope": "future-local-only",
       "source_manifest": "apps/bead-workshop/src/manifest.ts",
       "public_manifest": "apps/bead-workshop/neo-manifest.json",
       "binding": {
-        "mode": "custom",
+        "mode": "none",
         "module_id": null
       },
       "runtime_adapter": "none",
@@ -431,6 +573,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": null,
       "attachment_status": "not-attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": false,
+        "status": "not-in-scope",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": null,
+        "descriptor_count": null,
+        "blockers": []
+      },
       "descriptor_count": 0,
       "live_descriptor_count": 0,
       "checks": {
@@ -457,10 +609,11 @@
     {
       "app_id": "miniapp-fruit-funnel",
       "slug": "fruit-funnel",
+      "migration_scope": "future-local-only",
       "source_manifest": "apps/fruit-funnel/src/manifest.ts",
       "public_manifest": "apps/fruit-funnel/neo-manifest.json",
       "binding": {
-        "mode": "custom",
+        "mode": "none",
         "module_id": null
       },
       "runtime_adapter": "none",
@@ -468,6 +621,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": null,
       "attachment_status": "not-attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": false,
+        "status": "not-in-scope",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": null,
+        "descriptor_count": null,
+        "blockers": []
+      },
       "descriptor_count": 0,
       "live_descriptor_count": 0,
       "checks": {
@@ -494,10 +657,11 @@
     {
       "app_id": "miniapp-screw-sort",
       "slug": "screw-sort",
+      "migration_scope": "future-local-only",
       "source_manifest": "apps/screw-sort/src/manifest.ts",
       "public_manifest": "apps/screw-sort/neo-manifest.json",
       "binding": {
-        "mode": "custom",
+        "mode": "none",
         "module_id": null
       },
       "runtime_adapter": "none",
@@ -505,6 +669,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": null,
       "attachment_status": "not-attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": false,
+        "status": "not-in-scope",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": null,
+        "descriptor_count": null,
+        "blockers": []
+      },
       "descriptor_count": 0,
       "live_descriptor_count": 0,
       "checks": {
@@ -531,6 +705,7 @@
     {
       "app_id": "miniapp-zhuada-e",
       "slug": "zhuada-e",
+      "migration_scope": "future-local-only",
       "source_manifest": "apps/zhuada-e/src/manifest.ts",
       "public_manifest": "apps/zhuada-e/neo-manifest.json",
       "binding": {
@@ -542,6 +717,16 @@
       "standalone_contract_bindings": 0,
       "absorption_generation": null,
       "attachment_status": "not-attached",
+      "lifecycle_evidence": null,
+      "live_state": {
+        "ready": false,
+        "status": "not-in-scope",
+        "source": "docs/reports/platform-game-live-state-latest.json",
+        "generated_at_utc": "2026-07-24T00:19:57.601Z",
+        "descriptor_match_count": null,
+        "descriptor_count": null,
+        "blockers": []
+      },
       "descriptor_count": 0,
       "live_descriptor_count": 0,
       "checks": {
@@ -566,5 +751,5 @@
       ]
     }
   ],
-  "boundary": "An engine attachment, shared manifest binding, and framework route do not prove funded runtime completion. Completion additionally requires removal of direct clone-shaped calls plus a funded start/finalize/settle/recovery/withdraw testnet lifecycle."
+  "boundary": "The 11 absorption-cohort apps and five future-local-only candidates are separate tracks. An engine attachment, shared manifest binding, and framework route do not prove funded runtime completion. Completion additionally requires removal of direct clone-shaped calls plus a funded start/finalize/settle/recovery/withdraw testnet lifecycle."
 }

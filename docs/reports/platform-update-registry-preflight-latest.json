@@ -15,7 +15,7 @@
       "on_chain_has_update": true,
       "admin_matches_signer": true,
       "on_chain_nef_checksum": 372915605,
-      "local_nef_checksum": 2644796843,
+      "local_nef_checksum": 579281221,
       "artifact_matches": false,
       "preflight_method": "scheduleUpdate",
       "preflight_state": "HALT",
@@ -26,5 +26,5 @@
   ],
   "transactions": [],
   "validation": {},
-  "generated_at_utc": "2026-07-22T23:29:58Z"
+  "generated_at_utc": "2026-07-23T19:46:23Z"
 }

@@ -1,8 +1,8 @@
 {
   "audit": "neo-abstract-account security audit (Phase 1 joint audit)",
   "repo": "/Users/jinghuiliao/git/r3e/neo-abstract-account",
-  "branch": "main @ f2d3b17",
-  "date": "2026-07-18",
+  "branch": "main @ 83dbf6d",
+  "date": "2026-07-23",
   "scope": [
     "frontend/api/relay-transaction.js + relayHelpers/rateLimiter/requestDurability/morpheus-base",
     "contracts/UnifiedSmartWallet*.cs (V3 core)",
@@ -15,6 +15,7 @@
     {
       "id": "AA-01",
       "severity": "high",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/recovery",
       "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Fixed.cs:174-178 (Update); funds held per contracts/recovery/MorpheusSocialRecoveryVerifier.Lifecycle.cs:108-126",
       "title": "SocialRecoveryVerifier upgrade is instant (no timelock) while the contract holds user GAS",
@@ -24,6 +25,7 @@
     {
       "id": "AA-02",
       "severity": "high",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/market",
       "location": "contracts/market/AAAddressMarket.cs:83-87 (Update), 76-81 (SetAdmin); escrowed funds at 245-265 (OnNEP17Payment) and 170-210 (SettleListing/RefundPendingPayment)",
       "title": "AAAddressMarket upgrade and admin transfer are instant while buyer escrow is in flight",
@@ -33,6 +35,7 @@
     {
       "id": "AA-03",
       "severity": "medium",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/recovery",
       "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Fixed.cs:16",
       "title": "SocialRecoveryVerifier declares wildcard ContractPermission(\"*\",\"*\") without justification",
@@ -42,6 +45,7 @@
     {
       "id": "AA-04",
       "severity": "medium",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/recovery",
       "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Fixed.cs:167-172",
       "title": "SocialRecoveryVerifier.TransferAdmin is instant (no timelock, no new-admin confirmation)",
@@ -51,6 +55,7 @@
     {
       "id": "AA-05",
       "severity": "medium",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/recovery",
       "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Flows.cs:15-18 (MIN_TIMELOCK), 42 and 65 (asserts); compare contracts/UnifiedSmartWallet.Accounts.cs:69-70",
       "title": "Recovery timelock bounds are 1 hour minimum / unbounded maximum, not the 7-90 day standard",
@@ -60,6 +65,7 @@
     {
       "id": "AA-06",
       "severity": "medium",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/recovery",
       "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Flows.cs:20-51 (esp. 44-45)",
       "title": "SetupRecovery is first-write-wins with no proof of account control (accountId squatting)",
@@ -69,6 +75,7 @@
     {
       "id": "AA-07",
       "severity": "medium",
+      "status": "fixed_in_source_verified",
       "area": "frontend/api",
       "location": "frontend/api/rateLimiter.js:124-145 (in-memory fallback), 72-122 (Redis fail-open)",
       "title": "Rate limiter degrades to per-instance in-memory buckets; Redis failure is silent fail-open",
@@ -78,6 +85,7 @@
     {
       "id": "AA-08",
       "severity": "medium",
+      "status": "fixed_in_source_verified",
       "area": "frontend/api",
       "location": "frontend/api/relay-transaction.js:200-222 (resolveRelayNetwork), 240-258; frontend/api/morpheus-base.js:12-21",
       "title": "Relay network selection is client-controlled, choosing which operator WIF pays",
@@ -87,6 +95,7 @@
     {
       "id": "AA-09",
       "severity": "low",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/hooks",
       "location": "contracts/hooks/NeoDIDCredentialHook.cs:62-67",
       "title": "NeoDIDCredentialHook.SetRegistry is an instant admin action (no timelock)",
@@ -96,6 +105,7 @@
     {
       "id": "AA-10",
       "severity": "low",
+      "status": "fixed_in_source_verified",
       "area": "frontend/api",
       "location": "frontend/api/relay-transaction.js:399-403 (paymaster authorize), 471-484 (validation preview RPC), 665-674 (raw forward); no timeout/AbortSignal anywhere",
       "title": "Relay performs upstream fetches with no timeout",
@@ -105,6 +115,7 @@
     {
       "id": "AA-11",
       "severity": "low",
+      "status": "fixed_in_source_verified",
       "area": "frontend/api",
       "location": "frontend/api/relay-transaction.js:252-256 (allowRawRelayForwarding), 45-51 (shouldIncludeRawRelayErrors), 829-832 (stack trace leak)",
       "title": "Server security posture is influenced by client-build (VITE_*) variables",
@@ -114,33 +125,37 @@
     {
       "id": "AA-12",
       "severity": "low",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/verifiers",
-      "location": "contracts/verifiers/VerifierPayload.cs:63-83 (Runtime.ExecutingScriptHash = verifier, not core); contracts/verifiers/Web3AuthVerifier.cs:130, 168-181 (EIP-712 verifyingContract = verifier)",
+      "location": "contracts/verifiers/VerifierPayload.cs:63-88; contracts/verifiers/ZkLoginVerifier.cs:336-372; contracts/verifiers/Web3AuthVerifier.cs:148-181; shared/metaTxCore.mjs:291-332; sdk/js/src/metaTx.js:255-376",
       "title": "Signature payload domain binds the verifier contract but not the AA core",
-      "description": "VerifierPayload.BuildPayload and the Web3Auth EIP-712 domain separator both domain-bind network + verifier contract + accountId + op fields, but not the AA core contract hash. If the same accountId is registered on a second core sharing the same verifier (e.g. during a future core migration/redeploy, when users re-register identical accounts), an operation signed for core A is replayable on core B whenever the nonce cursor matches, because nothing in the signed payload distinguishes the executing core. Nonce state is per-core, so the replay window is real during co-existence periods.",
-      "recommendation": "Include the AA core hash (available to the core; pass it or read it via a callback) in the signed payload/domain, at minimum for future core versions; document the cross-core replay caveat for migrations."
+      "description": "The source fix adds the authorized AA core hash to the shared verifier payload, ZkLogin payload, and Web3Auth UserOperation type/struct hash. The shared frontend/SDK typed-data builders and raw Web3Auth signing helper now require the same core hash, and source/runtime gates cover the binding. Existing deployments still require a reviewed upgrade before this protection is live.",
+      "recommendation": "Deploy the reviewed verifier/core artifacts and update reciprocal authorized-core bindings before relying on the fix; re-run the testnet signature and cross-core replay regression after deployment."
     },
     {
       "id": "AA-13",
       "severity": "low",
+      "status": "fixed_in_source_verified",
       "area": "contracts/verifiers",
       "location": "contracts/verifiers/ZkLoginVerifier.cs:134-161 (ValidateSignature), 40 (manifest description)",
       "title": "ZkLoginVerifier performs no zero-knowledge proof verification despite the name",
       "description": "ValidateSignature checks provider/masterNullifier equality against stored config and a secp256r1 signature over a payload. The \"master nullifier\" is a shared secret compared by equality (it is stored in plaintext contract storage, readable by anyone), and the actionNullifier is embedded in the signed payload but never replay-checked on-chain (replay protection comes solely from the core nonce). This is a delegated-signer scheme, not zkLogin; integrators may over-trust the privacy/identity guarantees implied by the name and the \"Morpheus NeoDID zklogin-style\" manifest description.",
-      "recommendation": "Rename/document the scheme honestly (delegated signer with nullifier binding), note that masterNullifier is public on-chain, or implement actual proof verification before marketing it as zkLogin."
+      "recommendation": "Keep the manifest and integrator documentation explicit that this is delegated signing with public nullifier binding unless actual zero-knowledge proof verification is implemented."
     },
     {
       "id": "AA-14",
       "severity": "low",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/recovery + verifiers/AllowAllVerifier",
-      "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.*.cs (no validateSignature(UInt160, UserOperation), no setPublicKey, no AuthorizedCore/canConfigureVerifier integration); verifiers/AllowAllVerifier/AllowAllVerifier.cs:36-64 (always-true Verify*)",
-      "title": "Recovery and AllowAll verifiers do not implement the V3 plugin surface; binding them bricks or exposes accounts",
-      "description": "The V3 core invokes verifier \"validateSignature\" and (optionally) \"setPublicKey\"/\"clearAccount\" via the canConfigureVerifier context. SocialRecoveryVerifier implements only the legacy VerifyExecution/VerifyAdmin(ByteString) flow, and AllowAllVerifier implements always-true Verify* methods. Binding either as a V3 account verifier succeeds at RegisterAccount (with empty verifierParams no probe call is made, Accounts.cs:95-106) but then every ExecuteUserOp faults with method-not-found, freezing the account until a 24h verifier rotation or the 7-90 day escape hatch. AllowAllVerifier additionally would authorize any execution if an integrator used its Verify* flow. Both compile into the repo's verification gate without production-use warnings.",
-      "recommendation": "Add a bind-time conformance probe in the core (require a successful read-only validateSignature call or an interface marker method), and label AllowAllVerifier/test contracts as non-production in manifest metadata."
+      "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.*.cs (legacy VerifyExecution/VerifyAdmin surface; no V3 validateSignature probe at registration)",
+      "title": "V3 account registration does not enforce plugin conformance for legacy verifiers",
+      "description": "The V3 core invokes verifier \"validateSignature\" and (optionally) \"setPublicKey\"/\"clearAccount\" via the canConfigureVerifier context, but RegisterAccount accepts an arbitrary verifier without a bind-time conformance probe when verifierParams is empty. SocialRecoveryVerifier still exposes only the legacy VerifyExecution/VerifyAdmin(ByteString) flow, so binding it as a V3 account can make ExecuteUserOp fault with method-not-found until verifier rotation or the escape path. The historical AllowAllVerifier path is absent from the current tree and is not treated as a live finding.",
+      "recommendation": "Keep the supportsV3 bind-time marker mandatory for future plugins, and document SocialRecoveryVerifier as a legacy recovery surface rather than a V3 account verifier."
     },
     {
       "id": "AA-15",
       "severity": "low",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/hooks + contracts/verifiers",
       "location": "contracts/hooks/WhitelistHook.cs:73-75, contracts/hooks/NeoDIDCredentialHook.cs:135-137, contracts/verifiers/TEEVerifier.cs:69-71, Web3AuthVerifier.cs:106-108, WebAuthnVerifier.cs:67-69, NeoNativeVerifier.cs:103-105, ZkLoginVerifier.cs:189-191",
       "title": "Empty PostExecute bodies skip the ValidateExecutionCaller check (pattern risk)",
@@ -150,6 +165,7 @@
     {
       "id": "AA-16",
       "severity": "low",
+      "status": "fixed_in_source_verified",
       "area": "frontend/api",
       "location": "frontend/api/requestDurability.js:95-101 (deriveRequestId), 128-130 (journal key), 196-203 (journal write)",
       "title": "User-controlled request IDs are used as Redis journal keys without validation",
@@ -159,6 +175,7 @@
     {
       "id": "AA-17",
       "severity": "low",
+      "status": "mitigated_by_default_open_when_enabled",
       "area": "frontend/api",
       "location": "frontend/api/relay-transaction.js:636-697",
       "title": "Enabled raw-forward mode is an unauthenticated generic transaction proxy",
@@ -168,24 +185,27 @@
     {
       "id": "AA-18",
       "severity": "low",
+      "status": "fixed_in_source_verified",
       "area": "docs vs contracts",
       "location": "docs/AA_V3_ARCHITECTURE.en.md:90-98 (design note) vs contracts/UnifiedSmartWallet.Execution.cs:60-72",
       "title": "Doc/code mismatch: escape is NOT silently auto-cancelled by routine activity",
       "description": "The V3 architecture note describes the anti-theft property as \"any routine transaction via the TEE silently and automatically interrupts the escape countdown\". The implementation deliberately diverged: an active escape makes ExecuteUserOp require the backup-owner witness, and only then cancels (Execution.cs:66-71), with a comment explaining this prevents attackers from delaying the escape via routine ops. Integrators/operators reading the design doc will misunderstand the account's behavior during an escape (verifier-key-only operations are BLOCKED during an active escape, not escape-cancelling).",
-      "recommendation": "Update the design note (or add a pointer to the current behavior) so the escape model is documented as backup-owner-gated cancellation."
+      "recommendation": "Keep the design note aligned with backup-owner-gated cancellation and the active-escape verifier-key block."
     },
     {
       "id": "AA-19",
       "severity": "low",
+      "status": "fixed_in_source_pending_deploy",
       "area": "contracts/core",
-      "location": "contracts/UnifiedSmartWallet.cs:41-79 (prefix map), contracts/UnifiedSmartWallet.Admin.cs:22-23, contracts/UnifiedSmartWallet.Internal.cs:28, contracts/UnifiedSmartWallet.MarketEscrow.cs:19-30",
-      "title": "Storage prefix bytes 0x12/0x13 are reused across partials (verified safe today, fragile tomorrow)",
-      "description": "Byte 0x12 is both Admin's bare-key Prefix_PendingUpdateNefHash and Internal's accountId-suffixed Prefix_VerifyScopeTarget; byte 0x13 is both Admin's bare Prefix_PendingUpdateManifestHash and MarketEscrow's accountId-suffixed cancel marker. The shapes (1-byte vs 21-byte keys) cannot alias, the reuse is extensively documented, and StoragePrefixMapTests pins it, so there is no live collision. The fragility is forward-looking: any future prefix addition that reuses a byte with the same shape would silently corrupt state, and the deferred renumber now requires a storage migration.",
-      "recommendation": "Renumber to globally unique prefix bytes at the next planned redeploy/migration (the joint platform-library refactor is a natural window); keep the shape-collision test."
+      "location": "contracts/UnifiedSmartWallet.cs:41-84 (active prefix map), contracts/UnifiedSmartWallet.Admin.cs:22-23, contracts/UnifiedSmartWallet.Internal.cs:28, contracts/UnifiedSmartWallet.MarketEscrow.cs:20-22",
+      "title": "Storage prefix bytes were reused across partials (active layout now globally unique)",
+      "description": "The active layout now assigns unique bytes 0x1A-0x1D to the four formerly reused namespaces and StoragePrefixMapTests rejects any future active byte reuse. LegacyStoragePrefix12/13 retain read/delete compatibility for keys written by the previous shape-split layout, while all new writes use the unique allocation. No live deployment was changed in this source-only step.",
+      "recommendation": "Deploy the reviewed core artifact through the governed upgrade path, exercise legacy fallback reads/cleanup on a stateful fixture, and verify the post-upgrade storage map before activating it for shared accounts."
     },
     {
       "id": "AA-20",
       "severity": "low",
+      "status": "informational_accepted",
       "area": "contracts/core",
       "location": "contracts/UnifiedSmartWallet.cs:23 ([ContractPermission(\"*\",\"*\")]); call path at contracts/UnifiedSmartWallet.Execution.cs:94-98",
       "title": "Core wildcard permission assessed: required for op dispatch, confused-deputy window closed (informational)",

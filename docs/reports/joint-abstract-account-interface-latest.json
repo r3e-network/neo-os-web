@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T07:38:23.680Z",
+  "generated_at_utc": "2026-07-25T20:03:31.812Z",
   "repositories": {
     "platform": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform",
     "abstract_account": "/Users/jinghuiliao/git/r3e/neo-abstract-account"
@@ -13,7 +13,8 @@
     "registry_core_disable_timelocked": true,
     "aa_registrar_calling_contract_gate": true,
     "aa_registrar_timelocked": true,
-    "aa_owner_control_preserved": true
+    "aa_owner_control_preserved": true,
+    "aa_platform_owner_rotation_bound": true
   },
   "passed": true,
   "live_boundary": {

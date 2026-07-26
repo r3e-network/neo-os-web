@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at_utc": "2026-07-23T08:27:54.774Z",
+  "generated_at_utc": "2026-07-25T16:00:24.581Z",
   "cloneFamily": {
     "root": "contracts/",
     "contracts": 11,
@@ -28,7 +28,19 @@
       "MiniAppSnakeBounty": 815,
       "MiniAppSudoku": 811
     },
-    "boundary": "All 11 legacy clone contracts remain in-tree for rollback and drain recovery. Framework routing is not deletion proof."
+    "boundary": "All 11 legacy clone contracts remain in-tree for rollback and drain recovery. Framework routing is not deletion proof; the deployment helper excludes them by default and requires explicit MINIAPP_DEPLOY_INCLUDE_LEGACY_CLONES opt-in without manifest writeback.",
+    "build_boundary": {
+      "script": "contracts/build.sh",
+      "default_excluded": true,
+      "explicit_opt_in": true
+    }
+  },
+  "legacyCloneDeployment": {
+    "script": "deploy/scripts/deploy_selected_miniapp_contracts.go",
+    "default_target_count": 0,
+    "legacy_target_count": 11,
+    "explicit_opt_in": true,
+    "legacy_manifest_writeback_disabled": true
   },
   "morpheusEnginePorts": {
     "dir": "neo-morpheus-oracle/workers/nitro-worker/src/game/engines/",
@@ -47,7 +59,7 @@
       "sudoku-data.js",
       "sudoku.js"
     ],
-    "source_loc": 1939,
+    "source_loc": 2026,
     "adapter_files": 5,
     "adapter_file_list": [
       "arrow.adapter.js",
@@ -58,40 +70,44 @@
     ],
     "sync_pipeline": {
       "mapped_engines": 12,
-      "generated_engines": 6,
-      "kept_engines": 6,
+      "generated_engines": 12,
+      "kept_engines": 0,
       "script_exists": true,
       "drift_test_exists": true,
       "parity_goldens_exist": true,
       "parity_test_exists": true,
       "git_status": [
-        "A  scripts/sync-miniapp-game-engines.mjs",
-        "A  scripts/sync-miniapp-game-engines.test.mjs",
+        "AM scripts/sync-miniapp-game-engines.mjs",
+        "AM scripts/sync-miniapp-game-engines.test.mjs",
         "AM workers/nitro-worker/src/game/engine-parity.goldens.json",
         "A  workers/nitro-worker/src/game/engine-parity.test.mjs"
       ]
     },
-    "boundary": "Six engines are generated from miniapps TypeScript sources; six remain reviewed handwritten ports and five enclave-only adapters remain. Dirty sibling-repo status is worktree evidence, not landed release proof."
+    "reviewed_handwritten_engines": [],
+    "boundary": "12 engines are generated from miniapps TypeScript sources; 0 remain reviewed handwritten ports and 5 enclave-only adapters remain. Dirty sibling-repo status is worktree evidence, not landed release proof."
   },
   "envelopeCopies": {
     "morpheus_file": "neo-morpheus-oracle/packages/shared/src/confidential-envelope.js",
     "aa_file": "neo-abstract-account/frontend/src/utils/morpheusEncryption.js",
+    "aa_generated_file": "neo-abstract-account/frontend/src/utils/morpheusConfidentialEnvelope.generated.js",
     "morpheus_sha256": "508329d6f14974733d8f1ca5fb7d3ac6e9b1dc21820e3f12131098de4bb3e129",
-    "aa_sha256": "d967bb9840b0cd08c6ab41fa2982b6c4cf24cd2e3191bedc57fe441101332f6d",
+    "aa_sha256": "3e8d9854c03243138ec2ac74b59ced14e15323acb180af815a0e7ba68843734f",
+    "aa_generated_sha256": "a9f3704b243a8e91db2fd07e89adaa8f32089641441e7142fff04c7c2594b7bb",
     "byte_match": false,
+    "aa_generated_from_canonical": true,
     "morpheus_exported": true,
-    "aa_vendored_import_references": 1,
-    "aa_uses_vendored_copy": true,
-    "boundary": "The package export now exists, but AA still imports its guarded wire-compatible vendored implementation. Cross-repo package linking remains an explicit migration."
+    "aa_vendored_import_references": 3,
+    "aa_uses_vendored_copy": false,
+    "boundary": "AA keeps a thin browser adapter and a generated canonical envelope artifact; the sync script verifies the artifact source hash and exact canonical suffix before frontend use."
   },
   "sdkGenerations": {
     "framework": {
-      "files": 115,
-      "loc": 30381
+      "files": 120,
+      "loc": 31751
     },
     "services_proxy": {
       "files": 25,
-      "loc": 3063
+      "loc": 3046
     },
     "platform_sdk": {
       "files": 6,
@@ -109,10 +125,12 @@
       "platform-account-surface.ts",
       "platform-anchor-surface.ts",
       "platform-defi-surface.ts",
+      "platform-escrow-surface.ts",
       "platform-factory-surface.ts",
       "platform-game-surface.ts",
       "platform-social-surface.ts",
       "platform-surface.ts",
+      "platform-vesting-surface.ts",
       "registry-surface.ts",
       "stats-surface.ts",
       "storage-surface.ts"
@@ -124,8 +142,6 @@
   "audit_complete": true,
   "dedup_complete": false,
   "unresolved": [
-    "legacy-clone-contracts",
-    "reviewed-handwritten-engine-divergence",
-    "aa-envelope-vendored-copy"
+    "legacy-clone-contracts"
   ]
 }

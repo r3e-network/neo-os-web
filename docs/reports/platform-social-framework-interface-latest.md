@@ -1,6 +1,6 @@
 # PlatformSocial Framework Interface
 
-Generated: 2026-07-23T09:08:09.934Z
+Generated: 2026-07-24T09:55:55.457Z
 
 - Interface audit: **PASS**
 - User-facing contract ABI: 36 methods

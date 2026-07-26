@@ -1,26 +1,27 @@
 # Goal Validation Report
 
-Generated: 2026-05-26T02:58:20.720Z
-Status: pass
-Requirements: 12 pass, 0 partial, 0 fail
-Direct testnet tx count: 5
-Testnet feed backfill tx count: 32
+Generated: 2026-07-23T20:13:51.872Z
+Status: fail
+Requirements: 4 pass, 0 partial, 8 fail
+Direct testnet tx count: 0
+Testnet feed backfill tx count: 0
 
 ## Requirements
 
 - PASS platform.host-admin-gates: Host app, AA surfaces, and Admin Console local gates pass tests, builds, and e2e
-- PASS frontend.runtime-ui: All 60 miniapps render professional desktop/mobile UI without runtime failures
+- PASS frontend.runtime-ui: All 77 active miniapps render professional desktop/mobile UI without runtime failures
   - Automated evidence covers rendering, text, controls, asset failures, horizontal overflow, and screenshots. Human aesthetic review remains qualitative.
-- PASS miniapps.coverage: All 60 miniapps have complete catalog, PlayArea, live harness, and chain coverage classification
-- PASS contracts.mainnet-readiness: Contract domains and mainnet read-only method surfaces have no blockers
-- PASS oracle.mainnet-freshness: Neo mainnet pricefeed has all 33 configured pairs fresh
-- PASS oracle.testnet-freshness: Neo testnet pricefeed has all 33 configured pairs fresh
-- PASS oracle.drift: Configured feed registry pairs are present on chain with no blocking drift
+- FAIL miniapps.coverage: All 77 active miniapps have complete catalog, PlayArea, live harness, and chain coverage classification
+- FAIL contracts.mainnet-readiness: Contract domains and mainnet read-only method surfaces have no blockers
+- FAIL oracle.mainnet-freshness: Neo mainnet pricefeed has all 33 configured pairs fresh
+- FAIL oracle.testnet-freshness: Neo testnet pricefeed has all 33 configured pairs fresh
+- FAIL oracle.drift: Configured feed registry pairs are present on chain with no blocking drift
   - Legacy extra on-chain records are classified as non-blocking because the deployed datafeed contract has no safe per-pair delete method.
 - PASS oracle.service-gates: Oracle worker, relayer, runtime matrix, and web build gates pass
-- PASS oracle.control-plane-smoke: Control plane accepts and completes a durable testnet oracle job
-- PASS oracle.betterstack: Relayer and feed heartbeat monitors are up
-- PASS cross-repo.transactions: Cross-repo testnet path can submit Oracle and AA paymaster transactions
+- FAIL oracle.control-plane-smoke: Control plane accepts and completes a durable testnet oracle job
+  - Control-plane smoke report was not readable.
+- FAIL oracle.betterstack: Relayer and feed heartbeat monitors are up
+- FAIL cross-repo.transactions: Cross-repo testnet path can submit Oracle and AA paymaster transactions
 - PASS business-completeness: Miniapp business completeness report has no failures
 
 ## Evidence Files

@@ -1,9 +1,9 @@
 {
-  "generated_at_utc": "2026-07-23T07:22:19.172Z",
+  "generated_at_utc": "2026-07-24T14:34:14.742Z",
   "network": {
     "rpc_url": "https://testnet1.neo.coz.io:443",
     "magic": 894710606,
-    "chain_time_ms": 1784791328809
+    "chain_time_ms": 1784903647496
   },
   "contracts": {
     "registry": {
@@ -153,8 +153,8 @@
     "registry": {
       "nef_path": "contracts/build/PlatformRegistry.nef",
       "manifest_path": "contracts/build/PlatformRegistry.manifest.json",
-      "nef_sha256": "0x5affb4cfb9420e946f0194e278cfe3c9b235b21a8c2f5cf9a88d1002b1baef65",
-      "manifest_sha256": "0x0234e8832d24016e0dc9651b94adea812fca5fc2e0b13705b03c72657ea66aa8",
+      "nef_sha256": "0xd486aea5df431e3f9ed92f4f741988915c9964b21a6d27ca3c6135609e392c1f",
+      "manifest_sha256": "0x94563e4ae2a436ed5e6a3edd2ae757b5fbb0a246f96c01ab1004dbdab536fb6f",
       "methods": [
         "_deploy",
         "_initialize",
@@ -193,6 +193,7 @@
         "getDescriptor",
         "getEngine",
         "getGlobalPause",
+        "getPredictedAbstractAccount",
         "isPaused",
         "materializeAbstractAccount",
         "mintAccount",
@@ -235,8 +236,8 @@
     "abstract_account": {
       "nef_path": "../neo-abstract-account/contracts/bin/v3/UnifiedSmartWalletV3.nef",
       "manifest_path": "../neo-abstract-account/contracts/bin/v3/UnifiedSmartWalletV3.manifest.json",
-      "nef_sha256": "0xb245a8c24b626a48b3e7867a7b39edc1379301eefe558a97fe70ad83934c0f62",
-      "manifest_sha256": "0x9cb0cfc72a271dfa9695db8e032adc0ac2453ee09536dbd99c5c4be0872acfdb",
+      "nef_sha256": "0x2933d023df120878a54e77180281175d1030485e5bb5203d18931fd0164fe330",
+      "manifest_sha256": "0x31a32647417595c0bd64a38cc6028d0df396993fca7b3152d1faca9ea1dc4982",
       "methods": [
         "_deploy",
         "_initialize",
@@ -255,6 +256,7 @@
         "computeArgsHash",
         "computePlatformAccountId",
         "computeRegistrationAccountId",
+        "computeStablePlatformAccountId",
         "confirmAdminTransfer",
         "confirmHookUpdate",
         "confirmPlatformRegistrar",
@@ -311,6 +313,8 @@
         "registerAccount",
         "registerAccounts",
         "registerPlatformAccount",
+        "registerStablePlatformAccount",
+        "rotatePlatformAccountOwner",
         "setMetadataUri",
         "setVerifyScopeTarget",
         "setVerifyScopeTargets",
@@ -332,7 +336,7 @@
       "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
       "signer_input": "public-hash-simulation",
       "state": "HALT",
-      "gas_consumed_datoshi": 32763615,
+      "gas_consumed_datoshi": 34879423,
       "exception": "",
       "transaction": null
     },
@@ -367,6 +371,7 @@
           "cancelPlatformRegistrar():Void:write",
           "cancelUpdate():Void:write",
           "computePlatformAccountId(ByteArray,Hash160,Integer):Hash160:read",
+          "computeStablePlatformAccountId(ByteArray,Integer):Hash160:read",
           "confirmAdminTransfer():Void:write",
           "confirmPlatformRegistrar():Void:write",
           "confirmUpdate(ByteArray,String):Void:write",
@@ -383,7 +388,9 @@
           "proposeAdminTransfer(Hash160):Void:write",
           "proposePlatformRegistrar(Hash160):Void:write",
           "proposeUpdate(Hash256,Hash256):Void:write",
-          "registerPlatformAccount(Hash160,ByteArray,Hash160,Integer):Void:write"
+          "registerPlatformAccount(Hash160,ByteArray,Hash160,Integer):Void:write",
+          "registerStablePlatformAccount(Hash160,ByteArray,Hash160,Integer):Void:write",
+          "rotatePlatformAccountOwner(Hash160,ByteArray,Hash160):Void:write"
         ],
         "removed_methods": [
           "transferAdmin(Hash160):Void:write"
@@ -394,6 +401,7 @@
           "AdminTransferProposed(Hash160,Hash160,Integer)",
           "MarketEscrowOwnerCancelInitiated(Hash160,Hash160,Integer)",
           "MarketEscrowOwnerCancelled(Hash160)",
+          "PlatformAccountOwnerRotated(Hash160,Hash160,Hash160)",
           "PlatformRegistrarChanged(Hash160,Hash160)",
           "PlatformRegistrarProposalCancelled(Hash160)",
           "PlatformRegistrarProposed(Hash160,Integer)"
@@ -401,15 +409,33 @@
         "removed_events": []
       },
       "storage": {
-        "existing_prefixes_changed": [],
+        "existing_prefixes_changed": [
+          {
+            "name": "Prefix_VerifyScopeTarget",
+            "baseline": "0x12",
+            "candidate": "0x1c"
+          }
+        ],
+        "legacy_prefix_migrations": [
+          {
+            "name": "Prefix_VerifyScopeTarget",
+            "baseline": "0x12",
+            "candidate": "0x1c",
+            "legacy_alias": "LegacyStoragePrefix12",
+            "read_fallback": true,
+            "legacy_cleanup": true,
+            "active_write": true
+          }
+        ],
+        "unmigrated_existing_prefixes": [],
         "added_prefixes": [
           {
             "name": "Prefix_PendingUpdateNefHash",
-            "value": "0x12"
+            "value": "0x1a"
           },
           {
             "name": "Prefix_PendingUpdateManifestHash",
-            "value": "0x13"
+            "value": "0x1b"
           },
           {
             "name": "Prefix_UpdateTimelock",
@@ -425,7 +451,7 @@
           },
           {
             "name": "Prefix_MarketEscrowCancelInitiated",
-            "value": "0x13"
+            "value": "0x1d"
           },
           {
             "name": "Prefix_PlatformRegistrar",
@@ -438,6 +464,10 @@
           {
             "name": "Prefix_PlatformRegistrarTimelock",
             "value": "0x19"
+          },
+          {
+            "name": "Prefix_PlatformAccountBinding",
+            "value": "0x1e"
           }
         ],
         "stored_record_layouts_changed": []
@@ -464,7 +494,10 @@
       ],
       "abstract_account": [
         "computePlatformAccountId",
+        "computeStablePlatformAccountId",
         "registerPlatformAccount",
+        "registerStablePlatformAccount",
+        "rotatePlatformAccountOwner",
         "getPlatformRegistrar",
         "getPendingPlatformRegistrar",
         "getPlatformRegistrarAvailableAt",

@@ -1,15 +1,15 @@
 # PlatformRegistry Framework Interface
 
-Generated: 2026-07-23T09:08:09.824Z
+Generated: 2026-07-24T08:51:18.083Z
 
 - Interface audit: **PASS**
-- Non-control-plane contract ABI: 48 methods
-- Framework ABI operations: 48 methods
+- Non-control-plane contract ABI: 49 methods
+- Framework ABI operations: 49 methods
 - Native GAS credit operations: 1
 - Missing methods: none
 - Extra methods: none
 - Configured production consumers: 0
-- Live tenant ABI availability: 40/48
+- Live tenant ABI availability: 41/49
 - Live deployment status: `live-artifact-drift`
 - Current local artifact match: false
 - Chain writes performed: no

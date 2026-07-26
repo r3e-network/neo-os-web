@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T09:08:10.136Z",
+  "generated_at_utc": "2026-07-23T21:51:48.548Z",
   "passed": true,
   "tenant_abi_method_count": 58,
   "framework_operation_count": 58,
@@ -140,7 +140,7 @@
   "deployment": {
     "hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
     "status": "live-artifact-drift",
-    "local_nef_checksum": 334460533,
+    "local_nef_checksum": 1040116875,
     "on_chain_nef_checksum": 3687605410,
     "current_local_artifact_match": false,
     "missing_on_chain_methods": [
@@ -148,6 +148,7 @@
       "activateLegacyCreditRecovery",
       "fundCapsuleYieldReserve",
       "gasCreditLiabilityOf",
+      "getActiveLoanId",
       "getCapsuleYieldReserve",
       "getDirectGasCredit",
       "getDirectNeoCredit",
@@ -157,7 +158,9 @@
       "getLegacyGasCredit",
       "getLegacyNeoCredit",
       "getLendingLiquidity",
+      "getLendingProfile",
       "getNeoGasPrice",
+      "getSingleLoanPosition",
       "getTotalAbandonedCollateral",
       "getTotalCapsuleFees",
       "getTotalLendingFees",
