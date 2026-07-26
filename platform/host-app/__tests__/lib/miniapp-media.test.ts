@@ -1,6 +1,7 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
+import { isArchivedMiniAppSlug } from "@/lib/archived-miniapps";
 import {
   buildMiniAppBannerSources,
   buildMiniAppLogoSources,
@@ -87,15 +88,21 @@ describe("miniapp-media helpers", () => {
       });
     });
 
-    it("keeps Curve Arrow on its source-bundled media path", () => {
+    // Curve Arrow used to be excluded from the host bundle because no
+    // `public/miniapp-assets/curve-arrow/` directory existed, which made the generated
+    // URL 404 and forced the card onto `/miniapps/curve-arrow/…`. That path is
+    // build output (`public/miniapps` is gitignored), so the art only resolved after a
+    // bundle build. Its media is bundled now, so it follows the same demotion rule as
+    // every other app: host asset first, legacy bundle path retained as a fallback.
+    it("serves Curve Arrow from the host bundle and keeps its legacy path as fallback", () => {
       expect(
         getMiniAppPrimaryAssets(
           "miniapp-curve-arrow",
           "/miniapps/curve-arrow/index.html",
         ),
       ).toEqual({
-        logoURL: null,
-        bannerURL: null,
+        logoURL: "/miniapp-assets/curve-arrow/logo.webp",
+        bannerURL: "/miniapp-assets/curve-arrow/banner.webp",
       });
 
       const sources = buildMiniAppLogoSources({
@@ -103,8 +110,8 @@ describe("miniapp-media helpers", () => {
         entryURL: "/miniapps/curve-arrow/index.html",
         logoURL: "/miniapps/curve-arrow/logo.webp",
       });
-      expect(sources[0]).toBe("/miniapps/curve-arrow/logo.webp");
-      expect(sources).not.toContain("/miniapp-assets/curve-arrow/logo.webp");
+      expect(sources[0]).toBe("/miniapp-assets/curve-arrow/logo.webp");
+      expect(sources).toContain("/miniapps/curve-arrow/logo.webp");
     });
 
     it.each(["arrow-escape", "bead-workshop", "fruit-funnel", "screw-sort"])(
@@ -169,6 +176,56 @@ describe("miniapp-media helpers", () => {
         }
       },
     );
+
+    // The per-slug lists above only cover the migrations they were written for, so a
+    // newly added app that ships its own artwork can miss the host bundle unnoticed
+    // (`getMiniAppPrimaryAssets` then returns null and the launcher card renders no
+    // art). Derive the expectation from the source tree instead of a hand-kept list.
+    it("bundles host card media for every app that ships its own artwork", () => {
+      const repoRoot = path.resolve(process.cwd(), "../..");
+      const appsRoot = path.join(repoRoot, "apps");
+      const authored = readdirSync(appsRoot, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && entry.name !== "shared")
+        .map((entry) => entry.name)
+        .filter((slug) => !isArchivedMiniAppSlug(slug))
+        .filter((slug) => existsSync(path.join(appsRoot, slug, "public", "logo.webp")));
+
+      expect(authored.length).toBeGreaterThan(0);
+
+      const unbundled: string[] = [];
+      for (const slug of authored) {
+        const assets = getMiniAppPrimaryAssets(`miniapp-${slug}`, `mf://manifest?app=miniapp-${slug}`);
+        if (assets.logoURL === null) unbundled.push(slug);
+      }
+      // A non-empty list names the apps whose public/logo.webp never reached the host bundle.
+      expect(unbundled).toEqual([]);
+    });
+
+    // `buildModernImageSources` advertises an `.avif` sibling for every bundled WebP,
+    // so a WebP-only directory would emit a <source> that 404s.
+    it("pairs every bundled WebP with a real AVIF derivative", () => {
+      const bundleRoot = path.join(process.cwd(), "public", "miniapp-assets");
+      const incomplete: string[] = [];
+
+      for (const entry of readdirSync(bundleRoot, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        for (const asset of ["logo", "banner"] as const) {
+          const webp = path.join(bundleRoot, entry.name, `${asset}.webp`);
+          if (!existsSync(webp)) continue;
+          const avif = path.join(bundleRoot, entry.name, `${asset}.avif`);
+          if (!existsSync(avif)) {
+            incomplete.push(`${entry.name}/${asset}.avif`);
+            continue;
+          }
+          const bytes = readFileSync(avif);
+          if (bytes.subarray(4, 12).toString("ascii") !== "ftypavif" || bytes.length <= 1024) {
+            incomplete.push(`${entry.name}/${asset}.avif (not a real AVIF)`);
+          }
+        }
+      }
+
+      expect(incomplete).toEqual([]);
+    });
 
     it("can serve primary assets from an external media base", () => {
       process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL = "https://media.neomini.app";
