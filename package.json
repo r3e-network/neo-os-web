@@ -10,9 +10,15 @@
     "verify:repo": "bash scripts/verify_repo.sh",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "audit:repo:lint-scope": "node deploy/scripts/audit_lint_scope.mjs",
+    "check:repo:lint-scope": "node deploy/scripts/audit_lint_scope.mjs --check",
+    "audit:repo:secret-material": "node deploy/scripts/audit_secret_material.mjs",
+    "check:repo:secret-material": "node deploy/scripts/audit_secret_material.mjs --check",
     "test": "fail=0; for s in deploy-scripts host-app admin-console framework shared miniapps; do npm run -s test:$s || fail=1; done; exit $fail",
     "test:framework": "cd framework && npx vitest run",
     "test:shared": "cd apps/shared && npx vitest run",
+    "test:validation": "cd tests && npx vitest run",
+    "test:validation:watch": "cd tests && npx vitest",
     "test:miniapps": "node scripts/run-miniapp-tests.mjs",
     "test:go": "node -e \"console.log('Legacy Go service layer moved to external repos; root Go test suite is no longer part of neo-miniapps-platform.')\"",
     "test:testnet:local-gates": "bash deploy/scripts/run_local_validation_gates.sh",
@@ -40,12 +46,15 @@
     "bind:contract-domains:execute": "node deploy/scripts/bind_contract_domains.js --execute",
     "audit:miniapps:layout": "node deploy/scripts/verify_miniapp_layout_consistency.js",
     "audit:platform:unified-layers": "node deploy/scripts/audit_platform_unified_layers.js",
+    "audit:platform:engine-base": "node deploy/scripts/audit_platform_engine_base.mjs",
+    "check:platform:engine-base": "node deploy/scripts/audit_platform_engine_base.mjs --strict",
     "audit:platform:contracts": "node deploy/scripts/audit_platform_contract_acceptance.mjs",
     "check:platform:contracts": "node deploy/scripts/audit_platform_contract_acceptance.mjs --check",
     "audit:platform:testnet-live": "node deploy/scripts/verify_platform_contracts_live.mjs",
     "audit:platform:upgrade-readiness": "node deploy/scripts/audit_platform_upgrade_readiness.mjs",
     "audit:platform:game-migration": "node deploy/scripts/audit_platform_game_migration.mjs",
     "check:platform:game-migration": "node deploy/scripts/audit_platform_game_migration.mjs --check",
+    "audit:platform:game-live-state": "node deploy/scripts/audit_platform_game_live_state.mjs",
     "audit:platform:joint-aa": "node deploy/scripts/audit_joint_abstract_account_interface.mjs",
     "check:platform:joint-aa": "node deploy/scripts/audit_joint_abstract_account_interface.mjs --check",
     "audit:platform:social-framework": "node deploy/scripts/audit_platform_social_framework.mjs",
@@ -59,7 +68,14 @@
     "check:platform:defi-framework": "node deploy/scripts/audit_platform_defi_framework.mjs --check",
     "audit:platform:factory-framework": "node deploy/scripts/audit_platform_factory_framework.mjs",
     "check:platform:factory-framework": "node deploy/scripts/audit_platform_factory_framework.mjs --check",
+    "audit:platform:vesting-framework": "node deploy/scripts/audit_platform_vesting_framework.mjs",
+    "check:platform:vesting-framework": "node deploy/scripts/audit_platform_vesting_framework.mjs --check",
+    "audit:platform:escrow-framework": "node deploy/scripts/audit_platform_escrow_framework.mjs",
+    "check:platform:escrow-framework": "node deploy/scripts/audit_platform_escrow_framework.mjs --check",
     "audit:platform:shared-aa-preflight": "node deploy/scripts/audit_shared_aa_upgrade_preflight.mjs",
+    "audit:platform:shared-aa-governance": "PLATFORM_SHARED_AA_ACTION=status go run -tags=scripts deploy/scripts/configure_shared_aa_testnet.go",
+    "audit:platform:shared-aa-roster": "node deploy/scripts/audit_shared_aa_account_roster.mjs",
+    "check:platform:shared-aa-roster": "node deploy/scripts/audit_shared_aa_account_roster.mjs --check",
     "audit:cross-repo:duplication": "node deploy/scripts/audit_cross_repo_duplication.mjs",
     "check:cross-repo:duplication": "node deploy/scripts/audit_cross_repo_duplication.mjs --check",
     "generate:factory-template-artifacts": "node deploy/scripts/generate_factory_template_artifacts.mjs",
@@ -69,9 +85,10 @@
     "test:host-app:surface": "npm --prefix platform/host-app run test:e2e:surface",
     "test:admin-console": "npm --prefix platform/admin-console test --silent",
     "test:deploy-scripts": "node --test deploy/scripts/lib/*.test.mjs",
+    "test:shared-aa-governance": "go test -tags=scripts ./deploy/scripts/configure_shared_aa_testnet.go ./deploy/scripts/configure_shared_aa_testnet_test.go -count=1",
     "build:contracts": "bash contracts/build.sh",
     "test:contracts": "DOTNET_ROOT=\"${DOTNET_ROOT:-$HOME/.dotnet}\" PATH=\"${DOTNET_ROOT:-$HOME/.dotnet}/tools:$PATH\" dotnet test contracts/__tests__",
-    "test:contracts:full": "npm run -s build:contracts && npm run -s test:contracts",
+    "test:contracts:full": "BUILD_LEGACY_CLONES=1 npm run -s build:contracts && npm run -s test:contracts",
     "backfill:miniapp-versions": "node deploy/scripts/backfill-miniapp-versions.js",
     "verify:publish-audit-chain": "node deploy/scripts/verify-publish-audit-chain.js",
     "validate:miniapp-env": "node deploy/scripts/validate-miniapp-env.js",
@@ -131,7 +148,10 @@
     "immutable": "5.1.9",
     "sharp": "0.35.3",
     "minimatch@>=9": {
-      "brace-expansion": "5.0.7"
+      "brace-expansion": "5.0.8"
+    },
+    "minimatch@<9": {
+      "brace-expansion": "1.1.16"
     },
     "protobufjs": "7.5.8",
     "picomatch": "4.0.4",
@@ -145,9 +165,9 @@
       "picomatch": "2.3.2"
     },
     "next": {
-      "postcss": "8.5.15"
+      "postcss": "8.5.23"
     },
-    "postcss": "8.5.15",
+    "postcss": "8.5.23",
     "lodash": "4.18.1",
     "ws": "8.21.0"
   }
