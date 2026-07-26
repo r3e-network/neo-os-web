@@ -9,7 +9,7 @@
 export const SDK_SCOPE = "@r3e-network";
 export const FRAMEWORK_PKG = `${SDK_SCOPE}/neo-miniapp-framework`;
 export const SHARED_PKG = `${SDK_SCOPE}/neo-miniapp-shared`;
-export const SDK_VERSION = "2.2.0";
+export const SDK_VERSION = "2.2.1";
 
 /** Top-level directories of the shared package, used to rewrite `../<dir>` imports. */
 export const SHARED_DIRS = [
@@ -60,6 +60,10 @@ build/
 coverage/
 .turbo/
 *.tsbuildinfo
+
+# Compiled Neo contract artifacts are inputs, not build output: the
+# production-safety tests read them to pin the client against the ABI.
+!contracts/build/
 
 # .NET
 bin/
@@ -142,7 +146,10 @@ export function renderSdkFiles() {
     main: "./index.ts",
     types: "./index.ts",
     exports: { ".": "./index.ts", "./*": "./*" },
-    files: ["**/*.ts", "**/*.tsx", "!**/*.test.ts", "!**/*.test.tsx", "!test/**"],
+    // An extension allowlist silently drops everything else - the .js crypto
+    // shims apps import and the image assets components render. Publish the
+    // package and exclude only what must not ship.
+    files: ["**/*", "!**/*.test.ts", "!**/*.test.tsx", "!test/**", "!vitest.config.ts", "!vitest.cross-repo.config.ts", "!tsconfig.json", "!**/*.map"],
     publishConfig: { registry: "https://npm.pkg.github.com" },
     repository: { type: "git", url: "git+https://github.com/r3e-network/neo-miniapp-sdk.git", directory: "framework" },
     dependencies: {
@@ -169,7 +176,7 @@ export function renderSdkFiles() {
     type: "module",
     main: "./components/index.ts",
     exports: { ".": "./components/index.ts", "./*": "./*" },
-    files: ["**/*.ts", "**/*.tsx", "**/*.scss", "**/*.css", "**/*.json", "!**/*.test.ts", "!**/*.test.tsx", "!test/**"],
+    files: ["**/*", "!**/*.test.ts", "!**/*.test.tsx", "!test/**", "!vitest.config.ts", "!vitest.cross-repo.config.ts", "!tsconfig.json", "!**/*.map"],
     publishConfig: { registry: "https://npm.pkg.github.com" },
     repository: { type: "git", url: "git+https://github.com/r3e-network/neo-miniapp-sdk.git", directory: "shared" },
     dependencies: {
