@@ -19,10 +19,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(from != null && from != UInt160.Zero && from.IsValid, "invalid payer");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
-            string memo = ReadPaymentMemo(data);
-            string appId = ExtractAppId(memo);
+            string appId = MiniAppCreditLedger.RequireCreditAppId(data);
             ValidateCreditAppId(appId);
-            ExecutionEngine.Assert(memo == appId + ":credit", "invalid payment memo");
             ExecutionEngine.Assert(GetBigInteger(
                 Helper.Concat((ByteString)PREFIX_APP_TYPE, (ByteString)appId)) > 0,
                 "app not registered");
@@ -58,11 +56,13 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
+            AcquireSocialLock();
             DebitGasCredit(appId, user, amount);
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, user, amount),
                 "GAS credit withdrawal failed");
             EnsureGasCreditSolvent();
+            ReleaseSocialLock();
             OnGasCreditWithdrawn(appId, user, amount);
             return amount;
         }
@@ -93,22 +93,24 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
+            AcquireSocialLock();
             DebitNeoCredit(appId, user, amount);
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, user, amount),
                 "NEO credit withdrawal failed");
             EnsureNeoCreditSolvent();
+            ReleaseSocialLock();
             OnNeoCreditWithdrawn(appId, user, amount);
             return amount;
         }
 
         private static void CreditGas(string appId, UInt160 payer, BigInteger amount)
         {
-            ByteString key = AppKey(appId, PREFIX_DIRECT_GAS_CREDIT, payer);
-            Put(key, GetBigInteger(key) + amount);
-            ByteString appLiabilityKey = AppKey(appId, PREFIX_APP_GAS_CREDIT_LIABILITY);
-            Put(appLiabilityKey, GetBigInteger(appLiabilityKey) + amount);
-            Put((ByteString)PREFIX_TOTAL_GAS_CREDIT_LIABILITY, TotalGasCreditLiability() + amount);
+            MiniAppCreditLedger.Credit(
+                AppKey(appId, PREFIX_DIRECT_GAS_CREDIT, payer),
+                AppKey(appId, PREFIX_APP_GAS_CREDIT_LIABILITY),
+                (ByteString)PREFIX_TOTAL_GAS_CREDIT_LIABILITY,
+                amount);
             EnsureGasCreditSolvent();
             OnGasCredited(appId, payer, amount);
         }
@@ -121,16 +123,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static void DebitGasCredit(string appId, UInt160 payer, BigInteger amount)
         {
-            ByteString key = AppKey(appId, PREFIX_DIRECT_GAS_CREDIT, payer);
-            BigInteger balance = GetBigInteger(key);
-            ExecutionEngine.Assert(balance >= amount, "insufficient GAS credit");
-            PutOrDelete(key, balance - amount);
-            ByteString appLiabilityKey = AppKey(appId, PREFIX_APP_GAS_CREDIT_LIABILITY);
-            BigInteger appLiability = GetBigInteger(appLiabilityKey) - amount;
-            BigInteger totalLiability = TotalGasCreditLiability() - amount;
-            ExecutionEngine.Assert(appLiability >= 0 && totalLiability >= 0, "GAS credit liability underflow");
-            PutOrDelete(appLiabilityKey, appLiability);
-            PutOrDelete((ByteString)PREFIX_TOTAL_GAS_CREDIT_LIABILITY, totalLiability);
+            MiniAppCreditLedger.Debit(
+                AppKey(appId, PREFIX_DIRECT_GAS_CREDIT, payer),
+                AppKey(appId, PREFIX_APP_GAS_CREDIT_LIABILITY),
+                (ByteString)PREFIX_TOTAL_GAS_CREDIT_LIABILITY,
+                amount);
         }
 
         private static BigInteger GetGasCreditBalance(string appId, UInt160 payer) =>
@@ -138,11 +135,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static void CreditNeo(string appId, UInt160 payer, BigInteger amount)
         {
-            ByteString key = AppKey(appId, PREFIX_DIRECT_ASSET_CREDIT, payer);
-            Put(key, GetBigInteger(key) + amount);
-            ByteString appLiabilityKey = AppKey(appId, PREFIX_APP_NEO_CREDIT_LIABILITY);
-            Put(appLiabilityKey, GetBigInteger(appLiabilityKey) + amount);
-            Put((ByteString)PREFIX_TOTAL_NEO_CREDIT_LIABILITY, TotalNeoCreditLiability() + amount);
+            MiniAppCreditLedger.Credit(
+                AppKey(appId, PREFIX_DIRECT_ASSET_CREDIT, payer),
+                AppKey(appId, PREFIX_APP_NEO_CREDIT_LIABILITY),
+                (ByteString)PREFIX_TOTAL_NEO_CREDIT_LIABILITY,
+                amount);
             EnsureNeoCreditSolvent();
             OnNeoCredited(appId, payer, amount);
         }
@@ -155,16 +152,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static void DebitNeoCredit(string appId, UInt160 payer, BigInteger amount)
         {
-            ByteString key = AppKey(appId, PREFIX_DIRECT_ASSET_CREDIT, payer);
-            BigInteger balance = GetBigInteger(key);
-            ExecutionEngine.Assert(balance >= amount, "insufficient NEO credit");
-            PutOrDelete(key, balance - amount);
-            ByteString appLiabilityKey = AppKey(appId, PREFIX_APP_NEO_CREDIT_LIABILITY);
-            BigInteger appLiability = GetBigInteger(appLiabilityKey) - amount;
-            BigInteger totalLiability = TotalNeoCreditLiability() - amount;
-            ExecutionEngine.Assert(appLiability >= 0 && totalLiability >= 0, "NEO credit liability underflow");
-            PutOrDelete(appLiabilityKey, appLiability);
-            PutOrDelete((ByteString)PREFIX_TOTAL_NEO_CREDIT_LIABILITY, totalLiability);
+            MiniAppCreditLedger.Debit(
+                AppKey(appId, PREFIX_DIRECT_ASSET_CREDIT, payer),
+                AppKey(appId, PREFIX_APP_NEO_CREDIT_LIABILITY),
+                (ByteString)PREFIX_TOTAL_NEO_CREDIT_LIABILITY,
+                amount);
         }
 
         private static BigInteger GetNeoCreditBalance(string appId, UInt160 payer) =>
@@ -184,32 +176,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 "NEO credit insolvent");
         }
 
-        private static void PutOrDelete(ByteString key, BigInteger value)
-        {
-            if (value == 0) Delete(key);
-            else Put(key, value);
-        }
-
         private static void ValidateCreditAppId(string appId)
         {
             ExecutionEngine.Assert(appId != null && appId.Length > 0 && appId.Length <= 64, "invalid appId");
         }
 
-        private static string ReadPaymentMemo(object data)
-        {
-            if (data == null) return "";
-            if (data is string text) return text ?? "";
-            if (data is ByteString byteString) return (string)byteString;
-            return "";
-        }
-
-        private static string ExtractAppId(string memo)
-        {
-            for (int index = 0; index < memo.Length; index++)
-            {
-                if (memo[index] == ':') return memo.Substring(0, index);
-            }
-            return memo;
-        }
     }
 }

@@ -12,26 +12,26 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         /// <summary>Build an app-scoped key: appId + prefix.</summary>
         private static ByteString AppKey(string appId, byte[] prefix) =>
-            Helper.Concat((ByteString)appId, (ByteString)prefix);
+            MiniAppStorageKeys.AppKeyValue(appId, prefix);
 
         /// <summary>Build an app-scoped key: appId + prefix + BigInteger id.</summary>
         private static ByteString AppKey(string appId, byte[] prefix, BigInteger id) =>
-            Helper.Concat(AppKey(appId, prefix), (ByteString)id.ToByteArray());
+            MiniAppStorageKeys.AppKeyValue(appId, prefix, id);
 
         /// <summary>Build an app-scoped key: appId + prefix + address.</summary>
         private static ByteString AppKey(string appId, byte[] prefix, UInt160 addr) =>
-            Helper.Concat(AppKey(appId, prefix), (ByteString)(byte[])addr);
+            MiniAppStorageKeys.AppKeyValue(appId, prefix, addr);
 
         private static ByteString LegacyCreditKey(byte[] prefix, UInt160 addr) =>
             Helper.Concat((ByteString)prefix, (ByteString)(byte[])addr);
 
         /// <summary>Build an app-scoped key: appId + prefix + BigInteger id + address.</summary>
         private static ByteString AppKey(string appId, byte[] prefix, BigInteger id, UInt160 addr) =>
-            Helper.Concat(AppKey(appId, prefix, id), (ByteString)(byte[])addr);
+            Helper.Concat(MiniAppStorageKeys.AppKeyValue(appId, prefix, id), (ByteString)(byte[])addr);
 
         /// <summary>Build an app-scoped key: appId + prefix + id1 + id2.</summary>
         private static ByteString AppKey(string appId, byte[] prefix, BigInteger id1, BigInteger id2) =>
-            Helper.Concat(AppKey(appId, prefix, id1), (ByteString)id2.ToByteArray());
+            Helper.Concat(MiniAppStorageKeys.AppKeyValue(appId, prefix, id1), (ByteString)id2.ToByteArray());
 
         #endregion
 

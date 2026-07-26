@@ -162,7 +162,7 @@ namespace NeoMiniAppPlatform.Contracts
             ApplyRewardDescriptor(appId, key, value);
         }
 
-        private static void RequireRegistryCaller()
+        private static new void RequireRegistryCaller()
         {
             UInt160 registry = Registry();
             ExecutionEngine.Assert(registry != UInt160.Zero && registry.IsValid, "registry not set");
@@ -171,7 +171,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         // The registry's pause view of this appId (global OR per-app) gates
         // new game starts; exits never consult it. No-op while unbound.
-        private static void RequireRegistryNotPaused(string appId)
+        private static new void RequireRegistryNotPaused(string appId)
         {
             UInt160 registry = Registry();
             if (registry == UInt160.Zero || !registry.IsValid) return;

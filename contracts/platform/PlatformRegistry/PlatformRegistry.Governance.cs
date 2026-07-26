@@ -99,6 +99,24 @@ namespace NeoMiniAppPlatform.Contracts
             UInt160 previousAdmin = AppAdminOf(appId);
             Storage.Put(Storage.CurrentContext, AppKey(PREFIX_APP_ADMIN, appId), pending.Value);
             Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_APP_ADMIN, appId));
+
+            UInt160 sharedAccount = AbstractAccountIdOf(appId);
+            if (sharedAccount != UInt160.Zero)
+            {
+                UInt160 sharedCore = AbstractAccountCoreOf(appId);
+                ExecutionEngine.Assert(sharedCore != UInt160.Zero, "abstract account core missing");
+                ByteString appBinding = Helper.Concat(
+                    (ByteString)Runtime.ExecutingScriptHash,
+                    (ByteString)appId);
+                Contract.Call(
+                    sharedCore,
+                    "rotatePlatformAccountOwner",
+                    CallFlags.All,
+                    sharedAccount,
+                    appBinding,
+                    pending.Value);
+            }
+
             UInt160 account = AccountOf(appId);
             if (account != UInt160.Zero)
             {

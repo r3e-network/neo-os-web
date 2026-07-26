@@ -240,7 +240,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger amount,
             object data)
         {
-            string memo = ReadPaymentMemo(data);
+            string memo = MiniAppCreditLedger.ReadPaymentMemo(data);
             if (!memo.StartsWith(appId + GA_INVENTORY_MEMO_SUFFIX))
             {
                 return false;

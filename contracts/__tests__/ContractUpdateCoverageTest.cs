@@ -53,6 +53,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [InlineData("PlatformGame")]
         [InlineData("PlatformRegistry")]
         [InlineData("PlatformSocial")]
+        [InlineData("PlatformVesting")]
+        [InlineData("PlatformEscrow")]
         public void PlatformContractsExposeAdminGatedUpdate(string contractName)
         {
             string code = ContractSourceAssertions.ReadSourcesInDirectory(

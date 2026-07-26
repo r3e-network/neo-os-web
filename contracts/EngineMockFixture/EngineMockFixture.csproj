@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <Compile Include="../MiniApp.DevPack/MiniAppEngineBase.cs" Link="MiniAppEngineBase.cs" />
+    <Compile Include="../MiniApp.DevPack/MiniAppStorageKeys.cs" Link="MiniAppStorageKeys.cs" />
   </ItemGroup>
 </Project>

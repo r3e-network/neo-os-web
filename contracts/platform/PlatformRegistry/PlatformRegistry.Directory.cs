@@ -152,6 +152,11 @@ namespace NeoMiniAppPlatform.Contracts
             }
         }
 
+        private static void ValidatePermissionlessAppId(string appId)
+        {
+            ExecutionEngine.Assert(!appId.StartsWith(PLATFORM_APP_ID_PREFIX), "appId reserved for platform registration");
+        }
+
         private static void ValidateEngineIdFormat(string engineId)
         {
             ExecutionEngine.Assert(

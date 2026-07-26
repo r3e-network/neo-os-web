@@ -125,6 +125,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_DIRECT_ASSET_CREDIT = new byte[] { 0x71 };
         private static readonly byte[] PREFIX_APP_GAS_CREDIT_LIABILITY = new byte[] { 0x72 };
         private static readonly byte[] PREFIX_APP_NEO_CREDIT_LIABILITY = new byte[] { 0x73 };
+        private static readonly byte[] PREFIX_REENTRANCY = new byte[] { 0x09 };
 
         // -----------------------------------------------------------------------
         // Constants (from original contracts)

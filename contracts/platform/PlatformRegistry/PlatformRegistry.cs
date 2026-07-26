@@ -107,7 +107,7 @@ namespace NeoMiniAppPlatform.Contracts
     // ContractManagement: account minting, engine existence asserts, self-update.
     [ContractPermission("0xfffdc93764dbaddd97c48f252a53ea4643faa3fd", "deploy", "getContract", "update")]
     // Dynamic targets (minted accounts + registered engines): named methods only.
-    [ContractPermission("*", "activateApp", "validateAndApplyDescriptor", "bindRegistry", "onAdminRotated", "executeTransfer", "setPaused", "update", "computePlatformAccountId", "registerPlatformAccount")]
+    [ContractPermission("*", "activateApp", "validateAndApplyDescriptor", "bindRegistry", "onAdminRotated", "executeTransfer", "setPaused", "update", "computePlatformAccountId", "registerPlatformAccount", "computeStablePlatformAccountId", "registerStablePlatformAccount", "rotatePlatformAccountOwner", "getPlatformRegistrar")]
     public partial class PlatformRegistry : SmartContract
     {
         // ---- registry core prefixes (0x01-0x0F) ----
@@ -170,6 +170,7 @@ namespace NeoMiniAppPlatform.Contracts
         private const long TIMELOCK_DELAY_MS = 86400000; // 24 hours in milliseconds
 
         private const int MAX_APP_ID_LENGTH = 64;
+        private const string PLATFORM_APP_ID_PREFIX = "miniapp-";
         private const int MAX_DESCRIPTOR_KEY_LENGTH = 128;
         private const int MAX_MANIFEST_LENGTH = 65536;
         private const uint DEFAULT_ABSTRACT_ACCOUNT_TIMELOCK_SECONDS = 2_592_000;

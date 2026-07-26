@@ -78,6 +78,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(appId != null && appId.Length > 0 && appId.Length <= 64, "invalid appId");
         }
 
+        private static void AcquireAnchorLock()
+        {
+            ByteString held = Storage.Get(Storage.CurrentContext, PREFIX_REENTRANCY);
+            ExecutionEngine.Assert(held == null || (BigInteger)held == 0, "reentrancy");
+            Storage.Put(Storage.CurrentContext, PREFIX_REENTRANCY, 1);
+        }
+
+        private static void ReleaseAnchorLock() =>
+            Storage.Delete(Storage.CurrentContext, PREFIX_REENTRANCY);
+
         private static void AccrueUserRewards(string appId, UInt160 user)
         {
             BigInteger pending = GetPendingRewardScaled(appId, user);
@@ -107,12 +117,24 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static void StakeFromCredit(string appId, UInt160 user, BigInteger amount)
         {
+            StakeFromCreditCore(appId, user, amount, false);
+        }
+
+        private static void StakeFromAppCreditCore(string appId, UInt160 user, BigInteger amount)
+        {
+            StakeFromCreditCore(appId, user, amount, true);
+        }
+
+        private static void StakeFromCreditCore(string appId, UInt160 user, BigInteger amount, bool appScoped)
+        {
             ValidateAnchorOpen(appId);
             ValidateAddress(user);
             ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
             ExecutionEngine.Assert(amount > 0, "amount must be positive");
+            AcquireAnchorLock();
 
-            ConsumeCredit(PREFIX_NEO_CREDIT, user, amount);
+            if (appScoped) ConsumeAppNeoCredit(appId, user, amount);
+            else ConsumeCredit(PREFIX_NEO_CREDIT, user, amount);
             AccrueUserRewards(appId, user);
 
             BigInteger previousStake = GetUserStake(appId, user);
@@ -126,6 +148,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(AppKey(appId, PREFIX_USER_STAKE, user), nextStake);
             Put(AppKey(appId, PREFIX_TOTAL_STAKED), nextTotal);
             Put(AppKey(appId, PREFIX_USER_REWARD_DEBT, user), nextStake * GetRewardPerNeo(appId));
+            ReleaseAnchorLock();
 
             OnAnchorStakeChanged(appId, user, nextStake, nextTotal);
         }
@@ -200,51 +223,6 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static ByteString CandidateBytes(ECPoint candidate) =>
             (ByteString)(byte[])candidate!;
-
-        private static void AddCredit(byte[] prefix, UInt160 user, BigInteger amount)
-        {
-            BigInteger existing = GetCredit(prefix, user);
-            Put(CreditKey(prefix, user), existing + amount);
-        }
-
-        private static void AddGasCredit(UInt160 user, BigInteger amount)
-        {
-            AddCredit(PREFIX_GAS_CREDIT, user, amount);
-            Put((ByteString)PREFIX_TOTAL_GAS_CREDIT, GetTotalGasCredit() + amount);
-        }
-
-        private static void ConsumeCredit(byte[] prefix, UInt160 user, BigInteger amount)
-        {
-            BigInteger existing = GetCredit(prefix, user);
-            ExecutionEngine.Assert(existing >= amount, "insufficient credit");
-            BigInteger next = existing - amount;
-            if (next == 0) Delete(CreditKey(prefix, user));
-            else Put(CreditKey(prefix, user), next);
-        }
-
-        private static void ConsumeGasCredit(UInt160 user, BigInteger amount)
-        {
-            ConsumeCredit(PREFIX_GAS_CREDIT, user, amount);
-            BigInteger total = GetTotalGasCredit();
-            ExecutionEngine.Assert(total >= amount, "gas credit reserve short");
-            BigInteger next = total - amount;
-            if (next == 0) Delete((ByteString)PREFIX_TOTAL_GAS_CREDIT);
-            else Put((ByteString)PREFIX_TOTAL_GAS_CREDIT, next);
-        }
-
-        private static BigInteger GetCredit(byte[] prefix, UInt160 user) => GetBigInteger(CreditKey(prefix, user));
-
-        private static ByteString CreditKey(byte[] prefix, UInt160 user) =>
-            Helper.Concat((ByteString)prefix, (ByteString)(byte[])user);
-
-        private static ByteString AppKey(string appId, byte[] prefix) =>
-            Helper.Concat((ByteString)appId, (ByteString)prefix);
-
-        private static ByteString AppKey(string appId, byte[] prefix, BigInteger id) =>
-            Helper.Concat(AppKey(appId, prefix), (ByteString)id.ToByteArray());
-
-        private static ByteString AppKey(string appId, byte[] prefix, UInt160 account) =>
-            Helper.Concat(AppKey(appId, prefix), (ByteString)(byte[])account);
 
         private static void Put(ByteString key, BigInteger value) =>
             Storage.Put(Storage.CurrentContext, key, value);

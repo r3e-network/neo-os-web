@@ -22,41 +22,6 @@ namespace NeoMiniAppPlatform.Contracts
         //  codebase free of manual key-building boilerplate.
         // ---------------------------------------------------------------
 
-        #region Key Builders
-
-        /// <summary>
-        /// Build a namespaced storage key: appId + prefix.
-        /// Used for singleton values per app (e.g. current round id).
-        /// </summary>
-        private static byte[] AppKey(string appId, byte[] prefix)
-        {
-            return (byte[])Helper.Concat((ByteString)appId, (ByteString)prefix);
-        }
-
-        /// <summary>
-        /// Build a namespaced storage key: appId + prefix + BigInteger id.
-        /// Used for indexed records (rounds, bets, machines, plays).
-        /// </summary>
-        private static byte[] AppKey(string appId, byte[] prefix, BigInteger id)
-        {
-            return (byte[])Helper.Concat(
-                (ByteString)AppKey(appId, prefix),
-                (ByteString)id.ToByteArray());
-        }
-
-        /// <summary>
-        /// Build a namespaced storage key: appId + prefix + UInt160 address.
-        /// Used for per-player data (keys owned, stats, credits).
-        /// </summary>
-        private static byte[] AppKey(string appId, byte[] prefix, UInt160 addr)
-        {
-            return (byte[])Helper.Concat(
-                (ByteString)AppKey(appId, prefix),
-                (ByteString)(byte[])addr);
-        }
-
-        #endregion
-
         #region Convenience Read / Write Wrappers
 
         /// <summary>Store a BigInteger value under an app-namespaced key.</summary>

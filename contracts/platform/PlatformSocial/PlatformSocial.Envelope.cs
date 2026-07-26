@@ -102,6 +102,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger amount = NextEnvelopePacketAmount(envelope, claimIndex, envelopeId, claimer);
             ExecutionEngine.Assert(amount > 0, "invalid packet amount");
 
+            AcquireSocialLock();
             // Mark claimed
             Put(grabberKey, amount);
 
@@ -121,6 +122,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 GAS.Transfer(Runtime.ExecutingScriptHash, claimer, amount),
                 "claim payout failed");
             EnsureGasCreditSolvent();
+            ReleaseSocialLock();
 
             BigInteger remaining = envelope.PacketCount - envelope.ClaimedCount;
             OnEnvelopeClaimed(appId, envelopeId, claimer, amount, remaining);
@@ -161,12 +163,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             // circuit on "envelope empty".
             envelope.RemainingAmount = 0;
             envelope.ClaimedCount = envelope.PacketCount;
+            AcquireSocialLock();
             StoreEnvelope(appId, envelopeId, envelope);
 
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, envelope.Creator, refund),
                 "refund transfer failed");
             EnsureGasCreditSolvent();
+            ReleaseSocialLock();
 
             OnEnvelopeRefunded(appId, envelopeId, envelope.Creator, refund);
             return refund;

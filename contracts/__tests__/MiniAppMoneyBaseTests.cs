@@ -83,6 +83,26 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
+        public void MoneyBase_ByteArrayMemoCreditsTheSameLedger()
+        {
+            var engine = new TestEngine(true);
+            var (nef, manifest) = Load("MiniAppMoneyBaseFixture");
+            var money = engine.Deploy<MoneyBaseFixtureContract>(nef, manifest);
+
+            var alice = TestEngine.GetNewSigner().Account;
+            Fund(engine, alice, 2 * GAS);
+
+            engine.SetTransactionSigners(alice);
+            Assert.True(engine.Native.GAS.Transfer(
+                alice,
+                money.Hash,
+                GAS,
+                System.Text.Encoding.UTF8.GetBytes(DEPOSIT_MEMO)) == true);
+
+            Assert.Equal(new BigInteger(GAS), money.creditOf(alice));
+        }
+
+        [Fact]
         public void MoneyBase_PayConsumesCreditAndMovesRealGas()
         {
             var engine = new TestEngine(true);

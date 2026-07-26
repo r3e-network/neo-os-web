@@ -60,6 +60,30 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         public static BigInteger GetTotalGasCredit() => GetBigInteger((ByteString)PREFIX_TOTAL_GAS_CREDIT);
 
         [Safe]
+        public static BigInteger GetAppCredit(string appId, UInt160 user, string asset)
+        {
+            ValidateRegistered(appId);
+            ValidateAddress(user);
+            if (asset == "NEO") return GetAppNeoCredit(appId, user);
+            if (asset == "GAS") return GetAppGasCredit(appId, user);
+            return 0;
+        }
+
+        [Safe]
+        public static BigInteger GetAppTotalNeoCredit(string appId)
+        {
+            ValidateRegistered(appId);
+            return GetBigInteger(AppKey(appId, PREFIX_APP_TOTAL_NEO_CREDIT));
+        }
+
+        [Safe]
+        public static BigInteger GetAppTotalGasCredit(string appId)
+        {
+            ValidateRegistered(appId);
+            return GetBigInteger(AppKey(appId, PREFIX_APP_TOTAL_GAS_CREDIT));
+        }
+
+        [Safe]
         public static Map<string, object> GetAgent(string appId, BigInteger agentId)
         {
             Map<string, object> result = new Map<string, object>();

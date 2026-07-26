@@ -48,7 +48,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(from is not null && from.IsValid && !from.IsZero, "invalid sender");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
             ExecutionEngine.Assert(data is not null, "memo required");
-            ExecutionEngine.Assert((string)data == expectedMemo, "invalid memo");
+            ExecutionEngine.Assert(ReadPaymentMemo(data) == expectedMemo, "invalid memo");
 
             StorageContext ctx = Storage.CurrentContext;
             byte[] key = CreditKey(from);
@@ -121,6 +121,14 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger entropy = Runtime.GetRandom();
             if (entropy < 0) entropy = -entropy;
             return entropy % bound;
+        }
+
+        private static string ReadPaymentMemo(object data)
+        {
+            if (data == null) return "";
+            if (data is string text) return text ?? "";
+            if (data is ByteString byteString) return (string)byteString;
+            return data.ToString();
         }
 
         private static byte[] CreditKey(UInt160 account) =>

@@ -157,6 +157,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 BigInteger fee = vault.Bounty * VAULT_PLATFORM_FEE_BPS / 10000;
                 BigInteger reward = vault.Bounty - fee;
 
+                AcquireSocialLock();
                 StoreVault(appId, vaultId, vault);
 
                 ExecutionEngine.Assert(
@@ -174,6 +175,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                     }
                 }
                 EnsureGasCreditSolvent();
+                ReleaseSocialLock();
 
                 OnVaultBroken(appId, vaultId, attacker, reward);
             }
@@ -239,12 +241,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             // Zero the bounty and mark expired BEFORE the transfer (CEI).
             vault.Bounty = 0;
             vault.Expired = true;
+            AcquireSocialLock();
             StoreVault(appId, vaultId, vault);
 
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, vault.Creator, refund),
                 "refund transfer failed");
             EnsureGasCreditSolvent();
+            ReleaseSocialLock();
 
             OnVaultRefunded(appId, vaultId, vault.Creator, refund);
             return refund;

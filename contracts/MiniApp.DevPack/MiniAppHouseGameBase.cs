@@ -127,7 +127,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CallingScriptHash == GAS.Hash, "only GAS accepted");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
             ExecutionEngine.Assert(data is not null, "memo required");
-            return (string)data;
+            return MiniAppCreditLedger.ReadPaymentMemo(data);
         }
         #endregion
 

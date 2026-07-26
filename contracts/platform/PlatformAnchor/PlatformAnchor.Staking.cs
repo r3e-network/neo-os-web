@@ -15,12 +15,18 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             StakeFromCredit(appId, user, amount);
         }
 
+        public static void StakeFromAppCredit(string appId, UInt160 user, BigInteger amount)
+        {
+            StakeFromAppCreditCore(appId, user, amount);
+        }
+
         public static void Withdraw(string appId, UInt160 user, BigInteger amount)
         {
             ValidateRegistered(appId);
             ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
             ValidateAddress(user);
             ExecutionEngine.Assert(amount > 0, "amount must be positive");
+            AcquireAnchorLock();
 
             AccrueUserRewards(appId, user);
             BigInteger previousStake = GetUserStake(appId, user);
@@ -40,6 +46,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 TransferStakedNeoBackToUser(appId, user, amount),
                 "NEO transfer failed");
 
+            ReleaseAnchorLock();
             OnAnchorStakeChanged(appId, user, nextStake, nextTotal);
         }
 
@@ -60,16 +67,29 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         public static void FundRewards(string appId, UInt160 funder, BigInteger amount)
         {
+            FundRewardsCore(appId, funder, amount, false);
+        }
+
+        public static void FundRewardsFromAppCredit(string appId, UInt160 funder, BigInteger amount)
+        {
+            FundRewardsCore(appId, funder, amount, true);
+        }
+
+        private static void FundRewardsCore(string appId, UInt160 funder, BigInteger amount, bool appScoped)
+        {
             ValidateAppAuthority(appId);
             ValidateAddress(funder);
             ExecutionEngine.Assert(Runtime.CheckWitness(funder), "funder witness required");
             ExecutionEngine.Assert(amount > 0, "amount must be positive");
-            ConsumeGasCredit(funder, amount);
+            AcquireAnchorLock();
+            if (appScoped) ConsumeAppGasCredit(appId, funder, amount);
+            else ConsumeGasCredit(funder, amount);
             BigInteger totalStaked = GetTotalStaked(appId);
             ExecutionEngine.Assert(totalStaked > 0, "no stake");
 
             BigInteger rewardPerNeo = DistributeRewards(appId, amount, totalStaked);
 
+            ReleaseAnchorLock();
             OnAnchorRewardsHarvested(appId, amount, rewardPerNeo);
         }
 
@@ -78,6 +98,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ValidateRegistered(appId);
             ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
             ValidateAddress(user);
+            AcquireAnchorLock();
 
             AccrueUserRewards(appId, user);
             BigInteger scaledPending = GetBigInteger(AppKey(appId, PREFIX_USER_PENDING_REWARD, user));
@@ -94,6 +115,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 TransferRewardGasToUser(appId, user, amount),
                 "GAS transfer failed");
 
+            ReleaseAnchorLock();
             OnAnchorRewardsClaimed(appId, user, amount);
         }
 
@@ -102,6 +124,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ValidateAddress(user);
             ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
             ExecutionEngine.Assert(amount > 0, "amount must be positive");
+            AcquireAnchorLock();
 
             if (asset == "NEO")
             {
@@ -109,6 +132,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 ExecutionEngine.Assert(
                     NEO.Transfer(Runtime.ExecutingScriptHash, user, amount),
                     "NEO credit transfer failed");
+                ReleaseAnchorLock();
                 return;
             }
 
@@ -118,6 +142,38 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 ExecutionEngine.Assert(
                     GAS.Transfer(Runtime.ExecutingScriptHash, user, amount),
                     "GAS credit transfer failed");
+                ReleaseAnchorLock();
+                return;
+            }
+
+            ExecutionEngine.Assert(false, "invalid asset");
+        }
+
+        public static void WithdrawAppCredit(string appId, UInt160 user, string asset, BigInteger amount)
+        {
+            ValidateRegistered(appId);
+            ValidateAddress(user);
+            ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
+            ExecutionEngine.Assert(amount > 0, "amount must be positive");
+            AcquireAnchorLock();
+
+            if (asset == "NEO")
+            {
+                ConsumeAppNeoCredit(appId, user, amount);
+                ExecutionEngine.Assert(
+                    NEO.Transfer(Runtime.ExecutingScriptHash, user, amount),
+                    "app NEO credit transfer failed");
+                ReleaseAnchorLock();
+                return;
+            }
+
+            if (asset == "GAS")
+            {
+                ConsumeAppGasCredit(appId, user, amount);
+                ExecutionEngine.Assert(
+                    GAS.Transfer(Runtime.ExecutingScriptHash, user, amount),
+                    "app GAS credit transfer failed");
+                ReleaseAnchorLock();
                 return;
             }
 
@@ -133,6 +189,23 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
             if (Runtime.CallingScriptHash == NEO.Hash)
             {
+                string appStakeId = ExtractAppMemo(data, "appstake:");
+                if (appStakeId.Length > 0)
+                {
+                    ValidateRegistered(appStakeId);
+                    AddAppNeoCredit(appStakeId, from, amount);
+                    StakeFromAppCreditCore(appStakeId, from, amount);
+                    return;
+                }
+
+                string appCreditId = ExtractAppMemo(data, "appcredit:");
+                if (appCreditId.Length > 0)
+                {
+                    ValidateRegistered(appCreditId);
+                    AddAppNeoCredit(appCreditId, from, amount);
+                    return;
+                }
+
                 AddCredit(PREFIX_NEO_CREDIT, from, amount);
                 // Auto-stake opt-in: a "stake:<appId>" string memo on the NEP-17
                 // transfer auto-stakes the deposited NEO into the named app.
@@ -169,11 +242,29 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
             if (Runtime.CallingScriptHash == GAS.Hash)
             {
+                string appCreditId = ExtractAppMemo(data, "appcredit:");
+                if (appCreditId.Length > 0)
+                {
+                    ValidateRegistered(appCreditId);
+                    AddAppGasCredit(appCreditId, from, amount);
+                    return;
+                }
+
                 AddGasCredit(from, amount);
                 return;
             }
 
             ExecutionEngine.Assert(false, "unsupported asset");
+        }
+
+        private static string ExtractAppMemo(object data, string prefix)
+        {
+            if (!(data is ByteString)) return "";
+            ByteString payload = (ByteString)data;
+            if (payload == null || payload.Length <= prefix.Length) return "";
+            string memo = (string)payload;
+            if (!memo.StartsWith(prefix)) return "";
+            return memo.Substring(prefix.Length);
         }
     }
 }

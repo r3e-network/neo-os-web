@@ -19,15 +19,6 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Direct GAS Credit Flow
 
-        /// <summary>Read the payment memo from OnNEP17Payment data.</summary>
-        private static string ReadPaymentMemo(object data)
-        {
-            if (data == null) return "";
-            if (data is string text) return text ?? "";
-            if (data is ByteString byteString) return (string)byteString;
-            return data.ToString() ?? "";
-        }
-
         /// <summary>
         /// Credit GAS to a payer's balance.
         /// Uses appId-namespaced keys so balances are per-tenant.
@@ -41,7 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
             // Validate memo format: "appId:..."
-            string memo = ReadPaymentMemo(data);
+            string memo = MiniAppCreditLedger.ReadPaymentMemo(data);
             ExecutionEngine.Assert(memo.StartsWith(appId + ":"), "invalid payment memo");
 
             // Store credit under appId + player address
@@ -163,11 +154,11 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(caller == GAS.Hash, "only GAS accepted");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
-            string memo = ReadPaymentMemo(data);
+            string memo = MiniAppCreditLedger.ReadPaymentMemo(data);
             ExecutionEngine.Assert(memo != null && memo.Length > 0, "memo required");
 
             // Extract appId (everything before the first ':')
-            string appId = ExtractAppId(memo);
+            string appId = MiniAppCreditLedger.ExtractAppId(memo);
             RequireRegistered(appId);
 
             // RewardGame tenants (gameType 5) route to their own sub-ledgers:

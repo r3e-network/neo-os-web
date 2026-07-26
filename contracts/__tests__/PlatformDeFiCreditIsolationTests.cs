@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text;
 using Neo;
 using Neo.SmartContract.Testing;
 using Xunit;
@@ -99,6 +100,21 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(new BigInteger(GAS_UNIT), world.DeFi.getDirectGasCredit(LendingA, world.Alice));
             Assert.Equal(new BigInteger(3 * GAS_UNIT), world.DeFi.getDirectGasCredit(LendingB, world.Alice));
             Assert.Equal(new BigInteger(4 * GAS_UNIT), world.DeFi.totalGasCreditLiability());
+        }
+
+        [Fact]
+        public void ByteArrayCreditMemoRoutesToTheSameTenantLedger()
+        {
+            World world = Setup();
+            world.Engine.SetTransactionSigners(world.Alice);
+            Assert.True(world.Engine.Native.GAS.Transfer(
+                world.Alice,
+                world.DeFi.Hash,
+                GAS_UNIT,
+                Encoding.UTF8.GetBytes(LendingA + ":credit")) == true);
+
+            Assert.Equal(new BigInteger(GAS_UNIT), world.DeFi.getDirectGasCredit(LendingA, world.Alice));
+            Assert.Equal(new BigInteger(GAS_UNIT), world.DeFi.gasCreditLiabilityOf(LendingA));
         }
 
         [Fact]

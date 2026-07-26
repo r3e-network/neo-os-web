@@ -84,7 +84,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger toAgentId,
             BigInteger amount)
         {
+            AcquireAnchorLock();
             TransferNeoBetweenSameAppAgents(appId, fromAgentId, toAgentId, amount);
+            ReleaseAnchorLock();
             OnAnchorAgentTransfer(appId, fromAgentId, toAgentId, amount);
         }
 
@@ -95,8 +97,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             UInt160 agentAccount = GetAgentAccount(appId, agentId);
             ExecutionEngine.Assert(HasAgentExecutionWitness(agentAccount), "agent AA witness required");
             ECPoint candidate = GetAgentCandidateAsPoint(appId, agentId);
+            AcquireAnchorLock();
             ExecutionEngine.Assert(NEO.Vote(agentAccount, candidate), "agent vote failed");
             Put(AppKey(appId, PREFIX_SELECTED_AGENT), agentId);
+            ReleaseAnchorLock();
             OnAnchorVoteChanged(appId, agentId, agentAccount, candidate);
         }
     }

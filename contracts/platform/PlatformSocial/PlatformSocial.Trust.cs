@@ -144,6 +144,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger platformFee = trust.Principal * TRUST_PLATFORM_FEE_BPS / 10000;
             BigInteger heirAmount = trust.Principal - platformFee;
 
+            AcquireSocialLock();
             trust.Active = false;
             trust.Executed = true;
             StoreTrust(appId, trustId, trust);
@@ -166,6 +167,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 }
             }
             EnsureNeoCreditSolvent();
+            ReleaseSocialLock();
 
             OnTrustExecuted(appId, trustId, trust.Heir, heirAmount);
         }
@@ -197,6 +199,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger penalty = trust.Principal * CANCEL_PENALTY_BPS / 10000;
             BigInteger refundAmount = trust.Principal - penalty;
 
+            AcquireSocialLock();
             trust.Active = false;
             trust.Cancelled = true;
             StoreTrust(appId, trustId, trust);
@@ -219,6 +222,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 }
             }
             EnsureNeoCreditSolvent();
+            ReleaseSocialLock();
 
             OnTrustCancelled(appId, trustId, trust.Owner, refundAmount);
         }
