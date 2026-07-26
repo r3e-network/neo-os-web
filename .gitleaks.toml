@@ -49,9 +49,32 @@ title = "Service Layer GitLeaks Configuration"
     tags = ["azure", "key"]
     severity = "CRITICAL"
 
-# WIF detection is still relevant, but the generic API rules above will also flag
-# suspicious keys; drop the dedicated Neo rule to reduce false positives.
-    
+# Neo private keys are the secret class this repo has actually leaked (audit
+# finding C-6, 2026-05-19). The generic rules above cannot catch them: each one
+# anchors on a keyword such as `aws`, `azure`, `api_key`, `password` or `Bearer`
+# within a few characters of the match, and a bare 52-character base58 WIF
+# carries no such keyword. These two rules are the only ones here that match on
+# shape alone, which is why they must not be removed again.
+#
+# Enforcement lives in `npm run check:repo:secret-material`, which applies the
+# same shapes with no external dependency; keep the two in step.
+[[rules]]
+    id = "neo-wif-private-key"
+    description = "Neo private key in Wallet Import Format (grants full account control)"
+    regex = '''(?:^|[^0-9A-Za-z])[KL][1-9A-HJ-NP-Za-km-z]{51}(?:[^0-9A-Za-z]|$)'''
+    tags = ["neo", "key", "wif"]
+    severity = "CRITICAL"
+    [rules.allowlist]
+        description = "Published WIF for private key 0x00..01, pinned as a conversion test vector"
+        regexes = ['''KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn''']
+
+[[rules]]
+    id = "neo-nep2-private-key"
+    description = "NEP-2 passphrase-encrypted Neo private key"
+    regex = '''(?:^|[^0-9A-Za-z])6P[1-9A-HJ-NP-Za-km-z]{56}(?:[^0-9A-Za-z]|$)'''
+    tags = ["neo", "key", "nep2"]
+    severity = "CRITICAL"
+
 [[rules]]
     id = "azure-storage-key"
     description = "Azure Storage Account Key"

@@ -15,8 +15,17 @@ export default tseslint.config(
   {
     ignores: [
       // Dependency and build output trees.
+      //
+      // These must stay in agreement with .gitignore: generated output is not
+      // source, so linting it only buries real findings under minified-bundle
+      // noise. `dist-*` covers vite's alternate --outDir targets (dist-ssr,
+      // apps/zhuada-e/dist-device-qa). The agreement is enforced by
+      // `npm run check:repo:lint-scope`, which fails if eslint reports any
+      // problem in a file git ignores — so adding a build-output path to
+      // .gitignore without adding it here breaks that gate immediately.
       "**/node_modules/**",
       "**/dist/**",
+      "**/dist-*/**",
       "**/build/**",
       "**/.next/**",
       "**/out/**",
