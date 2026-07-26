@@ -1,0 +1,51 @@
+{
+  "generated_at_utc": "2026-07-24T01:39:36.375Z",
+  "passed": true,
+  "tenant_abi_method_count": 13,
+  "framework_operation_count": 13,
+  "tenant_abi_methods": [
+    "cancelStream",
+    "claimStream",
+    "claimableOf",
+    "createStream",
+    "creditLiabilityOf",
+    "creditOf",
+    "getBeneficiaryStreams",
+    "getStreamDetails",
+    "getUserStreams",
+    "streamLiabilityOf",
+    "totalCreditLiability",
+    "totalStreams",
+    "withdrawCredit"
+  ],
+  "framework_operations": [
+    "cancelStream",
+    "claimStream",
+    "claimableOf",
+    "createStream",
+    "creditLiabilityOf",
+    "creditOf",
+    "getBeneficiaryStreams",
+    "getStreamDetails",
+    "getUserStreams",
+    "streamLiabilityOf",
+    "totalCreditLiability",
+    "totalStreams",
+    "withdrawCredit"
+  ],
+  "missing_methods": [],
+  "extra_methods": [],
+  "native_operations": [
+    "transfer"
+  ],
+  "wiring": {
+    "options_config": true,
+    "framework_surface": true,
+    "composition_root": true,
+    "scoped_write_guard": true
+  },
+  "configured_consumers": [],
+  "deployment": null,
+  "boundary": "PlatformVesting is source/build/test accepted and exposed through a guarded framework surface, but it has no retained deployment record or live binding. NeoPay remains a separate live reference until an approved deployment, registry binding, funded lifecycle, and exact read-back are proven.",
+  "chain_writes_performed": false
+}

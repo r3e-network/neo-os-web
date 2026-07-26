@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T05:21:51.527Z",
+  "generated_at_utc": "2026-07-25T15:52:53.456Z",
   "network": "neo-n3-testnet",
   "network_magic": 894710606,
   "live_evidence": "docs/reports/platform-contract-testnet-live-latest.json",
@@ -46,11 +46,11 @@
         ]
       },
       "candidate_artifact": {
-        "checksum": 2644796843
+        "checksum": 1192239435
       },
       "preflight": {
         "report": "docs/reports/platform-update-registry-preflight-latest.json",
-        "generated_at_utc": "2026-07-22T23:29:58Z",
+        "generated_at_utc": "2026-07-23T19:46:23Z",
         "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "signer_input": "public-identity",
         "dry_run": true,
@@ -62,7 +62,7 @@
       },
       "abi": {
         "previous_methods": 63,
-        "current_methods": 74,
+        "current_methods": 75,
         "added": [
           "abstractAccountCore",
           "abstractAccountCoreAvailableAt",
@@ -71,6 +71,7 @@
           "cancelSpendThresholdRaise",
           "executeSpendThresholdRaise",
           "getAppAbstractAccount",
+          "getPredictedAbstractAccount",
           "materializeAbstractAccount",
           "pendingAbstractAccountCore",
           "proposeAbstractAccountCore",
@@ -169,7 +170,7 @@
         ]
       },
       "candidate_artifact": {
-        "checksum": 334460533
+        "checksum": 1576392343
       },
       "preflight": {
         "report": "docs/reports/platform-update-shared-admin-preflight-latest.json",
@@ -185,12 +186,13 @@
       },
       "abi": {
         "previous_methods": 36,
-        "current_methods": 80,
+        "current_methods": 83,
         "added": [
           "abandonLoan",
           "activateLegacyCreditRecovery",
           "fundCapsuleYieldReserve",
           "gasCreditLiabilityOf",
+          "getActiveLoanId",
           "getCapsuleYieldReserve",
           "getDirectGasCredit",
           "getDirectNeoCredit",
@@ -200,7 +202,9 @@
           "getLegacyGasCredit",
           "getLegacyNeoCredit",
           "getLendingLiquidity",
+          "getLendingProfile",
           "getNeoGasPrice",
+          "getSingleLoanPosition",
           "getTotalAbandonedCollateral",
           "getTotalCapsuleFees",
           "getTotalLendingFees",
@@ -238,6 +242,10 @@
       "storage": {
         "prefixes": {
           "added": [
+            {
+              "name": "PREFIX_ACTIVE_LOAN",
+              "value": "0x2f"
+            },
             {
               "name": "PREFIX_APP_GAS_CREDIT_LIABILITY",
               "value": "0x19"
@@ -491,7 +499,7 @@
         ]
       },
       "candidate_artifact": {
-        "checksum": 1528462004
+        "checksum": 4069501170
       },
       "preflight": {
         "report": "docs/reports/platform-update-shared-admin-preflight-latest.json",
@@ -507,8 +515,15 @@
       },
       "abi": {
         "previous_methods": 47,
-        "current_methods": 45,
-        "added": [],
+        "current_methods": 51,
+        "added": [
+          "fundRewardsFromAppCredit",
+          "getAppCredit",
+          "getAppTotalGasCredit",
+          "getAppTotalNeoCredit",
+          "stakeFromAppCredit",
+          "withdrawAppCredit"
+        ],
         "removed": [
           "setAgentAccounts",
           "setAgentWeight"
@@ -517,7 +532,28 @@
       },
       "storage": {
         "prefixes": {
-          "added": [],
+          "added": [
+            {
+              "name": "PREFIX_APP_GAS_CREDIT",
+              "value": "0x28"
+            },
+            {
+              "name": "PREFIX_APP_NEO_CREDIT",
+              "value": "0x27"
+            },
+            {
+              "name": "PREFIX_APP_TOTAL_GAS_CREDIT",
+              "value": "0x2a"
+            },
+            {
+              "name": "PREFIX_APP_TOTAL_NEO_CREDIT",
+              "value": "0x29"
+            },
+            {
+              "name": "PREFIX_REENTRANCY",
+              "value": "0x36"
+            }
+          ],
           "removed": [
             {
               "name": "PREFIX_AGENT_WEIGHT",

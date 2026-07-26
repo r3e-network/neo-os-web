@@ -1,6 +1,7 @@
 [
   {
     "severity": "high",
+    "status": "fixed_in_source_verified",
     "area": "contracts",
     "file": "contracts/platform/PlatformRegistry/PlatformRegistry.Treasury.cs:146",
     "title": "FundEnginePool memo 'appId:credit' is rejected by the RewardGame engine — treasury→pool lane can never succeed",
@@ -9,6 +10,7 @@
   },
   {
     "severity": "high",
+    "status": "fixed_in_source_verified",
     "area": "contracts",
     "file": "contracts/platform/PlatformGame/PlatformGame.Admin.cs:25",
     "title": "PlatformGame Update() and SetOracle() are instant admin ops — settlement trust root and all future tenant pools sit behind one uncompromised-today key",
@@ -17,6 +19,7 @@
   },
   {
     "severity": "high",
+    "status": "fixed_in_source_verified",
     "area": "edge",
     "file": "platform/edge/functions/_shared/supabase.ts:199",
     "title": "requireAdminRole honors roles from user-writable user_metadata — self-service admin escalation",
@@ -25,6 +28,7 @@
   },
   {
     "severity": "medium",
+    "status": "fixed_in_source_verified",
     "area": "contracts",
     "file": "contracts/platform/PlatformRegistry/PlatformRegistry.Descriptor.cs:66",
     "title": "Spend-threshold raises are instant — the 'cumulative instant-lane bound' is effectively always the 10000 GAS max",
@@ -33,6 +37,7 @@
   },
   {
     "severity": "medium",
+    "status": "fixed_in_source_verified",
     "area": "contracts",
     "file": "contracts/platform/PlatformRegistry/PlatformRegistry.Governance.cs:120",
     "title": "Platform has no cancel/freeze lever over a rogue app's treasury lanes; shim registry-pause path is unwired dead capability",
@@ -41,6 +46,7 @@
   },
   {
     "severity": "medium",
+    "status": "fixed_in_source_verified",
     "area": "edge",
     "file": "platform/edge/functions/_shared/env.ts:13",
     "title": "isProductionEnv() defaults to NON-production — unset env markers fail open three security gates",
@@ -49,6 +55,7 @@
   },
   {
     "severity": "low",
+    "status": "fixed_in_source_verified",
     "area": "contracts",
     "file": "contracts/platform/PlatformGame/PlatformGame.RewardGame.cs:229",
     "title": "Expiring a settling game wedges the late kernel callback and leaks the request-context row",
@@ -57,6 +64,7 @@
   },
   {
     "severity": "low",
+    "status": "fixed_in_source_verified",
     "area": "contracts",
     "file": "contracts/platform/PlatformGame/PlatformGame.RewardGame.Settle.cs:73",
     "title": "OnMiniAppResult does not bind moduleId or requester",
@@ -65,6 +73,7 @@
   },
   {
     "severity": "low",
+    "status": "fixed_in_source_verified",
     "area": "contracts",
     "file": "contracts/platform/PlatformGame/PlatformGame.RewardGame.Settle.cs:173",
     "title": "Solved event fires for failed/refunded runs — phantom leaderboard rows",
@@ -73,6 +82,7 @@
   },
   {
     "severity": "low",
+    "status": "fixed_in_source_verified",
     "area": "contracts",
     "file": "contracts/platform/PlatformGame/PlatformGame.Credit.cs:160",
     "title": "Legacy-module deposits accept NEO and credit it 1:1 into the GAS ledger",
@@ -81,6 +91,7 @@
   },
   {
     "severity": "low",
+    "status": "fixed_in_source_verified",
     "area": "edge",
     "file": "platform/edge/functions/_shared/request.ts:10",
     "title": "Body-size cap only honors the Content-Length header",
@@ -89,14 +100,16 @@
   },
   {
     "severity": "low",
+    "status": "fixed_in_source_verified",
     "area": "contracts",
     "file": "contracts/platform/AppAccount/AppAccount.Spend.cs:44",
     "title": "escapeExecute comment overstates the hatch: it counters bricking, not capture",
-    "description": "The comment claims escapeExecute ensures 'a bricked or captured registry can never permanently trap the treasury' (Spend.cs:44-47). The design doc's own honesty correction (platform-contract-library-v2.md §4.1) states the opposite for capture: a captured platform admin simply does not pause (or unpauses/re-pauses — SetGlobalPaused records a fresh pausedAt each cycle, PlatformRegistry.Governance.cs:134-148), keeping the 30-day window shut while draining via registry lanes. The hatch's real guarantee is 'bricked or abandoned'. As written, the comment teaches auditors a stronger property than the code provides.",
-    "recommendation": "Reword the comment to 'bricked or abandoned registry' and point at the design section that names the captured-admin bound (24h upgrade timelock + on-chain visibility)."
+    "description": "The escapeExecute comment previously claimed the hatch protected against a captured registry. The source now states the narrower guarantee: a bricked or abandoned registry can be escaped after the global-pause window, while a captured platform admin remains a documented bound covered by the governance controls in platform-contract-library-v2.md §4.1.",
+    "recommendation": "Keep the source comment aligned with the documented captured-admin bound and revisit the governance model before broad public registration."
   },
   {
     "severity": "low",
+    "status": "mitigated_in_production_legacy_compatibility",
     "area": "edge",
     "file": "platform/edge/functions/_shared/scopes.ts:14",
     "title": "Scope-less legacy API keys bypass every scope gate",
@@ -105,10 +118,11 @@
   },
   {
     "severity": "low",
+    "status": "open_design_risk",
     "area": "contracts",
     "file": "contracts/platform/PlatformRegistry/PlatformRegistry.Registry.cs:26",
     "title": "Permissionless appId namespace permits squatting ahead of rightful operators",
-    "description": "RegisterApp is permissionless: anyone with 1 GAS of prepaid credit can claim any unregistered appId and bind an arbitrary appAdmin (Registry.cs:26-35). Platform-owned appIds not yet claimed via the pipeline lane (RegisterAppByPlatform) can be squat-registered, after which the rightful operator's registration fails with 'appId already registered' and recovery requires the platform admin's 24h rotation lane. The 1 GAS anti-spam fee prices griefing, it does not prevent it. Acknowledged by design (cohort-0 registers all 77 known apps first), recorded here so the ops sequencing is not lost.",
-    "recommendation": "Complete the cohort-0 pipeline registration of all known appIds before publicizing the permissionless lane; consider a reserved-prefix rule (e.g. 'miniapp-*' platform-claimable) in a future schema version."
+    "description": "RegisterApp remains permissionless for custom appIds, but the platform-owned miniapp-* namespace is now rejected by that lane and may only be claimed through RegisterAppByPlatform. The 1 GAS anti-spam fee still prices griefing outside the reserved namespace, so custom namespace policy remains an explicit product boundary.",
+    "recommendation": "Keep the miniapp-* prefix reserved for platform registration, complete cohort-0 registration before publicizing the lane, and document any future platform-owned namespace before adding new appIds."
   }
 ]

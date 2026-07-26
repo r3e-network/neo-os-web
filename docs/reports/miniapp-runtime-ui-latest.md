@@ -1,14 +1,14 @@
 # Miniapp Runtime UI Audit
 
-Generated: 2026-06-01T18:29:02.666Z
-Base URL: http://127.0.0.1:57140
-Catalog count: 60
+Generated: 2026-07-25T12:33:06.636Z
+Base URL: http://127.0.0.1:65334
+Catalog count: 78
 Viewports: desktop 1440x1000, mobile 390x844
-Total checks: 120
-Passed: 120
+Total checks: 156
+Passed: 156
 Failed: 0
 Warnings: 0
-Screenshots: disabled
+Screenshots: /Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots
 
 ## Checks
 
@@ -18,7 +18,7 @@ Screenshots: disabled
 - No horizontal document overflow is present at each audit viewport.
 - Script, stylesheet, image, and font requests do not return 4xx/5xx.
 - Relevant console errors and page errors fail the audit.
-- Run with `--screenshots` to capture per-miniapp viewport screenshots for human visual review.
+- Optional screenshots are captured per miniapp and viewport for human visual review.
 
 ## Failures
 
@@ -28,3 +28,166 @@ None.
 
 None.
 
+## Screenshot Index
+
+### desktop
+
+- aa-account-lab: [screenshot](miniapp-runtime-ui-screenshots/aa-account-lab-desktop-1440x1000.png)
+- aa-market-hub: [screenshot](miniapp-runtime-ui-screenshots/aa-market-hub-desktop-1440x1000.png)
+- aa-permissions-lab: [screenshot](miniapp-runtime-ui-screenshots/aa-permissions-lab-desktop-1440x1000.png)
+- aa-relay-console: [screenshot](miniapp-runtime-ui-screenshots/aa-relay-console-desktop-1440x1000.png)
+- aa-session-key-lab: [screenshot](miniapp-runtime-ui-screenshots/aa-session-key-lab-desktop-1440x1000.png)
+- aim-master: [screenshot](miniapp-runtime-ui-screenshots/aim-master-desktop-1440x1000.png)
+- arrow-escape: [screenshot](miniapp-runtime-ui-screenshots/arrow-escape-desktop-1440x1000.png)
+- asset-factory: [screenshot](miniapp-runtime-ui-screenshots/asset-factory-desktop-1440x1000.png)
+- automation-copilot: [screenshot](miniapp-runtime-ui-screenshots/automation-copilot-desktop-1440x1000.png)
+- bead-workshop: [screenshot](miniapp-runtime-ui-screenshots/bead-workshop-desktop-1440x1000.png)
+- breakup-contract: [screenshot](miniapp-runtime-ui-screenshots/breakup-contract-desktop-1440x1000.png)
+- burn-league: [screenshot](miniapp-runtime-ui-screenshots/burn-league-desktop-1440x1000.png)
+- color-clash: [screenshot](miniapp-runtime-ui-screenshots/color-clash-desktop-1440x1000.png)
+- council-governance: [screenshot](miniapp-runtime-ui-screenshots/council-governance-desktop-1440x1000.png)
+- curve-arrow: [screenshot](miniapp-runtime-ui-screenshots/curve-arrow-desktop-1440x1000.png)
+- custom-anchor: [screenshot](miniapp-runtime-ui-screenshots/custom-anchor-desktop-1440x1000.png)
+- daily-checkin: [screenshot](miniapp-runtime-ui-screenshots/daily-checkin-desktop-1440x1000.png)
+- dev-tipping: [screenshot](miniapp-runtime-ui-screenshots/dev-tipping-desktop-1440x1000.png)
+- dice-game: [screenshot](miniapp-runtime-ui-screenshots/dice-game-desktop-1440x1000.png)
+- event-ticket-pass: [screenshot](miniapp-runtime-ui-screenshots/event-ticket-pass-desktop-1440x1000.png)
+- explorer: [screenshot](miniapp-runtime-ui-screenshots/explorer-desktop-1440x1000.png)
+- flappy-dash: [screenshot](miniapp-runtime-ui-screenshots/flappy-dash-desktop-1440x1000.png)
+- flashloan: [screenshot](miniapp-runtime-ui-screenshots/flashloan-desktop-1440x1000.png)
+- fogplay: [screenshot](miniapp-runtime-ui-screenshots/fogplay-desktop-1440x1000.png)
+- forever-album: [screenshot](miniapp-runtime-ui-screenshots/forever-album-desktop-1440x1000.png)
+- fruit-funnel: [screenshot](miniapp-runtime-ui-screenshots/fruit-funnel-desktop-1440x1000.png)
+- game-2048: [screenshot](miniapp-runtime-ui-screenshots/game-2048-desktop-1440x1000.png)
+- gas-lucky-pool: [screenshot](miniapp-runtime-ui-screenshots/gas-lucky-pool-desktop-1440x1000.png)
+- gas-sponsor: [screenshot](miniapp-runtime-ui-screenshots/gas-sponsor-desktop-1440x1000.png)
+- gasbox: [screenshot](miniapp-runtime-ui-screenshots/gasbox-desktop-1440x1000.png)
+- gomoku: [screenshot](miniapp-runtime-ui-screenshots/gomoku-desktop-1440x1000.png)
+- gov-merc: [screenshot](miniapp-runtime-ui-screenshots/gov-merc-desktop-1440x1000.png)
+- graveyard: [screenshot](miniapp-runtime-ui-screenshots/graveyard-desktop-1440x1000.png)
+- jump-rush: [screenshot](miniapp-runtime-ui-screenshots/jump-rush-desktop-1440x1000.png)
+- last-survivor: [screenshot](miniapp-runtime-ui-screenshots/last-survivor-desktop-1440x1000.png)
+- memorial-shrine: [screenshot](miniapp-runtime-ui-screenshots/memorial-shrine-desktop-1440x1000.png)
+- merge-kingdom: [screenshot](miniapp-runtime-ui-screenshots/merge-kingdom-desktop-1440x1000.png)
+- milestone-escrow: [screenshot](miniapp-runtime-ui-screenshots/milestone-escrow-desktop-1440x1000.png)
+- miniapp-factory: [screenshot](miniapp-runtime-ui-screenshots/miniapp-factory-desktop-1440x1000.png)
+- neo-convert: [screenshot](miniapp-runtime-ui-screenshots/neo-convert-desktop-1440x1000.png)
+- neo-message: [screenshot](miniapp-runtime-ui-screenshots/neo-message-desktop-1440x1000.png)
+- neo-multisig: [screenshot](miniapp-runtime-ui-screenshots/neo-multisig-desktop-1440x1000.png)
+- neo-ns: [screenshot](miniapp-runtime-ui-screenshots/neo-ns-desktop-1440x1000.png)
+- neo-pay: [screenshot](miniapp-runtime-ui-screenshots/neo-pay-desktop-1440x1000.png)
+- neo-pay-shared-example: [screenshot](miniapp-runtime-ui-screenshots/neo-pay-shared-example-desktop-1440x1000.png)
+- neo-sign-anything: [screenshot](miniapp-runtime-ui-screenshots/neo-sign-anything-desktop-1440x1000.png)
+- neo-swap: [screenshot](miniapp-runtime-ui-screenshots/neo-swap-desktop-1440x1000.png)
+- neo-treasury: [screenshot](miniapp-runtime-ui-screenshots/neo-treasury-desktop-1440x1000.png)
+- neo-x-bridge: [screenshot](miniapp-runtime-ui-screenshots/neo-x-bridge-desktop-1440x1000.png)
+- neodid-passport: [screenshot](miniapp-runtime-ui-screenshots/neodid-passport-desktop-1440x1000.png)
+- nft-factory: [screenshot](miniapp-runtime-ui-screenshots/nft-factory-desktop-1440x1000.png)
+- on-chain-tarot: [screenshot](miniapp-runtime-ui-screenshots/on-chain-tarot-desktop-1440x1000.png)
+- oracle-compute-lab: [screenshot](miniapp-runtime-ui-screenshots/oracle-compute-lab-desktop-1440x1000.png)
+- oracle-http-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-http-console-desktop-1440x1000.png)
+- oracle-neodid-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-neodid-console-desktop-1440x1000.png)
+- oracle-price-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-price-console-desktop-1440x1000.png)
+- oracle-seal-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-seal-console-desktop-1440x1000.png)
+- oracle-vrf-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-vrf-console-desktop-1440x1000.png)
+- pet-potion: [screenshot](miniapp-runtime-ui-screenshots/pet-potion-desktop-1440x1000.png)
+- private-transfer: [screenshot](miniapp-runtime-ui-screenshots/private-transfer-desktop-1440x1000.png)
+- profitanchor: [screenshot](miniapp-runtime-ui-screenshots/profitanchor-desktop-1440x1000.png)
+- profitanchor-admin: [screenshot](miniapp-runtime-ui-screenshots/profitanchor-admin-desktop-1440x1000.png)
+- quadratic-funding: [screenshot](miniapp-runtime-ui-screenshots/quadratic-funding-desktop-1440x1000.png)
+- recovery-guardian: [screenshot](miniapp-runtime-ui-screenshots/recovery-guardian-desktop-1440x1000.png)
+- red-envelope: [screenshot](miniapp-runtime-ui-screenshots/red-envelope-desktop-1440x1000.png)
+- screw-sort: [screenshot](miniapp-runtime-ui-screenshots/screw-sort-desktop-1440x1000.png)
+- self-loan: [screenshot](miniapp-runtime-ui-screenshots/self-loan-desktop-1440x1000.png)
+- sheep-solitaire: [screenshot](miniapp-runtime-ui-screenshots/sheep-solitaire-desktop-1440x1000.png)
+- snake-bounty: [screenshot](miniapp-runtime-ui-screenshots/snake-bounty-desktop-1440x1000.png)
+- soulbound-certificate: [screenshot](miniapp-runtime-ui-screenshots/soulbound-certificate-desktop-1440x1000.png)
+- sudoku: [screenshot](miniapp-runtime-ui-screenshots/sudoku-desktop-1440x1000.png)
+- time-capsule: [screenshot](miniapp-runtime-ui-screenshots/time-capsule-desktop-1440x1000.png)
+- timestamp-proof: [screenshot](miniapp-runtime-ui-screenshots/timestamp-proof-desktop-1440x1000.png)
+- trustanchor: [screenshot](miniapp-runtime-ui-screenshots/trustanchor-desktop-1440x1000.png)
+- trustanchor-admin: [screenshot](miniapp-runtime-ui-screenshots/trustanchor-admin-desktop-1440x1000.png)
+- unbreakable-vault: [screenshot](miniapp-runtime-ui-screenshots/unbreakable-vault-desktop-1440x1000.png)
+- wallet-health: [screenshot](miniapp-runtime-ui-screenshots/wallet-health-desktop-1440x1000.png)
+- zhuada-e: [screenshot](miniapp-runtime-ui-screenshots/zhuada-e-desktop-1440x1000.png)
+
+### mobile
+
+- aa-account-lab: [screenshot](miniapp-runtime-ui-screenshots/aa-account-lab-mobile-390x844.png)
+- aa-market-hub: [screenshot](miniapp-runtime-ui-screenshots/aa-market-hub-mobile-390x844.png)
+- aa-permissions-lab: [screenshot](miniapp-runtime-ui-screenshots/aa-permissions-lab-mobile-390x844.png)
+- aa-relay-console: [screenshot](miniapp-runtime-ui-screenshots/aa-relay-console-mobile-390x844.png)
+- aa-session-key-lab: [screenshot](miniapp-runtime-ui-screenshots/aa-session-key-lab-mobile-390x844.png)
+- aim-master: [screenshot](miniapp-runtime-ui-screenshots/aim-master-mobile-390x844.png)
+- arrow-escape: [screenshot](miniapp-runtime-ui-screenshots/arrow-escape-mobile-390x844.png)
+- asset-factory: [screenshot](miniapp-runtime-ui-screenshots/asset-factory-mobile-390x844.png)
+- automation-copilot: [screenshot](miniapp-runtime-ui-screenshots/automation-copilot-mobile-390x844.png)
+- bead-workshop: [screenshot](miniapp-runtime-ui-screenshots/bead-workshop-mobile-390x844.png)
+- breakup-contract: [screenshot](miniapp-runtime-ui-screenshots/breakup-contract-mobile-390x844.png)
+- burn-league: [screenshot](miniapp-runtime-ui-screenshots/burn-league-mobile-390x844.png)
+- color-clash: [screenshot](miniapp-runtime-ui-screenshots/color-clash-mobile-390x844.png)
+- council-governance: [screenshot](miniapp-runtime-ui-screenshots/council-governance-mobile-390x844.png)
+- curve-arrow: [screenshot](miniapp-runtime-ui-screenshots/curve-arrow-mobile-390x844.png)
+- custom-anchor: [screenshot](miniapp-runtime-ui-screenshots/custom-anchor-mobile-390x844.png)
+- daily-checkin: [screenshot](miniapp-runtime-ui-screenshots/daily-checkin-mobile-390x844.png)
+- dev-tipping: [screenshot](miniapp-runtime-ui-screenshots/dev-tipping-mobile-390x844.png)
+- dice-game: [screenshot](miniapp-runtime-ui-screenshots/dice-game-mobile-390x844.png)
+- event-ticket-pass: [screenshot](miniapp-runtime-ui-screenshots/event-ticket-pass-mobile-390x844.png)
+- explorer: [screenshot](miniapp-runtime-ui-screenshots/explorer-mobile-390x844.png)
+- flappy-dash: [screenshot](miniapp-runtime-ui-screenshots/flappy-dash-mobile-390x844.png)
+- flashloan: [screenshot](miniapp-runtime-ui-screenshots/flashloan-mobile-390x844.png)
+- fogplay: [screenshot](miniapp-runtime-ui-screenshots/fogplay-mobile-390x844.png)
+- forever-album: [screenshot](miniapp-runtime-ui-screenshots/forever-album-mobile-390x844.png)
+- fruit-funnel: [screenshot](miniapp-runtime-ui-screenshots/fruit-funnel-mobile-390x844.png)
+- game-2048: [screenshot](miniapp-runtime-ui-screenshots/game-2048-mobile-390x844.png)
+- gas-lucky-pool: [screenshot](miniapp-runtime-ui-screenshots/gas-lucky-pool-mobile-390x844.png)
+- gas-sponsor: [screenshot](miniapp-runtime-ui-screenshots/gas-sponsor-mobile-390x844.png)
+- gasbox: [screenshot](miniapp-runtime-ui-screenshots/gasbox-mobile-390x844.png)
+- gomoku: [screenshot](miniapp-runtime-ui-screenshots/gomoku-mobile-390x844.png)
+- gov-merc: [screenshot](miniapp-runtime-ui-screenshots/gov-merc-mobile-390x844.png)
+- graveyard: [screenshot](miniapp-runtime-ui-screenshots/graveyard-mobile-390x844.png)
+- jump-rush: [screenshot](miniapp-runtime-ui-screenshots/jump-rush-mobile-390x844.png)
+- last-survivor: [screenshot](miniapp-runtime-ui-screenshots/last-survivor-mobile-390x844.png)
+- memorial-shrine: [screenshot](miniapp-runtime-ui-screenshots/memorial-shrine-mobile-390x844.png)
+- merge-kingdom: [screenshot](miniapp-runtime-ui-screenshots/merge-kingdom-mobile-390x844.png)
+- milestone-escrow: [screenshot](miniapp-runtime-ui-screenshots/milestone-escrow-mobile-390x844.png)
+- miniapp-factory: [screenshot](miniapp-runtime-ui-screenshots/miniapp-factory-mobile-390x844.png)
+- neo-convert: [screenshot](miniapp-runtime-ui-screenshots/neo-convert-mobile-390x844.png)
+- neo-message: [screenshot](miniapp-runtime-ui-screenshots/neo-message-mobile-390x844.png)
+- neo-multisig: [screenshot](miniapp-runtime-ui-screenshots/neo-multisig-mobile-390x844.png)
+- neo-ns: [screenshot](miniapp-runtime-ui-screenshots/neo-ns-mobile-390x844.png)
+- neo-pay: [screenshot](miniapp-runtime-ui-screenshots/neo-pay-mobile-390x844.png)
+- neo-pay-shared-example: [screenshot](miniapp-runtime-ui-screenshots/neo-pay-shared-example-mobile-390x844.png)
+- neo-sign-anything: [screenshot](miniapp-runtime-ui-screenshots/neo-sign-anything-mobile-390x844.png)
+- neo-swap: [screenshot](miniapp-runtime-ui-screenshots/neo-swap-mobile-390x844.png)
+- neo-treasury: [screenshot](miniapp-runtime-ui-screenshots/neo-treasury-mobile-390x844.png)
+- neo-x-bridge: [screenshot](miniapp-runtime-ui-screenshots/neo-x-bridge-mobile-390x844.png)
+- neodid-passport: [screenshot](miniapp-runtime-ui-screenshots/neodid-passport-mobile-390x844.png)
+- nft-factory: [screenshot](miniapp-runtime-ui-screenshots/nft-factory-mobile-390x844.png)
+- on-chain-tarot: [screenshot](miniapp-runtime-ui-screenshots/on-chain-tarot-mobile-390x844.png)
+- oracle-compute-lab: [screenshot](miniapp-runtime-ui-screenshots/oracle-compute-lab-mobile-390x844.png)
+- oracle-http-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-http-console-mobile-390x844.png)
+- oracle-neodid-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-neodid-console-mobile-390x844.png)
+- oracle-price-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-price-console-mobile-390x844.png)
+- oracle-seal-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-seal-console-mobile-390x844.png)
+- oracle-vrf-console: [screenshot](miniapp-runtime-ui-screenshots/oracle-vrf-console-mobile-390x844.png)
+- pet-potion: [screenshot](miniapp-runtime-ui-screenshots/pet-potion-mobile-390x844.png)
+- private-transfer: [screenshot](miniapp-runtime-ui-screenshots/private-transfer-mobile-390x844.png)
+- profitanchor: [screenshot](miniapp-runtime-ui-screenshots/profitanchor-mobile-390x844.png)
+- profitanchor-admin: [screenshot](miniapp-runtime-ui-screenshots/profitanchor-admin-mobile-390x844.png)
+- quadratic-funding: [screenshot](miniapp-runtime-ui-screenshots/quadratic-funding-mobile-390x844.png)
+- recovery-guardian: [screenshot](miniapp-runtime-ui-screenshots/recovery-guardian-mobile-390x844.png)
+- red-envelope: [screenshot](miniapp-runtime-ui-screenshots/red-envelope-mobile-390x844.png)
+- screw-sort: [screenshot](miniapp-runtime-ui-screenshots/screw-sort-mobile-390x844.png)
+- self-loan: [screenshot](miniapp-runtime-ui-screenshots/self-loan-mobile-390x844.png)
+- sheep-solitaire: [screenshot](miniapp-runtime-ui-screenshots/sheep-solitaire-mobile-390x844.png)
+- snake-bounty: [screenshot](miniapp-runtime-ui-screenshots/snake-bounty-mobile-390x844.png)
+- soulbound-certificate: [screenshot](miniapp-runtime-ui-screenshots/soulbound-certificate-mobile-390x844.png)
+- sudoku: [screenshot](miniapp-runtime-ui-screenshots/sudoku-mobile-390x844.png)
+- time-capsule: [screenshot](miniapp-runtime-ui-screenshots/time-capsule-mobile-390x844.png)
+- timestamp-proof: [screenshot](miniapp-runtime-ui-screenshots/timestamp-proof-mobile-390x844.png)
+- trustanchor: [screenshot](miniapp-runtime-ui-screenshots/trustanchor-mobile-390x844.png)
+- trustanchor-admin: [screenshot](miniapp-runtime-ui-screenshots/trustanchor-admin-mobile-390x844.png)
+- unbreakable-vault: [screenshot](miniapp-runtime-ui-screenshots/unbreakable-vault-mobile-390x844.png)
+- wallet-health: [screenshot](miniapp-runtime-ui-screenshots/wallet-health-mobile-390x844.png)
+- zhuada-e: [screenshot](miniapp-runtime-ui-screenshots/zhuada-e-mobile-390x844.png)

@@ -1,0 +1,2303 @@
+{
+  "generated_at_utc": "2026-07-24T00:19:57.601Z",
+  "network": "neo-n3-testnet",
+  "network_magic": 894710606,
+  "read_only": true,
+  "chain_writes_performed": false,
+  "write_methods_used": [],
+  "engine": {
+    "engine_id": "platform-game",
+    "expected_hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+    "contract_reads": {
+      "admin": {
+        "ok": true,
+        "error": null
+      },
+      "oracle": {
+        "ok": true,
+        "error": null
+      },
+      "abstractAccount": {
+        "ok": true,
+        "error": null
+      },
+      "registry": {
+        "ok": true,
+        "error": null
+      },
+      "isContractPaused": {
+        "ok": true,
+        "error": null
+      }
+    },
+    "values": {
+      "admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "oracle": "0x2e67d3a62d0020675fd7ba0fa0611fe4d3767a35",
+      "abstractAccount": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
+      "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+      "isContractPaused": false
+    },
+    "checks": {
+      "contract_reads_complete": true,
+      "contract_admin_readable": true,
+      "contract_oracle_readable": true,
+      "contract_abstract_account_readable": true,
+      "contract_registry_readable": true,
+      "contract_pause_readable": true,
+      "contract_not_paused": true
+    },
+    "blockers": []
+  },
+  "evidence": {
+    "absorption_manifest": "deploy/config/rewardgame-absorption-manifest.json",
+    "attachment_report": "deploy/config/engine-attach-testnet-2026-07-19.json",
+    "scope": "live PlatformGame and Registry read surfaces; no funded lifecycle or wallet proof",
+    "descriptor_namespace": "platform-game:<param>"
+  },
+  "summary": {
+    "apps_checked": 11,
+    "apps_live_state_ready": 9,
+    "apps_with_blockers": 2,
+    "descriptor_mismatch_apps": 2,
+    "descriptor_update_preflight_eligible_apps": 2,
+    "contract_state_ready": true,
+    "live_state_ready": false
+  },
+  "apps": [
+    {
+      "app_id": "miniapp-aim-master",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 9,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "60000",
+          "current": "60000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "90000",
+          "current": "90000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "120000",
+          "current": "120000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "10000",
+          "current": "10000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs1": {
+          "expected": "20000",
+          "current": "20000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs2": {
+          "expected": "30000",
+          "current": "30000",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore0": {
+          "expected": "3",
+          "current": "3",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore1": {
+          "expected": "5",
+          "current": "5",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore2": {
+          "expected": "7",
+          "current": "7",
+          "read_ok": true,
+          "matches": true
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "60000",
+            "current": "60000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "90000",
+            "current": "90000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "120000",
+            "current": "120000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "10000",
+            "current": "10000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs1": {
+            "expected": "20000",
+            "current": "20000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs2": {
+            "expected": "30000",
+            "current": "30000",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore0": {
+            "expected": "3",
+            "current": "3",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore1": {
+            "expected": "5",
+            "current": "5",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore2": {
+            "expected": "7",
+            "current": "7",
+            "read_ok": true,
+            "matches": true
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": true
+      },
+      "live_state_ready": true,
+      "blockers": [],
+      "descriptor_update_preflight": {
+        "status": "not-needed",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 0,
+        "results": [],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-color-clash",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 9,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "120000",
+          "current": "120000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "180000",
+          "current": "180000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "300000",
+          "current": "300000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "15000",
+          "current": "15000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs1": {
+          "expected": "30000",
+          "current": "30000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs2": {
+          "expected": "45000",
+          "current": "45000",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore0": {
+          "expected": "8",
+          "current": "8",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore1": {
+          "expected": "12",
+          "current": "12",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore2": {
+          "expected": "16",
+          "current": "16",
+          "read_ok": true,
+          "matches": true
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "120000",
+            "current": "120000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "180000",
+            "current": "180000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "300000",
+            "current": "300000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "15000",
+            "current": "15000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs1": {
+            "expected": "30000",
+            "current": "30000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs2": {
+            "expected": "45000",
+            "current": "45000",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore0": {
+            "expected": "8",
+            "current": "8",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore1": {
+            "expected": "12",
+            "current": "12",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore2": {
+            "expected": "16",
+            "current": "16",
+            "read_ok": true,
+            "matches": true
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": true
+      },
+      "live_state_ready": true,
+      "blockers": [],
+      "descriptor_update_preflight": {
+        "status": "not-needed",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 0,
+        "results": [],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-curve-arrow",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 9,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "180000",
+          "current": "180000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "300000",
+          "current": "300000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "600000",
+          "current": "600000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "10000",
+          "current": "10000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs1": {
+          "expected": "25000",
+          "current": "25000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs2": {
+          "expected": "45000",
+          "current": "45000",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore0": {
+          "expected": "3",
+          "current": "3",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore1": {
+          "expected": "5",
+          "current": "5",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore2": {
+          "expected": "7",
+          "current": "7",
+          "read_ok": true,
+          "matches": true
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "180000",
+            "current": "180000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "300000",
+            "current": "300000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "600000",
+            "current": "600000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "10000",
+            "current": "10000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs1": {
+            "expected": "25000",
+            "current": "25000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs2": {
+            "expected": "45000",
+            "current": "45000",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore0": {
+            "expected": "3",
+            "current": "3",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore1": {
+            "expected": "5",
+            "current": "5",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore2": {
+            "expected": "7",
+            "current": "7",
+            "read_ok": true,
+            "matches": true
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": true
+      },
+      "live_state_ready": true,
+      "blockers": [],
+      "descriptor_update_preflight": {
+        "status": "not-needed",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 0,
+        "results": [],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-flappy-dash",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 9,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "120000",
+          "current": "120000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "180000",
+          "current": "180000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "300000",
+          "current": "300000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "20000",
+          "current": "20000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs1": {
+          "expected": "30000",
+          "current": "30000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs2": {
+          "expected": "45000",
+          "current": "45000",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore0": {
+          "expected": "5",
+          "current": "5",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore1": {
+          "expected": "10",
+          "current": "10",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore2": {
+          "expected": "20",
+          "current": "20",
+          "read_ok": true,
+          "matches": true
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "120000",
+            "current": "120000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "180000",
+            "current": "180000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "300000",
+            "current": "300000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "20000",
+            "current": "20000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs1": {
+            "expected": "30000",
+            "current": "30000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs2": {
+            "expected": "45000",
+            "current": "45000",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore0": {
+            "expected": "5",
+            "current": "5",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore1": {
+            "expected": "10",
+            "current": "10",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore2": {
+            "expected": "20",
+            "current": "20",
+            "read_ok": true,
+            "matches": true
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": true
+      },
+      "live_state_ready": true,
+      "blockers": [],
+      "descriptor_update_preflight": {
+        "status": "not-needed",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 0,
+        "results": [],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-game-2048",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 9,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "240000",
+          "current": "240000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "480000",
+          "current": "480000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "900000",
+          "current": "900000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "60000",
+          "current": "60000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs1": {
+          "expected": "120000",
+          "current": "120000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs2": {
+          "expected": "240000",
+          "current": "240000",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore0": {
+          "expected": "9",
+          "current": "9",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore1": {
+          "expected": "10",
+          "current": "10",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore2": {
+          "expected": "11",
+          "current": "11",
+          "read_ok": true,
+          "matches": true
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "240000",
+            "current": "240000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "480000",
+            "current": "480000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "900000",
+            "current": "900000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "60000",
+            "current": "60000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs1": {
+            "expected": "120000",
+            "current": "120000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs2": {
+            "expected": "240000",
+            "current": "240000",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore0": {
+            "expected": "9",
+            "current": "9",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore1": {
+            "expected": "10",
+            "current": "10",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore2": {
+            "expected": "11",
+            "current": "11",
+            "read_ok": true,
+            "matches": true
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": true
+      },
+      "live_state_ready": true,
+      "blockers": [],
+      "descriptor_update_preflight": {
+        "status": "not-needed",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 0,
+        "results": [],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-jump-rush",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 0,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "180000",
+          "current": "60000",
+          "read_ok": true,
+          "matches": false
+        },
+        "limitMs1": {
+          "expected": "300000",
+          "current": "90000",
+          "read_ok": true,
+          "matches": false
+        },
+        "limitMs2": {
+          "expected": "480000",
+          "current": "120000",
+          "read_ok": true,
+          "matches": false
+        },
+        "minSolveMs0": {
+          "expected": "20000",
+          "current": "15000",
+          "read_ok": true,
+          "matches": false
+        },
+        "minSolveMs1": {
+          "expected": "40000",
+          "current": "30000",
+          "read_ok": true,
+          "matches": false
+        },
+        "minSolveMs2": {
+          "expected": "60000",
+          "current": "45000",
+          "read_ok": true,
+          "matches": false
+        },
+        "targetScore0": {
+          "expected": "15",
+          "current": "1",
+          "read_ok": true,
+          "matches": false
+        },
+        "targetScore1": {
+          "expected": "25",
+          "current": "1",
+          "read_ok": true,
+          "matches": false
+        },
+        "targetScore2": {
+          "expected": "35",
+          "current": "1",
+          "read_ok": true,
+          "matches": false
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "180000",
+            "current": "60000",
+            "read_ok": true,
+            "matches": false
+          },
+          "limitMs1": {
+            "expected": "300000",
+            "current": "90000",
+            "read_ok": true,
+            "matches": false
+          },
+          "limitMs2": {
+            "expected": "480000",
+            "current": "120000",
+            "read_ok": true,
+            "matches": false
+          },
+          "minSolveMs0": {
+            "expected": "20000",
+            "current": "15000",
+            "read_ok": true,
+            "matches": false
+          },
+          "minSolveMs1": {
+            "expected": "40000",
+            "current": "30000",
+            "read_ok": true,
+            "matches": false
+          },
+          "minSolveMs2": {
+            "expected": "60000",
+            "current": "45000",
+            "read_ok": true,
+            "matches": false
+          },
+          "targetScore0": {
+            "expected": "15",
+            "current": "1",
+            "read_ok": true,
+            "matches": false
+          },
+          "targetScore1": {
+            "expected": "25",
+            "current": "1",
+            "read_ok": true,
+            "matches": false
+          },
+          "targetScore2": {
+            "expected": "35",
+            "current": "1",
+            "read_ok": true,
+            "matches": false
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": false
+      },
+      "live_state_ready": false,
+      "blockers": [
+        "descriptor_values_match_manifest"
+      ],
+      "descriptor_update_preflight": {
+        "status": "eligible",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 9,
+        "results": [
+          {
+            "param": "limitMs0",
+            "target": "180000",
+            "state": "HALT",
+            "gasconsumed": "2299206",
+            "exception": ""
+          },
+          {
+            "param": "limitMs1",
+            "target": "300000",
+            "state": "HALT",
+            "gasconsumed": "2299243",
+            "exception": ""
+          },
+          {
+            "param": "limitMs2",
+            "target": "480000",
+            "state": "HALT",
+            "gasconsumed": "2299243",
+            "exception": ""
+          },
+          {
+            "param": "minSolveMs0",
+            "target": "20000",
+            "state": "HALT",
+            "gasconsumed": "2299498",
+            "exception": ""
+          },
+          {
+            "param": "minSolveMs1",
+            "target": "40000",
+            "state": "HALT",
+            "gasconsumed": "2301535",
+            "exception": ""
+          },
+          {
+            "param": "minSolveMs2",
+            "target": "60000",
+            "state": "HALT",
+            "gasconsumed": "2300535",
+            "exception": ""
+          },
+          {
+            "param": "targetScore0",
+            "target": "15",
+            "state": "HALT",
+            "gasconsumed": "2300370",
+            "exception": ""
+          },
+          {
+            "param": "targetScore1",
+            "target": "25",
+            "state": "HALT",
+            "gasconsumed": "2300407",
+            "exception": ""
+          },
+          {
+            "param": "targetScore2",
+            "target": "35",
+            "state": "HALT",
+            "gasconsumed": "2300407",
+            "exception": ""
+          }
+        ],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-merge-kingdom",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 9,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "180000",
+          "current": "180000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "300000",
+          "current": "300000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "600000",
+          "current": "600000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "30000",
+          "current": "30000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs1": {
+          "expected": "60000",
+          "current": "60000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs2": {
+          "expected": "120000",
+          "current": "120000",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore0": {
+          "expected": "64",
+          "current": "64",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore1": {
+          "expected": "256",
+          "current": "256",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore2": {
+          "expected": "1024",
+          "current": "1024",
+          "read_ok": true,
+          "matches": true
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "180000",
+            "current": "180000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "300000",
+            "current": "300000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "600000",
+            "current": "600000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "30000",
+            "current": "30000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs1": {
+            "expected": "60000",
+            "current": "60000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs2": {
+            "expected": "120000",
+            "current": "120000",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore0": {
+            "expected": "64",
+            "current": "64",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore1": {
+            "expected": "256",
+            "current": "256",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore2": {
+            "expected": "1024",
+            "current": "1024",
+            "read_ok": true,
+            "matches": true
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": true
+      },
+      "live_state_ready": true,
+      "blockers": [],
+      "descriptor_update_preflight": {
+        "status": "not-needed",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 0,
+        "results": [],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-pet-potion",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 9,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "180000",
+          "current": "180000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "300000",
+          "current": "300000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "600000",
+          "current": "600000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "30000",
+          "current": "30000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs1": {
+          "expected": "60000",
+          "current": "60000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs2": {
+          "expected": "120000",
+          "current": "120000",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore0": {
+          "expected": "50",
+          "current": "50",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore1": {
+          "expected": "70",
+          "current": "70",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore2": {
+          "expected": "100",
+          "current": "100",
+          "read_ok": true,
+          "matches": true
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "180000",
+            "current": "180000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "300000",
+            "current": "300000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "600000",
+            "current": "600000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "30000",
+            "current": "30000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs1": {
+            "expected": "60000",
+            "current": "60000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs2": {
+            "expected": "120000",
+            "current": "120000",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore0": {
+            "expected": "50",
+            "current": "50",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore1": {
+            "expected": "70",
+            "current": "70",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore2": {
+            "expected": "100",
+            "current": "100",
+            "read_ok": true,
+            "matches": true
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": true
+      },
+      "live_state_ready": true,
+      "blockers": [],
+      "descriptor_update_preflight": {
+        "status": "not-needed",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 0,
+        "results": [],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-sheep-solitaire",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 3,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "300000",
+          "current": "300000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "480000",
+          "current": "480000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "720000",
+          "current": "720000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "30000",
+          "current": "60000",
+          "read_ok": true,
+          "matches": false
+        },
+        "minSolveMs1": {
+          "expected": "60000",
+          "current": "120000",
+          "read_ok": true,
+          "matches": false
+        },
+        "minSolveMs2": {
+          "expected": "90000",
+          "current": "180000",
+          "read_ok": true,
+          "matches": false
+        },
+        "targetScore0": {
+          "expected": "24",
+          "current": "1",
+          "read_ok": true,
+          "matches": false
+        },
+        "targetScore1": {
+          "expected": "36",
+          "current": "1",
+          "read_ok": true,
+          "matches": false
+        },
+        "targetScore2": {
+          "expected": "45",
+          "current": "1",
+          "read_ok": true,
+          "matches": false
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "300000",
+            "current": "300000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "480000",
+            "current": "480000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "720000",
+            "current": "720000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "30000",
+            "current": "60000",
+            "read_ok": true,
+            "matches": false
+          },
+          "minSolveMs1": {
+            "expected": "60000",
+            "current": "120000",
+            "read_ok": true,
+            "matches": false
+          },
+          "minSolveMs2": {
+            "expected": "90000",
+            "current": "180000",
+            "read_ok": true,
+            "matches": false
+          },
+          "targetScore0": {
+            "expected": "24",
+            "current": "1",
+            "read_ok": true,
+            "matches": false
+          },
+          "targetScore1": {
+            "expected": "36",
+            "current": "1",
+            "read_ok": true,
+            "matches": false
+          },
+          "targetScore2": {
+            "expected": "45",
+            "current": "1",
+            "read_ok": true,
+            "matches": false
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": false
+      },
+      "live_state_ready": false,
+      "blockers": [
+        "descriptor_values_match_manifest"
+      ],
+      "descriptor_update_preflight": {
+        "status": "eligible",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 6,
+        "results": [
+          {
+            "param": "minSolveMs0",
+            "target": "30000",
+            "state": "HALT",
+            "gasconsumed": "2300458",
+            "exception": ""
+          },
+          {
+            "param": "minSolveMs1",
+            "target": "60000",
+            "state": "HALT",
+            "gasconsumed": "2301495",
+            "exception": ""
+          },
+          {
+            "param": "minSolveMs2",
+            "target": "90000",
+            "state": "HALT",
+            "gasconsumed": "2301495",
+            "exception": ""
+          },
+          {
+            "param": "targetScore0",
+            "target": "24",
+            "state": "HALT",
+            "gasconsumed": "2301330",
+            "exception": ""
+          },
+          {
+            "param": "targetScore1",
+            "target": "36",
+            "state": "HALT",
+            "gasconsumed": "2301367",
+            "exception": ""
+          },
+          {
+            "param": "targetScore2",
+            "target": "45",
+            "state": "HALT",
+            "gasconsumed": "2301367",
+            "exception": ""
+          }
+        ],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-snake-bounty",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 9,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "180000",
+          "current": "180000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "300000",
+          "current": "300000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "600000",
+          "current": "600000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "20000",
+          "current": "20000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs1": {
+          "expected": "40000",
+          "current": "40000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs2": {
+          "expected": "60000",
+          "current": "60000",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore0": {
+          "expected": "10",
+          "current": "10",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore1": {
+          "expected": "20",
+          "current": "20",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore2": {
+          "expected": "35",
+          "current": "35",
+          "read_ok": true,
+          "matches": true
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "180000",
+            "current": "180000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "300000",
+            "current": "300000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "600000",
+            "current": "600000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "20000",
+            "current": "20000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs1": {
+            "expected": "40000",
+            "current": "40000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs2": {
+            "expected": "60000",
+            "current": "60000",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore0": {
+            "expected": "10",
+            "current": "10",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore1": {
+            "expected": "20",
+            "current": "20",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore2": {
+            "expected": "35",
+            "current": "35",
+            "read_ok": true,
+            "matches": true
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": true
+      },
+      "live_state_ready": true,
+      "blockers": [],
+      "descriptor_update_preflight": {
+        "status": "not-needed",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 0,
+        "results": [],
+        "chain_writes_performed": false
+      }
+    },
+    {
+      "app_id": "miniapp-sudoku",
+      "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "descriptor_count": 9,
+      "descriptor_match_count": 9,
+      "descriptor_values": {
+        "limitMs0": {
+          "expected": "900000",
+          "current": "900000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs1": {
+          "expected": "1500000",
+          "current": "1500000",
+          "read_ok": true,
+          "matches": true
+        },
+        "limitMs2": {
+          "expected": "2400000",
+          "current": "2400000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs0": {
+          "expected": "90000",
+          "current": "90000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs1": {
+          "expected": "150000",
+          "current": "150000",
+          "read_ok": true,
+          "matches": true
+        },
+        "minSolveMs2": {
+          "expected": "240000",
+          "current": "240000",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore0": {
+          "expected": "1",
+          "current": "1",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore1": {
+          "expected": "1",
+          "current": "1",
+          "read_ok": true,
+          "matches": true
+        },
+        "targetScore2": {
+          "expected": "1",
+          "current": "1",
+          "read_ok": true,
+          "matches": true
+        }
+      },
+      "values": {
+        "game_type": "5",
+        "game_active": true,
+        "paused": false,
+        "game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "game_config": null,
+        "pool_balance": "42000000",
+        "reserved_pool": "0",
+        "free_pool": "42000000",
+        "held_for_app": "42000000",
+        "descriptors": {
+          "limitMs0": {
+            "expected": "900000",
+            "current": "900000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs1": {
+            "expected": "1500000",
+            "current": "1500000",
+            "read_ok": true,
+            "matches": true
+          },
+          "limitMs2": {
+            "expected": "2400000",
+            "current": "2400000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs0": {
+            "expected": "90000",
+            "current": "90000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs1": {
+            "expected": "150000",
+            "current": "150000",
+            "read_ok": true,
+            "matches": true
+          },
+          "minSolveMs2": {
+            "expected": "240000",
+            "current": "240000",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore0": {
+            "expected": "1",
+            "current": "1",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore1": {
+            "expected": "1",
+            "current": "1",
+            "read_ok": true,
+            "matches": true
+          },
+          "targetScore2": {
+            "expected": "1",
+            "current": "1",
+            "read_ok": true,
+            "matches": true
+          }
+        }
+      },
+      "reads": {
+        "getGameType": {
+          "ok": true,
+          "error": null
+        },
+        "isGameActive": {
+          "ok": true,
+          "error": null
+        },
+        "isPaused": {
+          "ok": true,
+          "error": null
+        },
+        "getGameAdmin": {
+          "ok": true,
+          "error": null
+        },
+        "getGameConfig": {
+          "ok": true,
+          "error": null
+        },
+        "poolBalance": {
+          "ok": true,
+          "error": null
+        },
+        "reservedPool": {
+          "ok": true,
+          "error": null
+        },
+        "freePool": {
+          "ok": true,
+          "error": null
+        },
+        "heldForApp": {
+          "ok": true,
+          "error": null
+        }
+      },
+      "checks": {
+        "attachment_status_attached": true,
+        "app_row_engine_match": true,
+        "app_row_active": true,
+        "game_type_reward_game": true,
+        "game_active": true,
+        "app_not_paused": true,
+        "game_admin_readable": true,
+        "game_admin_matches_attachment": true,
+        "game_config_readable": true,
+        "pool_values_readable": true,
+        "pool_values_nonnegative": true,
+        "pool_accounting": true,
+        "held_for_app_covers_pool": true,
+        "descriptor_reads_complete": true,
+        "descriptor_values_match_manifest": true
+      },
+      "live_state_ready": true,
+      "blockers": [],
+      "descriptor_update_preflight": {
+        "status": "not-needed",
+        "signer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "attempted": 0,
+        "results": [],
+        "chain_writes_performed": false
+      }
+    }
+  ],
+  "boundary": "This read-only audit proves current ABI reads, app registration/activation, pause state, admin identity, pool counters, and Registry descriptor values. It does not prove funded start/finalize/settle/withdraw lifecycle completion."
+}

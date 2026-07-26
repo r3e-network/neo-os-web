@@ -1,10 +1,10 @@
 # PlatformAnchor Framework Interface
 
-Generated: 2026-07-23T09:08:10.035Z
+Generated: 2026-07-24T04:12:38.866Z
 
 - Interface audit: **PASS**
-- Tenant contract ABI: 32 methods
-- Framework ABI operations: 32 methods
+- Tenant contract ABI: 38 methods
+- Framework ABI operations: 38 methods
 - Native NEO deposit operations: 1
 - Missing methods: none
 - Extra methods: none

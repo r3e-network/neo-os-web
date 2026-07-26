@@ -22,6 +22,9 @@ and OneGate-hosted dApp launches.
 - Curve Arrow sprites, logo, and banner: original in-repo vector art (layered
   SVG compositions rasterized to webp with sharp); no external asset packs.
   See `apps/curve-arrow/public/art/ATTRIBUTION.md`.
+- Gomoku board, stones, markers, and difficulty crests: original in-repo vector
+  art (layered SVG compositions rasterized to webp with sharp); no external
+  asset packs. See `apps/gomoku/public/art/ATTRIBUTION.md`.
 
 ## App Mapping
 
@@ -39,6 +42,12 @@ and OneGate-hosted dApp launches.
   sprites from `flappy-bird-assets`.
 - `game-2048`: native 2048 board styling based on the original MIT 2048 tile
   palette and board layout.
+- `gomoku`: project-authored lacquered board panel, woven table backdrop,
+  polished black and white stones, last-move ring, winning-line glow, victory
+  seal, and difficulty crests, all generated in-repo by
+  `scripts/generate-gomoku-art.mjs`. Every draw site falls back to the scene's
+  vector primitives when a texture is unavailable. See
+  `apps/gomoku/public/art/ATTRIBUTION.md`.
 - `jump-rush`: platformer level scene using Kenney Platformer Art assets.
 - `merge-kingdom`: project-authored 12-stage building set generated for this
   app with OpenAI image generation. See

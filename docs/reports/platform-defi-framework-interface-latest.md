@@ -1,6 +1,6 @@
 # PlatformDeFi Framework Interface
 
-Generated: 2026-07-23T09:08:10.136Z
+Generated: 2026-07-23T21:51:48.548Z
 
 - Interface audit: **PASS**
 - Tenant contract ABI: 58 methods

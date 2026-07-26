@@ -1,6 +1,6 @@
 # Platform Contract Upgrade Readiness
 
-Generated: 2026-07-23T05:21:51.527Z
+Generated: 2026-07-25T15:52:53.456Z
 
 ## Summary
 
@@ -23,10 +23,10 @@ Generated: 2026-07-23T05:21:51.527Z
 
 | Order | Contract | Deployed revision | ABI delta | Storage delta | Route | Readiness |
 | ---: | --- | --- | --- | --- | --- | --- |
-| 1 | PlatformRegistry | 960d43f67e55 | +11/-0 (additive-or-equal) | prefix +8/-0/~0; records ~0; keys ~0 (additive-or-unchanged) | timelocked-in-place-update | staged-update-candidate |
-| 2 | PlatformDeFi | 5e4d20cdc65f | +44/-0 (additive-or-equal) | prefix +20/-0/~0; records ~0; keys ~2 (breaking-key-schema-change) | direct-in-place-update | legacy-credit-recovery-bridge-review-required |
+| 1 | PlatformRegistry | 960d43f67e55 | +12/-0 (additive-or-equal) | prefix +8/-0/~0; records ~0; keys ~0 (additive-or-unchanged) | timelocked-in-place-update | staged-update-candidate |
+| 2 | PlatformDeFi | 5e4d20cdc65f | +47/-0 (additive-or-equal) | prefix +21/-0/~0; records ~0; keys ~2 (breaking-key-schema-change) | direct-in-place-update | legacy-credit-recovery-bridge-review-required |
 | 3 | MiniAppFactory | 16e6fa6abb6e | +1/-0 (additive-or-equal) | prefix +0/-0/~0; records ~0; keys ~0 (additive-or-unchanged) | direct-in-place-update | live-abi-and-lifecycle-certification-required |
-| 4 | PlatformAnchor | 15873071cf47 | +0/-2 (breaking-removals) | prefix +0/-1/~0; records ~0; keys ~0 (review-orphaned-prefixes) | direct-in-place-update | abi-deprecation-decision-required |
+| 4 | PlatformAnchor | 15873071cf47 | +6/-2 (breaking-removals) | prefix +5/-1/~0; records ~0; keys ~0 (review-orphaned-prefixes) | direct-in-place-update | abi-deprecation-decision-required |
 
 ## Contract Gates
 
@@ -34,9 +34,9 @@ Generated: 2026-07-23T05:21:51.527Z
 
 - Admin: 0x13ef519c362973f9a34648a9eac5b71250b2a80a
 - Deployed checksum: 372915605
-- Candidate checksum: 2644796843
+- Candidate checksum: 1192239435
 - Exact preflight: scheduleUpdate HALT, gas 560736, transactions 0
-- ABI added: abstractAccountCore, abstractAccountCoreAvailableAt, appIdOfAbstractAccount, cancelAbstractAccountCore, cancelSpendThresholdRaise, executeSpendThresholdRaise, getAppAbstractAccount, materializeAbstractAccount, pendingAbstractAccountCore, proposeAbstractAccountCore, setAbstractAccountCore
+- ABI added: abstractAccountCore, abstractAccountCoreAvailableAt, appIdOfAbstractAccount, cancelAbstractAccountCore, cancelSpendThresholdRaise, executeSpendThresholdRaise, getAppAbstractAccount, getPredictedAbstractAccount, materializeAbstractAccount, pendingAbstractAccountCore, proposeAbstractAccountCore, setAbstractAccountCore
 - ABI removed: none
 - Added storage prefixes: PREFIX_ABSTRACT_ACCOUNT_CORE, PREFIX_ABSTRACT_ACCOUNT_CORE_ETA, PREFIX_APP_ABSTRACT_ACCOUNT_CORE, PREFIX_APP_ABSTRACT_ACCOUNT_ID, PREFIX_APP_ID_BY_ABSTRACT_ACCOUNT, PREFIX_PENDING_ABSTRACT_ACCOUNT_CORE, PREFIX_PENDING_THRESHOLD_ETA, PREFIX_PENDING_THRESHOLD_VALUE
 - Removed storage prefixes: none
@@ -49,11 +49,11 @@ Generated: 2026-07-23T05:21:51.527Z
 
 - Admin: 0x6d0656f6dd91469db1c90cc1e574380613f43738
 - Deployed checksum: 3687605410
-- Candidate checksum: 334460533
+- Candidate checksum: 1576392343
 - Exact preflight: update HALT, gas 29132042, transactions 0
-- ABI added: abandonLoan, activateLegacyCreditRecovery, fundCapsuleYieldReserve, gasCreditLiabilityOf, getCapsuleYieldReserve, getDirectGasCredit, getDirectNeoCredit, getFlashProviderBalance, getFlashTotalLpDeposits, getLastPriceDropTime, getLegacyGasCredit, getLegacyNeoCredit, getLendingLiquidity, getNeoGasPrice, getTotalAbandonedCollateral, getTotalCapsuleFees, getTotalLendingFees, getUnclaimedFlashLoanFees, initializeLegacyCreditRecovery, isLiquidatable, legacyCreditRecoveryState, legacyCreditSnapshotHash, legacyGasCreditLiability, legacyGasCreditRows, legacyNeoCreditLiability, legacyNeoCreditRows, lendingDeposit, liquidateLoan, migrateFlashProviderBalance, neoCreditLiabilityOf, setNeoGasPrice, totalGasCreditLiability, totalNeoCreditLiability, withdrawAbandonedCollateral, withdrawCapsuleFees, withdrawCapsulePenalties, withdrawCapsuleYieldReserve, withdrawFlashLoanFees, withdrawGasCredit, withdrawLegacyGasCredit, withdrawLegacyNeoCredit, withdrawLendingFees, withdrawLendingLiquidity, withdrawNeoCredit
+- ABI added: abandonLoan, activateLegacyCreditRecovery, fundCapsuleYieldReserve, gasCreditLiabilityOf, getActiveLoanId, getCapsuleYieldReserve, getDirectGasCredit, getDirectNeoCredit, getFlashProviderBalance, getFlashTotalLpDeposits, getLastPriceDropTime, getLegacyGasCredit, getLegacyNeoCredit, getLendingLiquidity, getLendingProfile, getNeoGasPrice, getSingleLoanPosition, getTotalAbandonedCollateral, getTotalCapsuleFees, getTotalLendingFees, getUnclaimedFlashLoanFees, initializeLegacyCreditRecovery, isLiquidatable, legacyCreditRecoveryState, legacyCreditSnapshotHash, legacyGasCreditLiability, legacyGasCreditRows, legacyNeoCreditLiability, legacyNeoCreditRows, lendingDeposit, liquidateLoan, migrateFlashProviderBalance, neoCreditLiabilityOf, setNeoGasPrice, totalGasCreditLiability, totalNeoCreditLiability, withdrawAbandonedCollateral, withdrawCapsuleFees, withdrawCapsulePenalties, withdrawCapsuleYieldReserve, withdrawFlashLoanFees, withdrawGasCredit, withdrawLegacyGasCredit, withdrawLegacyNeoCredit, withdrawLendingFees, withdrawLendingLiquidity, withdrawNeoCredit
 - ABI removed: none
-- Added storage prefixes: PREFIX_APP_GAS_CREDIT_LIABILITY, PREFIX_APP_NEO_CREDIT_LIABILITY, PREFIX_CAPSULE_GAS_RESERVE, PREFIX_FLASH_PROVIDER_BAL, PREFIX_FLASH_TOTAL_LP_DEPOSITS, PREFIX_LEGACY_CREDIT_RECOVERY_STATE, PREFIX_LEGACY_CREDIT_SNAPSHOT_HASH, PREFIX_LEGACY_GAS_CREDIT_LIABILITY, PREFIX_LEGACY_GAS_CREDIT_ROWS, PREFIX_LEGACY_NEO_CREDIT_LIABILITY, PREFIX_LEGACY_NEO_CREDIT_ROWS, PREFIX_LENDING_GAS_LIQUIDITY, PREFIX_NEO_GAS_PRICE, PREFIX_NEO_GAS_PRICE_TIME, PREFIX_PRICE_DROP_TIME, PREFIX_TOTAL_ABANDONED_COLLATERAL, PREFIX_TOTAL_CAPSULE_FEES, PREFIX_TOTAL_GAS_CREDIT_LIABILITY, PREFIX_TOTAL_LENDING_FEES, PREFIX_TOTAL_NEO_CREDIT_LIABILITY
+- Added storage prefixes: PREFIX_ACTIVE_LOAN, PREFIX_APP_GAS_CREDIT_LIABILITY, PREFIX_APP_NEO_CREDIT_LIABILITY, PREFIX_CAPSULE_GAS_RESERVE, PREFIX_FLASH_PROVIDER_BAL, PREFIX_FLASH_TOTAL_LP_DEPOSITS, PREFIX_LEGACY_CREDIT_RECOVERY_STATE, PREFIX_LEGACY_CREDIT_SNAPSHOT_HASH, PREFIX_LEGACY_GAS_CREDIT_LIABILITY, PREFIX_LEGACY_GAS_CREDIT_ROWS, PREFIX_LEGACY_NEO_CREDIT_LIABILITY, PREFIX_LEGACY_NEO_CREDIT_ROWS, PREFIX_LENDING_GAS_LIQUIDITY, PREFIX_NEO_GAS_PRICE, PREFIX_NEO_GAS_PRICE_TIME, PREFIX_PRICE_DROP_TIME, PREFIX_TOTAL_ABANDONED_COLLATERAL, PREFIX_TOTAL_CAPSULE_FEES, PREFIX_TOTAL_GAS_CREDIT_LIABILITY, PREFIX_TOTAL_LENDING_FEES, PREFIX_TOTAL_NEO_CREDIT_LIABILITY
 - Removed storage prefixes: none
 - Changed storage-key schemas: PREFIX_NEO_CREDIT payer Hash160 -> appId + payer Hash160 (an existing payer-only NEO credit cannot be assigned to a tenant deterministically); PREFIX_GAS_CREDIT payer Hash160 -> appId + payer Hash160 (an existing payer-only GAS credit cannot be assigned to a tenant deterministically)
 - Live storage snapshot: docs/reports/platform-defi-legacy-credit-snapshot-latest.json, block count 17924995, legacy rows 3, status blocked-nonempty-and-underbacked, transactions 0
@@ -79,11 +79,11 @@ Generated: 2026-07-23T05:21:51.527Z
 
 - Admin: 0x6d0656f6dd91469db1c90cc1e574380613f43738
 - Deployed checksum: 1604090204
-- Candidate checksum: 1528462004
+- Candidate checksum: 4069501170
 - Exact preflight: update HALT, gas 14953972, transactions 0
-- ABI added: none
+- ABI added: fundRewardsFromAppCredit, getAppCredit, getAppTotalGasCredit, getAppTotalNeoCredit, stakeFromAppCredit, withdrawAppCredit
 - ABI removed: setAgentAccounts, setAgentWeight
-- Added storage prefixes: none
+- Added storage prefixes: PREFIX_APP_GAS_CREDIT, PREFIX_APP_NEO_CREDIT, PREFIX_APP_TOTAL_GAS_CREDIT, PREFIX_APP_TOTAL_NEO_CREDIT, PREFIX_REENTRANCY
 - Removed storage prefixes: PREFIX_AGENT_WEIGHT
 - Changed storage-key schemas: none
 - Live storage snapshot: none

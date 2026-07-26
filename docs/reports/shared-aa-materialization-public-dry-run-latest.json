@@ -1,0 +1,436 @@
+{
+  "action": "cohort0-materialize-abstract-accounts",
+  "status": "blocked",
+  "error": "PlatformRegistry upgrade required before shared abstract-account materialization: abstractAccountCore fault: at instruction 45 (SYSCALL): System.Contract.Call failed: method not found: abstractAccountCore/0",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "signer_input": "public-identity",
+  "dry_run": true,
+  "chain_writes_performed": false,
+  "platform_registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "roster_source": "apps/*/neo-manifest.json",
+  "summary": {
+    "roster_total": 77,
+    "filtered_out": 0,
+    "invalid": 0,
+    "already_registered": 0,
+    "newly_registered": 0,
+    "planned_registrations": 0,
+    "failed": 0,
+    "pending": 77,
+    "directory_rows_confirmed": 0,
+    "directory_rows_after_run": 0,
+    "active_rows": 0,
+    "engine_attached_rows": 0,
+    "materialized_accounts": 0,
+    "accounts_already_materialized": 0,
+    "accounts_planned": 0,
+    "accounts_newly_materialized": 0,
+    "account_round_trips_verified": 0,
+    "unique_account_hashes": 0,
+    "duplicate_account_hashes": 0,
+    "total_credit_top_up_gas": "0.00000000",
+    "estimated_tx_fees_gas": "23.10000000",
+    "estimated_mint_system_fee_gas": "0.00000000"
+  },
+  "apps": [
+    {
+      "app_id": "miniapp-aa-account-lab",
+      "status": "pending",
+      "source": "apps/aa-account-lab/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-aa-market-hub",
+      "status": "pending",
+      "source": "apps/aa-market-hub/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-aa-permissions-lab",
+      "status": "pending",
+      "source": "apps/aa-permissions-lab/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-aa-relay-console",
+      "status": "pending",
+      "source": "apps/aa-relay-console/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-aa-session-key-lab",
+      "status": "pending",
+      "source": "apps/aa-session-key-lab/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-aim-master",
+      "status": "pending",
+      "source": "apps/aim-master/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-arrow-escape",
+      "status": "pending",
+      "source": "apps/arrow-escape/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-asset-factory",
+      "status": "pending",
+      "source": "apps/asset-factory/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-automation-copilot",
+      "status": "pending",
+      "source": "apps/automation-copilot/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-bead-workshop",
+      "status": "pending",
+      "source": "apps/bead-workshop/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-breakupcontract",
+      "status": "pending",
+      "source": "apps/breakup-contract/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-burn-league",
+      "status": "pending",
+      "source": "apps/burn-league/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-color-clash",
+      "status": "pending",
+      "source": "apps/color-clash/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-council-governance",
+      "status": "pending",
+      "source": "apps/council-governance/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-curve-arrow",
+      "status": "pending",
+      "source": "apps/curve-arrow/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-custom-anchor",
+      "status": "pending",
+      "source": "apps/custom-anchor/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-dailycheckin",
+      "status": "pending",
+      "source": "apps/daily-checkin/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-dev-tipping",
+      "status": "pending",
+      "source": "apps/dev-tipping/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-dice-game",
+      "status": "pending",
+      "source": "apps/dice-game/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-event-ticket-pass",
+      "status": "pending",
+      "source": "apps/event-ticket-pass/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-explorer",
+      "status": "pending",
+      "source": "apps/explorer/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-flappy-dash",
+      "status": "pending",
+      "source": "apps/flappy-dash/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-flashloan",
+      "status": "pending",
+      "source": "apps/flashloan/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-fogplay",
+      "status": "pending",
+      "source": "apps/fogplay/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-forever-album",
+      "status": "pending",
+      "source": "apps/forever-album/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-fruit-funnel",
+      "status": "pending",
+      "source": "apps/fruit-funnel/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-game-2048",
+      "status": "pending",
+      "source": "apps/game-2048/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-gas-lucky-pool",
+      "status": "pending",
+      "source": "apps/gas-lucky-pool/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-gas-sponsor",
+      "status": "pending",
+      "source": "apps/gas-sponsor/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-gasbox",
+      "status": "pending",
+      "source": "apps/gasbox/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-gov-merc",
+      "status": "pending",
+      "source": "apps/gov-merc/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-graveyard",
+      "status": "pending",
+      "source": "apps/graveyard/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-jump-rush",
+      "status": "pending",
+      "source": "apps/jump-rush/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-last-survivor",
+      "status": "pending",
+      "source": "apps/last-survivor/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-memorial-shrine",
+      "status": "pending",
+      "source": "apps/memorial-shrine/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-merge-kingdom",
+      "status": "pending",
+      "source": "apps/merge-kingdom/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-milestone-escrow",
+      "status": "pending",
+      "source": "apps/milestone-escrow/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-miniapp-factory",
+      "status": "pending",
+      "source": "apps/miniapp-factory/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-convert",
+      "status": "pending",
+      "source": "apps/neo-convert/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-message",
+      "status": "pending",
+      "source": "apps/neo-message/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-multisig",
+      "status": "pending",
+      "source": "apps/neo-multisig/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-ns",
+      "status": "pending",
+      "source": "apps/neo-ns/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-pay-shared-example",
+      "status": "pending",
+      "source": "apps/neo-pay-shared-example/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-pay",
+      "status": "pending",
+      "source": "apps/neo-pay/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-sign-anything",
+      "status": "pending",
+      "source": "apps/neo-sign-anything/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-swap",
+      "status": "pending",
+      "source": "apps/neo-swap/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-treasury",
+      "status": "pending",
+      "source": "apps/neo-treasury/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neo-x-bridge",
+      "status": "pending",
+      "source": "apps/neo-x-bridge/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-neodid-passport",
+      "status": "pending",
+      "source": "apps/neodid-passport/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-nft-factory",
+      "status": "pending",
+      "source": "apps/nft-factory/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-onchaintarot",
+      "status": "pending",
+      "source": "apps/on-chain-tarot/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-oracle-compute-lab",
+      "status": "pending",
+      "source": "apps/oracle-compute-lab/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-oracle-http-console",
+      "status": "pending",
+      "source": "apps/oracle-http-console/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-oracle-neodid-console",
+      "status": "pending",
+      "source": "apps/oracle-neodid-console/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-oracle-price-console",
+      "status": "pending",
+      "source": "apps/oracle-price-console/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-oracle-seal-console",
+      "status": "pending",
+      "source": "apps/oracle-seal-console/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-oracle-vrf-console",
+      "status": "pending",
+      "source": "apps/oracle-vrf-console/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-pet-potion",
+      "status": "pending",
+      "source": "apps/pet-potion/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-private-transfer",
+      "status": "pending",
+      "source": "apps/private-transfer/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-profitanchor-admin",
+      "status": "pending",
+      "source": "apps/profitanchor-admin/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-profitanchor",
+      "status": "pending",
+      "source": "apps/profitanchor/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-quadratic-funding",
+      "status": "pending",
+      "source": "apps/quadratic-funding/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-recovery-guardian",
+      "status": "pending",
+      "source": "apps/recovery-guardian/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-redenvelope",
+      "status": "pending",
+      "source": "apps/red-envelope/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-screw-sort",
+      "status": "pending",
+      "source": "apps/screw-sort/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-self-loan",
+      "status": "pending",
+      "source": "apps/self-loan/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-sheep-solitaire",
+      "status": "pending",
+      "source": "apps/sheep-solitaire/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-snake-bounty",
+      "status": "pending",
+      "source": "apps/snake-bounty/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-soulbound-certificate",
+      "status": "pending",
+      "source": "apps/soulbound-certificate/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-sudoku",
+      "status": "pending",
+      "source": "apps/sudoku/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-time-capsule",
+      "status": "pending",
+      "source": "apps/time-capsule/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-timestamp-proof",
+      "status": "pending",
+      "source": "apps/timestamp-proof/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-trustanchor-admin",
+      "status": "pending",
+      "source": "apps/trustanchor-admin/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-trustanchor",
+      "status": "pending",
+      "source": "apps/trustanchor/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-unbreakablevault",
+      "status": "pending",
+      "source": "apps/unbreakable-vault/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-wallet-health",
+      "status": "pending",
+      "source": "apps/wallet-health/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-zhuada-e",
+      "status": "pending",
+      "source": "apps/zhuada-e/neo-manifest.json"
+    }
+  ],
+  "transactions": [],
+  "balances": {
+    "gas": "113243.78736487",
+    "neo": "73061"
+  },
+  "next_steps": [
+    "Upgrade and verify PlatformRegistry and UnifiedSmartWalletV3 before retrying shared-account materialization.",
+    "Re-run this dry-run and review the persisted roster, predictions, and reverse-index gates before any write authorization."
+  ],
+  "generated_at_utc": "2026-07-23T21:45:36Z"
+}

@@ -83,6 +83,21 @@ Optional but recommended when AA integration is needed:
 
 ## OS Contract Development (MiniApp-OS v2)
 
+### Legacy game-clone recovery lane
+
+The 11 historical `MiniApp*` game contracts remain available for drain and
+rollback recovery, but they are excluded from the default selected-contract
+deployment list. Their manifests are intentionally not updated by the recovery
+lane. Only use the explicit opt-in after reviewing the app's drain state:
+
+```bash
+MINIAPP_DEPLOY_INCLUDE_LEGACY_CLONES=1 \
+  npm run -s test:miniapp-deploy-dryrun
+```
+
+This opt-in is a recovery boundary, not evidence that a standalone game
+contract is active; active game manifests use the shared `platform-game` route.
+
 ### Building OS Contracts
 
 The 10 OS service contracts live under `contracts/os-*/`:
@@ -94,9 +109,16 @@ dotnet build contracts/os-storage/
 dotnet build contracts/os-payment/
 dotnet build contracts/os-game/
 
-# Build all contracts (including OS)
+# Build active platform contracts (legacy game clones are excluded)
 ./contracts/build.sh
+
+# Include the retained legacy game contracts for recovery or their test suite
+BUILD_LEGACY_CLONES=1 ./contracts/build.sh
 ```
+
+The build script also sources `scripts/dotnet_env.sh` so the `nccs` apphost
+can find Homebrew or user-local .NET installations without a manual
+`DOTNET_ROOT` export.
 
 ### OS Contract Hashes
 

@@ -1,0 +1,1034 @@
+{
+  "action": "engine-attach",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "dry_run": true,
+  "chain_writes_performed": false,
+  "platform_registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "engine_id": "platform-game",
+  "engine_hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+  "engine_active": true,
+  "manifest_path": "deploy/config/rewardgame-absorption-manifest.json",
+  "summary": {
+    "manifest_total": 11,
+    "invalid": 0,
+    "attached": 0,
+    "skipped_existing": 11,
+    "planned_attaches": 0,
+    "not_ready": 0,
+    "failed": 0,
+    "descriptors_set": 0,
+    "descriptors_planned": 15,
+    "descriptors_skipped_present": 84,
+    "descriptors_failed": 0,
+    "estimated_tx_fees_gas": "4.50000000"
+  },
+  "apps": [
+    {
+      "app_id": "miniapp-aim-master",
+      "contract": "MiniAppAimMaster",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 60000,
+          "current": "60000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 90000,
+          "current": "90000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 120000,
+          "current": "120000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 10000,
+          "current": "10000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 20000,
+          "current": "20000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 30000,
+          "current": "30000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 3,
+          "current": "3",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 5,
+          "current": "5",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 7,
+          "current": "7",
+          "status": "skipped-present",
+          "reason": "already at target"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-color-clash",
+      "contract": "MiniAppColorClash",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 120000,
+          "current": "120000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 180000,
+          "current": "180000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 300000,
+          "current": "300000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 15000,
+          "current": "15000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 30000,
+          "current": "30000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "current": "45000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 8,
+          "current": "8",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 12,
+          "current": "12",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 16,
+          "current": "16",
+          "status": "skipped-present",
+          "reason": "already at target"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-curve-arrow",
+      "contract": "MiniAppCurveArrow",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "current": "180000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "current": "300000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "current": "600000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 10000,
+          "current": "10000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 25000,
+          "current": "25000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "current": "45000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 3,
+          "current": "3",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 5,
+          "current": "5",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 7,
+          "current": "7",
+          "status": "skipped-present",
+          "reason": "already at target"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-flappy-dash",
+      "contract": "MiniAppFlappyDash",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 120000,
+          "current": "120000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 180000,
+          "current": "180000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 300000,
+          "current": "300000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 20000,
+          "current": "20000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 30000,
+          "current": "30000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "current": "45000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 5,
+          "current": "5",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 10,
+          "current": "10",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 20,
+          "current": "20",
+          "status": "skipped-present",
+          "reason": "already at target"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-game-2048",
+      "contract": "MiniAppGame2048",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 240000,
+          "current": "240000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 480000,
+          "current": "480000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 900000,
+          "current": "900000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 60000,
+          "current": "60000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 120000,
+          "current": "120000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 240000,
+          "current": "240000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 9,
+          "current": "9",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 10,
+          "current": "10",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 11,
+          "current": "11",
+          "status": "skipped-present",
+          "reason": "already at target"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-jump-rush",
+      "contract": "MiniAppJumpRush",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "current": "60000",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "current": "90000",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 480000,
+          "current": "120000",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 20000,
+          "current": "15000",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 40000,
+          "current": "30000",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 60000,
+          "current": "45000",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 15,
+          "current": "1",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 25,
+          "current": "1",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 35,
+          "current": "1",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-merge-kingdom",
+      "contract": "MiniAppMergeKingdom",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "current": "180000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "current": "300000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "current": "600000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 30000,
+          "current": "30000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 60000,
+          "current": "60000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 120000,
+          "current": "120000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 64,
+          "current": "64",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 256,
+          "current": "256",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1024,
+          "current": "1024",
+          "status": "skipped-present",
+          "reason": "already at target"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-pet-potion",
+      "contract": "MiniAppPetPotion",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "current": "180000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "current": "300000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "current": "600000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 30000,
+          "current": "30000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 60000,
+          "current": "60000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 120000,
+          "current": "120000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 50,
+          "current": "50",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 70,
+          "current": "70",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 100,
+          "current": "100",
+          "status": "skipped-present",
+          "reason": "already at target"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-sheep-solitaire",
+      "contract": "MiniAppSheepSolitaire",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 300000,
+          "current": "300000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 480000,
+          "current": "480000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 720000,
+          "current": "720000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 30000,
+          "current": "60000",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 60000,
+          "current": "120000",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 90000,
+          "current": "180000",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 24,
+          "current": "1",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 36,
+          "current": "1",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 45,
+          "current": "1",
+          "status": "planned",
+          "reason": "setDescriptor simulation HALT (eligible)"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-snake-bounty",
+      "contract": "MiniAppSnakeBounty",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "current": "180000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "current": "300000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "current": "600000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 20000,
+          "current": "20000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 40000,
+          "current": "40000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 60000,
+          "current": "60000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 10,
+          "current": "10",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 20,
+          "current": "20",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 35,
+          "current": "35",
+          "status": "skipped-present",
+          "reason": "already at target"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-sudoku",
+      "contract": "MiniAppSudoku",
+      "status": "skipped-existing",
+      "reason": "engine already attached",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 900000,
+          "current": "900000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 1500000,
+          "current": "1500000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 2400000,
+          "current": "2400000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 90000,
+          "current": "90000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 150000,
+          "current": "150000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 240000,
+          "current": "240000",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 1,
+          "current": "1",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 1,
+          "current": "1",
+          "status": "skipped-present",
+          "reason": "already at target"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1,
+          "current": "1",
+          "status": "skipped-present",
+          "reason": "already at target"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "engine tenant row confirmed (getGameType=5 RewardGame)"
+    }
+  ],
+  "transactions": [],
+  "balances": {
+    "gas": "113243.28736487",
+    "neo": "73061"
+  },
+  "validation": {
+    "engine_deployed_on_chain": true,
+    "engine_hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+    "engine_hash_matches_manifest": true,
+    "engine_id": "platform-game",
+    "engine_row": [
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "1",
+      true
+    ],
+    "manifest_schema": "rewardgame-absorption-v1"
+  },
+  "next_steps": [
+    "Kernel lane: register + grant all 11 appIds on the private kernel with callbackContract=PlatformGame (PRIVATE_KERNEL_ACTION=wire PRIVATE_KERNEL_APP_IDS=\u003ccsv of the 11 appIds\u003e on deploy_private_kernel.go).",
+    "Frontend: switch ContractBinding to moduleId 'platform-game' mode 'shared' and migrate event/stat names per the manifest readSurfaceRenames (migration outline step 4).",
+    "Verify per-app: start -\u003e finalize -\u003e settle loop on testnet through the private kernel and compare economics against the legacy clone tables (migration outline step 5); only then decommission the 11 MiniApp\u003cName\u003e contracts.",
+    "Dry-run wrote nothing. To write chain, rerun with: PLATFORM_REGISTRY_DEPLOY_DRY_RUN=false CONFIRM_PLATFORM_REGISTRY_DEPLOY=I_UNDERSTAND_THIS_WRITES_CHAIN NEO_TESTNET_WIF=\u003cwif\u003e go run -tags scripts deploy/scripts/attach_apps_to_platform_game.go"
+  ],
+  "generated_at_utc": "2026-07-23T21:39:50Z"
+}

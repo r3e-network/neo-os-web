@@ -1,12 +1,12 @@
 {
-  "generated_at_utc": "2026-07-23T04:43:25.178Z",
+  "generated_at_utc": "2026-07-25T11:06:04.432Z",
   "scope": "current source/build/test evidence plus retained deployment artifacts",
   "summary": {
-    "contracts": 7,
-    "source_accepted": 7,
+    "contracts": 9,
+    "source_accepted": 9,
     "deployment_reports_present": 4,
     "partial_operational_evidence": 2,
-    "no_deployment_record": 1,
+    "no_deployment_record": 3,
     "current_testnet_artifact_matches": 2,
     "testnet_artifact_drifts": 4,
     "factory_templates": 2,
@@ -14,9 +14,11 @@
   },
   "live_testnet_evidence": {
     "path": "docs/reports/platform-contract-testnet-live-latest.json",
-    "generated_at_utc": "2026-07-23T04:43:08.430Z",
+    "generated_at_utc": "2026-07-23T21:31:59.774Z",
     "network": "neo-n3-testnet",
-    "network_magic": 894710606
+    "network_magic": 894710606,
+    "read_only": true,
+    "chain_writes_performed": false
   },
   "contracts": [
     {
@@ -35,7 +37,7 @@
         "contracts/platform/PlatformRegistry/PlatformRegistry.cs"
       ],
       "abi": {
-        "methods": 74,
+        "methods": 75,
         "events": 32,
         "permissions": 5,
         "supported_standards": []
@@ -72,7 +74,7 @@
         "status": "live-artifact-drift",
         "kind": "contract",
         "hash": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
-        "local_nef_checksum": 2644796843,
+        "local_nef_checksum": 579281221,
         "on_chain_nef_checksum": 372915605,
         "current_local_artifact_match": false,
         "missing_on_chain_methods": [
@@ -224,13 +226,14 @@
       "name": "PlatformAnchor",
       "source_files": [
         "contracts/platform/PlatformAnchor/PlatformAnchor.Agents.cs",
+        "contracts/platform/PlatformAnchor/PlatformAnchor.Credit.cs",
         "contracts/platform/PlatformAnchor/PlatformAnchor.Internal.cs",
         "contracts/platform/PlatformAnchor/PlatformAnchor.Query.cs",
         "contracts/platform/PlatformAnchor/PlatformAnchor.Staking.cs",
         "contracts/platform/PlatformAnchor/PlatformAnchor.cs"
       ],
       "abi": {
-        "methods": 45,
+        "methods": 51,
         "events": 8,
         "permissions": 4,
         "supported_standards": []
@@ -385,12 +388,13 @@
         "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.Internal.cs",
         "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.Liquidation.Internal.cs",
         "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.Liquidation.cs",
+        "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.Profile.cs",
         "contracts/platform/PlatformDeFi/PlatformDeFi.Lending.cs",
         "contracts/platform/PlatformDeFi/PlatformDeFi.Storage.cs",
         "contracts/platform/PlatformDeFi/PlatformDeFi.cs"
       ],
       "abi": {
-        "methods": 80,
+        "methods": 83,
         "events": 35,
         "permissions": 5,
         "supported_standards": []
@@ -406,6 +410,7 @@
         "contracts/__tests__/MiniAppContractFunctionalTests.cs",
         "contracts/__tests__/PlatformDeFiCreditIsolationTests.cs",
         "contracts/__tests__/PlatformDeFiLegacyCreditRecoveryTests.cs",
+        "contracts/__tests__/PlatformDeFiSelfLoanProfileTests.cs",
         "contracts/__tests__/platform-contracts-only.test.ts"
       ],
       "deployment_status": "testnet hash retained in anchor deployment report; no live app bindings",
@@ -417,7 +422,7 @@
         "status": "live-artifact-drift",
         "kind": "contract",
         "hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
-        "local_nef_checksum": 334460533,
+        "local_nef_checksum": 1040116875,
         "on_chain_nef_checksum": 3687605410,
         "current_local_artifact_match": false,
         "missing_on_chain_methods": [
@@ -425,6 +430,7 @@
           "activateLegacyCreditRecovery",
           "fundCapsuleYieldReserve",
           "gasCreditLiabilityOf",
+          "getActiveLoanId",
           "getCapsuleYieldReserve",
           "getDirectGasCredit",
           "getDirectNeoCredit",
@@ -434,7 +440,9 @@
           "getLegacyGasCredit",
           "getLegacyNeoCredit",
           "getLendingLiquidity",
+          "getLendingProfile",
           "getNeoGasPrice",
+          "getSingleLoanPosition",
           "getTotalAbandonedCollateral",
           "getTotalCapsuleFees",
           "getTotalLendingFees",
@@ -529,6 +537,94 @@
         "current_local_artifact_match": false,
         "missing_on_chain_methods": []
       },
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "update_in_abi": true,
+        "update_in_source": true,
+        "destroy_absent": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "money_callback_present": true,
+        "contract_tests_present": true,
+        "deployment_evidence_paths_present": true
+      },
+      "source_acceptance": true,
+      "deployment_report_present": false,
+      "oversized_files": [],
+      "wildcard_method_permissions": []
+    },
+    {
+      "name": "PlatformVesting",
+      "source_files": [
+        "contracts/platform/PlatformVesting/PlatformVesting.Admin.cs",
+        "contracts/platform/PlatformVesting/PlatformVesting.Reads.cs",
+        "contracts/platform/PlatformVesting/PlatformVesting.Storage.cs",
+        "contracts/platform/PlatformVesting/PlatformVesting.Streams.cs",
+        "contracts/platform/PlatformVesting/PlatformVesting.cs"
+      ],
+      "abi": {
+        "methods": 32,
+        "events": 8,
+        "permissions": 5,
+        "supported_standards": []
+      },
+      "money_contract": true,
+      "test_files": [
+        "contracts/__tests__/ContractUpdateCoverageTest.cs",
+        "contracts/__tests__/OnNep17PaymentConventionTests.cs",
+        "contracts/__tests__/PlatformVestingTests.cs"
+      ],
+      "deployment_status": "source-only; no deployment record",
+      "deployment_evidence_class": "none",
+      "deployment_evidence": [],
+      "live_testnet": null,
+      "checks": {
+        "source_project_present": true,
+        "build_artifacts_present": true,
+        "manifest_name_matches": true,
+        "update_in_abi": true,
+        "update_in_source": true,
+        "destroy_absent": true,
+        "source_files_within_300_lines": true,
+        "no_wildcard_method_permission": true,
+        "money_callback_present": true,
+        "contract_tests_present": true,
+        "deployment_evidence_paths_present": true
+      },
+      "source_acceptance": true,
+      "deployment_report_present": false,
+      "oversized_files": [],
+      "wildcard_method_permissions": []
+    },
+    {
+      "name": "PlatformEscrow",
+      "source_files": [
+        "contracts/platform/PlatformEscrow/PlatformEscrow.Admin.cs",
+        "contracts/platform/PlatformEscrow/PlatformEscrow.Funds.cs",
+        "contracts/platform/PlatformEscrow/PlatformEscrow.Methods.cs",
+        "contracts/platform/PlatformEscrow/PlatformEscrow.Reads.cs",
+        "contracts/platform/PlatformEscrow/PlatformEscrow.Recovery.cs",
+        "contracts/platform/PlatformEscrow/PlatformEscrow.Storage.cs",
+        "contracts/platform/PlatformEscrow/PlatformEscrow.cs"
+      ],
+      "abi": {
+        "methods": 39,
+        "events": 10,
+        "permissions": 6,
+        "supported_standards": []
+      },
+      "money_contract": true,
+      "test_files": [
+        "contracts/__tests__/ContractUpdateCoverageTest.cs",
+        "contracts/__tests__/OnNep17PaymentConventionTests.cs",
+        "contracts/__tests__/PlatformEscrowTests.cs"
+      ],
+      "deployment_status": "source-only; no deployment record",
+      "deployment_evidence_class": "none",
+      "deployment_evidence": [],
+      "live_testnet": null,
       "checks": {
         "source_project_present": true,
         "build_artifacts_present": true,
