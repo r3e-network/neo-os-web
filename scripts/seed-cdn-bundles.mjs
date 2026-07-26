@@ -93,6 +93,19 @@ function asObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
+/**
+ * Manifests declare artwork as a platform-absolute path
+ * (`/miniapps/<slug>/logo.webp`), but in a bundle the file sits at the root, so
+ * only its final segment is meaningful here. An absolute http(s) value is left
+ * alone: an app is free to point at artwork it hosts elsewhere.
+ */
+function bundleAssetUrl(baseUrl, value, fallback) {
+  const raw = asString(value, fallback);
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const fileName = raw.split(/[?#]/)[0].split("/").filter(Boolean).pop() || fallback;
+  return `${baseUrl}/${fileName}`;
+}
+
 /** FNV-1a, so an app without a pinned OneGate id keeps a stable derived one. */
 function stableOneGateId(appId) {
   let hash = 2166136261;
@@ -196,8 +209,8 @@ async function main() {
       const apps = entries.map(({ manifest, pointer }) => {
         const urls = asObject(manifest.urls);
         const developer = asObject(manifest.developer);
-        const iconUrl = `${pointer.base_url}/${asString(urls.icon, "logo.webp").replace(/^\.?\//, "")}`;
-        const bannerUrl = `${pointer.base_url}/${asString(urls.banner, "banner.webp").replace(/^\.?\//, "")}`;
+        const iconUrl = bundleAssetUrl(pointer.base_url, urls.icon, "logo.webp");
+        const bannerUrl = bundleAssetUrl(pointer.base_url, urls.banner, "banner.webp");
         const tags = Array.from(new Set(asArray(manifest.tags)));
         return {
           app_id: pointer.app_id,
