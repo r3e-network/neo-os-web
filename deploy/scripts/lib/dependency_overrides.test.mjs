@@ -27,16 +27,39 @@ const versionAtLeast = (actual, expected) => {
   return true;
 };
 
+// Advisory-driven pins are asserted as floors, not exact matches. An exact
+// assertion turns a pin that fixed one advisory into a gate that forbids the
+// fix for the next advisory covering that same version.
+const assertAtLeast = (actual, floor, label) => {
+  assert.ok(
+    actual !== undefined && actual !== null,
+    `${label} must stay pinned (floor ${floor}); found no pin`,
+  );
+  assert.ok(
+    versionAtLeast(actual, floor),
+    `${label} must stay at or above the advisory floor ${floor}; found ${actual}`,
+  );
+};
+
 test("root package pins vulnerable transitive dependencies used by deployable surfaces", () => {
   const pkg = readJson("package.json");
 
-  assert.equal(pkg.overrides?.axios, "1.18.1");
-  assert.equal(pkg.overrides?.dompurify, "3.4.12");
-  assert.equal(pkg.overrides?.["fast-uri"], "3.1.4");
-  assert.equal(pkg.overrides?.immutable, "5.1.9");
-  assert.equal(pkg.overrides?.sharp, "0.35.3");
-  assert.equal(pkg.overrides?.["minimatch@>=9"]?.["brace-expansion"], "5.0.7");
-  assert.equal(pkg.overrides?.picomatch, "4.0.4");
+  assertAtLeast(pkg.overrides?.axios, "1.18.1", "overrides.axios");
+  assertAtLeast(pkg.overrides?.dompurify, "3.4.12", "overrides.dompurify");
+  assertAtLeast(pkg.overrides?.["fast-uri"], "3.1.4", "overrides['fast-uri']");
+  assertAtLeast(pkg.overrides?.immutable, "5.1.9", "overrides.immutable");
+  assertAtLeast(pkg.overrides?.sharp, "0.35.3", "overrides.sharp");
+  assertAtLeast(
+    pkg.overrides?.["minimatch@>=9"]?.["brace-expansion"],
+    "5.0.8",
+    "overrides['minimatch@>=9']['brace-expansion']",
+  );
+  assertAtLeast(pkg.overrides?.postcss, "8.5.23", "overrides.postcss");
+  assertAtLeast(pkg.overrides?.next?.postcss, "8.5.23", "overrides.next.postcss");
+  assertAtLeast(pkg.overrides?.picomatch, "4.0.4", "overrides.picomatch");
+
+  // The 2.x picomatch entries are deliberate compatibility ceilings for the
+  // legacy micromatch line, not advisory floors, so they stay exact.
   assert.equal(pkg.overrides?.micromatch?.picomatch, "2.3.2");
   assert.equal(pkg.overrides?.anymatch?.picomatch, "2.3.2");
   assert.equal(pkg.overrides?.readdirp?.picomatch, "2.3.2");
@@ -48,6 +71,8 @@ test("workspace manifests pin vulnerable transitive dependencies at the package 
   const adminPkg = readJson(path.join("platform", "admin-console", "package.json"));
 
   assert.equal(hostAppPkg.dependencies?.["@sentry/nextjs"], "^10.48.0");
+  assert.equal(hostAppPkg.dependencies?.next, "^15.5.21");
+  assert.equal(adminPkg.dependencies?.next, "^15.5.21");
   assert.equal(hostAppPkg.overrides?.axios, "1.18.1");
   assert.equal(hostAppPkg.overrides?.dompurify, "3.4.12");
   assert.equal(hostAppPkg.overrides?.["@sentry/nextjs"], undefined);
@@ -65,14 +90,24 @@ test("package lock resolves the hardened dependency versions used in production 
     packages["node_modules/@sentry/nextjs/node_modules/rollup"]?.version ??
     packages["node_modules/rollup"]?.version;
 
-  assert.equal(packages["node_modules/axios"]?.version, "1.18.1");
-  assert.equal(packages["node_modules/dompurify"]?.version, "3.4.12");
-  assert.equal(packages["node_modules/fast-uri"]?.version, "3.1.4");
-  assert.equal(packages["node_modules/immutable"]?.version, "5.1.9");
-  assert.equal(packages["node_modules/sharp"]?.version, "0.35.3");
-  assert.equal(packages["node_modules/brace-expansion"]?.version, "5.0.7");
+  assertAtLeast(packages["node_modules/axios"]?.version, "1.18.1", "lock axios");
+  assertAtLeast(packages["node_modules/dompurify"]?.version, "3.4.12", "lock dompurify");
+  assertAtLeast(packages["node_modules/fast-uri"]?.version, "3.1.4", "lock fast-uri");
+  assertAtLeast(packages["node_modules/immutable"]?.version, "5.1.9", "lock immutable");
+  assertAtLeast(packages["node_modules/sharp"]?.version, "0.35.3", "lock sharp");
+  assertAtLeast(
+    packages["node_modules/brace-expansion"]?.version,
+    "5.0.8",
+    "lock brace-expansion",
+  );
+  assertAtLeast(packages["node_modules/postcss"]?.version, "8.5.23", "lock postcss");
   assert.equal(packages["node_modules/picomatch"]?.version, "2.3.2");
-  assert.equal(packages["node_modules/@sentry/nextjs"]?.version, "10.56.0");
+  assertAtLeast(
+    packages["node_modules/@sentry/nextjs"]?.version,
+    "10.56.0",
+    "lock @sentry/nextjs",
+  );
+  assertAtLeast(packages["node_modules/next"]?.version, "15.5.21", "lock next");
   assert.ok(versionAtLeast(resolvedRollup, "4.35.0"));
   assert.equal(packages["node_modules/@parcel/watcher/node_modules/picomatch"]?.version, "4.0.4");
   assert.equal(packages["node_modules/vite/node_modules/picomatch"]?.version, "4.0.4");

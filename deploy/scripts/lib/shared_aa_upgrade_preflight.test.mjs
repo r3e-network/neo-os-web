@@ -68,8 +68,37 @@ test("AA compatibility audit separates semantic ABI and storage deltas", () => {
     ],
   });
   assert.deepEqual(storage.existing_prefixes_changed, []);
+  assert.deepEqual(storage.legacy_prefix_migrations, []);
+  assert.deepEqual(storage.unmigrated_existing_prefixes, []);
   assert.deepEqual(storage.added_prefixes, [{ name: "Prefix_New", value: "0x02" }]);
   assert.deepEqual(storage.stored_record_layouts_changed, []);
+});
+
+test("AA storage compatibility accepts an explicitly proven legacy prefix migration", () => {
+  const storage = compareAaStorageSources({
+    baselineSources: [
+      "private static readonly byte[] Prefix_VerifyScopeTarget = new byte[] { 0x12 };",
+    ],
+    candidateSources: [
+      [
+        "private static readonly byte[] Prefix_VerifyScopeTarget = new byte[] { 0x1c };",
+        "private static readonly byte[] LegacyStoragePrefix12 = new byte[] { 0x12 };",
+        "value = Storage.Get(Storage.CurrentContext, Helper.Concat(LegacyStoragePrefix12, accountId));",
+        "Storage.Put(Storage.CurrentContext, Helper.Concat(Prefix_VerifyScopeTarget, accountId), value);",
+        "Storage.Delete(Storage.CurrentContext, Helper.Concat(LegacyStoragePrefix12, accountId));",
+      ].join("\n"),
+    ],
+  });
+  assert.deepEqual(storage.unmigrated_existing_prefixes, []);
+  assert.deepEqual(storage.legacy_prefix_migrations, [{
+    name: "Prefix_VerifyScopeTarget",
+    baseline: "0x12",
+    candidate: "0x1c",
+    legacy_alias: "LegacyStoragePrefix12",
+    read_fallback: true,
+    legacy_cleanup: true,
+    active_write: true,
+  }]);
 });
 
 test("AA registrar must be configured before Registry core", () => {

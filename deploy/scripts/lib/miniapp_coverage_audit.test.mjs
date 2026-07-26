@@ -19,4 +19,6 @@ test("miniapp coverage audit uses multi-RPC contract-state fallback", () => {
   assert.match(source, /async function contractExistsAcrossCandidates/);
   assert.match(source, /contract_errors/);
   assert.match(source, /rpc_unknown: \[\]/);
+  assert.match(source, /miniapp-coverage-latest\.json/);
+  assert.match(source, /fs\.writeFileSync\(DEFAULT_REPORT_PATH/);
 });

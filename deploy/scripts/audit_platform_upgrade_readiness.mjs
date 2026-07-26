@@ -188,6 +188,12 @@ function currentManifest(name) {
   return readJson(`contracts/build/${name}.manifest.json`);
 }
 
+function currentNefChecksum(name) {
+  return nefChecksum(
+    fs.readFileSync(path.join(repoRoot, "contracts", "build", `${name}.nef`)),
+  );
+}
+
 function methodNames(manifest) {
   return [...new Set((manifest.abi?.methods ?? []).map((method) => method.name))].sort();
 }
@@ -272,7 +278,7 @@ function buildContractReadiness(live, preflightByContract) {
       matching_revisions: historyMatches,
     },
     candidate_artifact: {
-      checksum: live.local_nef_checksum,
+      checksum: currentNefChecksum(live.name),
     },
     preflight,
     abi: {

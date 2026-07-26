@@ -3,8 +3,17 @@ import assert from "node:assert/strict";
 
 import {
   buildPlatformGameMigrationLedger,
+  bindingOf,
   renderPlatformGameMigrationMarkdown,
+  withoutGeneratedTimestamps,
 } from "../audit_platform_game_migration.mjs";
+
+test("PlatformGame migration recognizes composable bindings", () => {
+  assert.deepEqual(
+    bindingOf('contract: { mode: "custom" }, platformBindings: { game: "0x' + "ab".repeat(20) + '" }'),
+    { mode: "shared", module_id: "platform-game" },
+  );
+});
 
 test("PlatformGame ledger separates attachment, binding, and runtime migration", () => {
   const ledger = buildPlatformGameMigrationLedger({
@@ -18,6 +27,14 @@ test("PlatformGame ledger separates attachment, binding, and runtime migration",
   assert.equal(ledger.summary.attached_routed_to_platform_game, 11);
   assert.equal(ledger.summary.attached_using_legacy_runtime, 0);
   assert.equal(ledger.summary.runtime_migration_complete, 0);
+  assert.equal(ledger.summary.funded_testnet_lifecycle_proven, 0);
+  assert.equal(ledger.summary.attached_with_live_state_evidence, 9);
+  assert.deepEqual(
+    ledger.attached_apps
+      .filter((row) => !row.live_state.ready)
+      .map((row) => row.app_id),
+    ["miniapp-jump-rush", "miniapp-sheep-solitaire"],
+  );
   assert.equal(
     ledger.attached_apps.every(
       (row) => row.checks.testnet_engine_attachment_present,
@@ -49,6 +66,7 @@ test("zero-drain candidates remain unbound until descriptors and runtime exist",
     ],
   );
   assert.equal(ledger.summary.candidate_runtime_ready, 0);
+  assert.equal(ledger.summary.future_local_only_candidates, 5);
   assert.equal(
     ledger.zero_drain_candidates.every(
       (row) => row.checks.no_standalone_contract_binding,
@@ -61,6 +79,23 @@ test("zero-drain candidates remain unbound until descriptors and runtime exist",
     ),
     true,
   );
+  assert.equal(
+    ledger.zero_drain_candidates.every(
+      (row) => row.migration_scope === "future-local-only",
+    ),
+    true,
+  );
+  assert.equal(
+    ledger.zero_drain_candidates
+      .filter((row) => [
+        "miniapp-arrow-escape",
+        "miniapp-bead-workshop",
+        "miniapp-fruit-funnel",
+        "miniapp-screw-sort",
+      ].includes(row.app_id))
+      .every((row) => row.binding.mode === "none"),
+    true,
+  );
 });
 
 test("migration markdown states the appId-first and funded lifecycle gates", () => {
@@ -69,8 +104,27 @@ test("migration markdown states the appId-first and funded lifecycle gates", () 
   );
 
   assert.match(markdown, /Runtime migrations complete: 0\/11/);
+  assert.match(markdown, /current read-only live state evidence: 9\/11/);
+  assert.match(markdown, /\| Live state \|/);
   assert.match(markdown, /framework adapter: 11\/11/);
   assert.match(markdown, /direct clone-shaped chain calls/);
+  assert.match(markdown, /future-local-only/);
   assert.match(markdown, /appId-first ABI arguments/);
   assert.match(markdown, /funded testnet start\/finalize\/settle\/withdraw/);
+});
+
+test("migration check ignores live evidence timestamps at every depth", () => {
+  const value = {
+    generated_at_utc: "old",
+    summary: {
+      generated_at_utc: "old",
+      ready: true,
+    },
+    apps: [{ generated_at_utc: "old", app_id: "miniapp-demo" }],
+  };
+
+  assert.deepEqual(withoutGeneratedTimestamps(value), {
+    summary: { ready: true },
+    apps: [{ app_id: "miniapp-demo" }],
+  });
 });

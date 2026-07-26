@@ -44,6 +44,18 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      # The deploy-script gates lint every tracked shell script with shellcheck
+      # and kill a real listener with lsof. Without these the gates would fail
+      # here rather than skip, which is the point: a skipped gate reports the
+      # same green as a passing one. See deploy/scripts/lib/required_tool.mjs.
+      - name: Install deploy-script gate tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y shellcheck lsof
+          shellcheck --version
+          command -v lsof
+
       - name: Lint
         run: npm run -s lint
 
@@ -153,6 +165,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+
+      # verify:repo runs the deploy-script gates too (scripts/verify_repo.sh),
+      # so this job needs the same tools as fast-node.
+      - name: Install deploy-script gate tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y shellcheck lsof
+          shellcheck --version
+          command -v lsof
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium

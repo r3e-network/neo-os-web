@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 
 import {
   buildUpgradeReadinessLedger,
@@ -50,6 +52,14 @@ test("upgrade ledger resolves all drifted artifacts and exposes compatibility ga
   assert.deepEqual(
     ledger.contracts.map((contract) => contract.name),
     ["PlatformRegistry", "PlatformDeFi", "MiniAppFactory", "PlatformAnchor"],
+  );
+  const registryNef = fs.readFileSync(
+    path.resolve(process.cwd(), "contracts/build/PlatformRegistry.nef"),
+  );
+  assert.equal(
+    ledger.contracts.find((contract) => contract.name === "PlatformRegistry")
+      ?.candidate_artifact.checksum,
+    registryNef.readUInt32LE(registryNef.length - 4),
   );
   assert.deepEqual(
     ledger.contracts.find((contract) => contract.name === "PlatformAnchor")?.abi.removed,

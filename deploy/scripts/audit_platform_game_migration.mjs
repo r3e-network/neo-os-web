@@ -4,6 +4,11 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  DEFAULT_LIFECYCLE_EVIDENCE_DIR,
+  loadLifecycleEvidence,
+} from "./lib/platform_game_lifecycle_evidence.mjs";
+import { hasPlatformBinding } from "./lib/platform_binding_source.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..");
@@ -11,6 +16,8 @@ const absorptionManifestPath =
   "deploy/config/rewardgame-absorption-manifest.json";
 const attachmentReportPath =
   "deploy/config/engine-attach-testnet-2026-07-19.json";
+const liveStateReportPath =
+  "docs/reports/platform-game-live-state-latest.json";
 const candidateIds = [
   "miniapp-arrow-escape",
   "miniapp-bead-workshop",
@@ -25,6 +32,32 @@ function read(relativePath) {
 
 function readJson(relativePath) {
   return JSON.parse(read(relativePath));
+}
+
+function readOptionalJson(relativePath) {
+  try {
+    return readJson(relativePath);
+  } catch {
+    return null;
+  }
+}
+
+export function withoutGeneratedTimestamps(value) {
+  if (Array.isArray(value)) return value.map(withoutGeneratedTimestamps);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => key !== "generated_at_utc")
+        .map(([key, nested]) => [key, withoutGeneratedTimestamps(nested)]),
+    );
+  }
+  return value;
+}
+
+function sameHash(left, right) {
+  if (typeof left !== "string" || typeof right !== "string") return false;
+  const normalize = (value) => value.trim().toLowerCase().replace(/^0x/, "");
+  return normalize(left) === normalize(right);
 }
 
 function appSlug(appId) {
@@ -46,13 +79,14 @@ function sourceBundle(slug) {
   return sourceFiles(`apps/${slug}/src`).map(read).join("\n");
 }
 
-function bindingOf(manifestSource) {
+export function bindingOf(manifestSource) {
   const shared = /mode:\s*["']shared["']/.test(manifestSource);
   const custom = /mode:\s*["']custom["']/.test(manifestSource);
   const moduleMatch = manifestSource.match(/moduleId:\s*["']([^"']+)["']/);
+  const platformGame = hasPlatformBinding(manifestSource, "game");
   return {
-    mode: shared ? "shared" : custom ? "custom" : "none",
-    module_id: moduleMatch?.[1] ?? null,
+    mode: platformGame || shared ? "shared" : custom ? "custom" : "none",
+    module_id: platformGame ? "platform-game" : moduleMatch?.[1] ?? null,
   };
 }
 
@@ -88,7 +122,14 @@ function frameworkAdapterEvidence() {
   };
 }
 
-function appEvidence(appId, absorptionApps, attachmentByApp, frameworkAdapter) {
+function appEvidence(
+  appId,
+  absorptionApps,
+  attachmentByApp,
+  frameworkAdapter,
+  lifecycleEvidenceByApp,
+  liveStateContext,
+) {
   const slug = appSlug(appId);
   const neoManifestPath = `apps/${slug}/neo-manifest.json`;
   const sourceManifestPath = `apps/${slug}/src/manifest.ts`;
@@ -98,6 +139,20 @@ function appEvidence(appId, absorptionApps, attachmentByApp, frameworkAdapter) {
   const binding = bindingOf(manifestSource);
   const absorption = absorptionApps[appId] ?? null;
   const attachment = attachmentByApp.get(appId) ?? null;
+  const migrationScope = absorption ? "absorption-cohort" : "future-local-only";
+  const lifecycleEvidence = lifecycleEvidenceByApp.get(appId) ?? null;
+  const liveStateRow = liveStateContext.byApp.get(appId) ?? null;
+  const liveStateReportMatches =
+    liveStateContext.report !== null &&
+    liveStateContext.report.read_only === true &&
+    liveStateContext.report.chain_writes_performed === false &&
+    liveStateContext.report.network === "neo-n3-testnet" &&
+    sameHash(liveStateContext.report.engine?.expected_hash, liveStateContext.engineHash) &&
+    liveStateContext.report.summary?.contract_state_ready === true;
+  const liveStateReady =
+    absorption !== null &&
+    liveStateReportMatches &&
+    liveStateRow?.live_state_ready === true;
   const contracts = neoManifest.contracts && typeof neoManifest.contracts === "object"
     ? Object.values(neoManifest.contracts).filter((value) => String(value ?? "").trim())
     : [];
@@ -138,7 +193,7 @@ function appEvidence(appId, absorptionApps, attachmentByApp, frameworkAdapter) {
       !["legacy-reward-sdk", "legacy-direct-chain", "mixed"].includes(runtimeAdapter),
     adapter_regression_present:
       runtimeAdapter !== "framework-platform-game-adapter" || frameworkAdapter.regression_present,
-    funded_testnet_lifecycle_proven: false,
+    funded_testnet_lifecycle_proven: lifecycleEvidence !== null,
   };
   const migrationComplete = Object.values(checks).every(Boolean);
   const blockers = Object.entries(checks)
@@ -147,6 +202,7 @@ function appEvidence(appId, absorptionApps, attachmentByApp, frameworkAdapter) {
   return {
     app_id: appId,
     slug,
+    migration_scope: migrationScope,
     source_manifest: sourceManifestPath,
     public_manifest: neoManifestPath,
     binding,
@@ -155,6 +211,22 @@ function appEvidence(appId, absorptionApps, attachmentByApp, frameworkAdapter) {
     standalone_contract_bindings: contracts.length,
     absorption_generation: absorption?.generation ?? null,
     attachment_status: attachment?.status ?? "not-attached",
+    lifecycle_evidence: lifecycleEvidence,
+    live_state: {
+      ready: liveStateReady,
+      status: absorption === null
+        ? "not-in-scope"
+        : liveStateReady
+          ? "ready"
+          : liveStateRow
+            ? "blocked"
+            : "missing",
+      source: liveStateReportPath,
+      generated_at_utc: liveStateContext.report?.generated_at_utc ?? null,
+      descriptor_match_count: liveStateRow?.descriptor_match_count ?? null,
+      descriptor_count: liveStateRow?.descriptor_count ?? null,
+      blockers: liveStateRow?.blockers ?? (absorption ? ["live_state_evidence_missing"] : []),
+    },
     descriptor_count: Object.keys(absorption?.descriptors ?? {}).length,
     live_descriptor_count: matchingDescriptorCount,
     checks,
@@ -169,12 +241,41 @@ export function buildPlatformGameMigrationLedger({ now = () => new Date() } = {}
   const attachmentByApp = new Map(
     (attachment.apps ?? []).map((row) => [row.app_id, row]),
   );
+  const liveStateReport = readOptionalJson(liveStateReportPath);
+  const liveStateContext = {
+    report: liveStateReport,
+    engineHash: absorption.engine?.testnetHash ?? null,
+    byApp: new Map((liveStateReport?.apps ?? []).map((row) => [row.app_id, row])),
+  };
   const attachedIds = Object.keys(absorption.apps ?? {}).sort();
   const frameworkAdapter = frameworkAdapterEvidence();
+  const lifecycleEvidence = loadLifecycleEvidence({
+    repoRoot,
+    directory: DEFAULT_LIFECYCLE_EVIDENCE_DIR,
+    expectedNetwork: "neo-n3-testnet",
+    expectedEngine: absorption.engine?.testnetHash ?? "",
+  });
+  const lifecycleEvidenceByApp = new Map(
+    lifecycleEvidence.reports.map((row) => [row.app_id, row]),
+  );
   const attachedApps = attachedIds.map((appId) =>
-    appEvidence(appId, absorption.apps, attachmentByApp, frameworkAdapter));
+    appEvidence(
+      appId,
+      absorption.apps,
+      attachmentByApp,
+      frameworkAdapter,
+      lifecycleEvidenceByApp,
+      liveStateContext,
+    ));
   const candidates = candidateIds.map((appId) =>
-    appEvidence(appId, absorption.apps, attachmentByApp, frameworkAdapter));
+    appEvidence(
+      appId,
+      absorption.apps,
+      attachmentByApp,
+      frameworkAdapter,
+      lifecycleEvidenceByApp,
+      liveStateContext,
+    ));
   return {
     generated_at_utc: now().toISOString(),
     engine_id: absorption.engine?.engineId ?? "platform-game",
@@ -182,8 +283,10 @@ export function buildPlatformGameMigrationLedger({ now = () => new Date() } = {}
     evidence: {
       absorption_manifest: absorptionManifestPath,
       attachment_report: attachmentReportPath,
+      live_state_report: liveStateReportPath,
       framework_adapter: "framework/gamefi/platform-game-reward-adapter.ts",
       framework_adapter_regression: "framework/test/platform-game-reward-adapter.test.ts",
+      lifecycle_evidence_directory: lifecycleEvidence.directory,
     },
     framework_adapter: frameworkAdapter,
     summary: {
@@ -206,7 +309,16 @@ export function buildPlatformGameMigrationLedger({ now = () => new Date() } = {}
       runtime_migration_complete: attachedApps.filter(
         (row) => row.migration_complete,
       ).length,
+      funded_testnet_lifecycle_proven: attachedApps.filter(
+        (row) => row.checks.funded_testnet_lifecycle_proven,
+      ).length,
+      attached_with_live_state_evidence: attachedApps.filter(
+        (row) => row.live_state.ready,
+      ).length,
       zero_drain_candidates: candidates.length,
+      future_local_only_candidates: candidates.filter(
+        (row) => row.migration_scope === "future-local-only",
+      ).length,
       candidate_runtime_ready: candidates.filter(
         (row) => row.migration_complete,
       ).length,
@@ -214,7 +326,7 @@ export function buildPlatformGameMigrationLedger({ now = () => new Date() } = {}
     attached_apps: attachedApps,
     zero_drain_candidates: candidates,
     boundary:
-      "An engine attachment, shared manifest binding, and framework route do not prove funded runtime completion. Completion additionally requires removal of direct clone-shaped calls plus a funded start/finalize/settle/recovery/withdraw testnet lifecycle.",
+      "The 11 absorption-cohort apps and five future-local-only candidates are separate tracks. An engine attachment, shared manifest binding, and framework route do not prove funded runtime completion. Completion additionally requires removal of direct clone-shaped calls plus a funded start/finalize/settle/recovery/withdraw testnet lifecycle.",
   };
 }
 
@@ -233,29 +345,35 @@ export function renderPlatformGameMigrationMarkdown(ledger) {
     `- Attached apps routed to PlatformGame: ${ledger.summary.attached_routed_to_platform_game}/${ledger.summary.attached_apps}`,
     `- Attached apps still using an unadapted legacy runtime: ${ledger.summary.attached_using_legacy_runtime}`,
     `- Runtime migrations complete: ${ledger.summary.runtime_migration_complete}/${ledger.summary.attached_apps}`,
+    `- Attached apps with complete funded lifecycle evidence: ${ledger.summary.funded_testnet_lifecycle_proven}/${ledger.summary.attached_apps}`,
+    `- Attached apps with current read-only live state evidence: ${ledger.summary.attached_with_live_state_evidence}/${ledger.summary.attached_apps}`,
     `- Zero-drain candidates runtime-ready: ${ledger.summary.candidate_runtime_ready}/${ledger.summary.zero_drain_candidates}`,
+    `- Future local-only candidates awaiting a reviewed engine track: ${ledger.summary.future_local_only_candidates}`,
     `- Boundary: ${ledger.boundary}`,
     "",
     "## Attached Apps",
     "",
-    "| App | Binding | Runtime adapter | Descriptor/live | Complete | Blockers |",
-    "| --- | --- | --- | ---: | --- | --- |",
+    "| App | Binding | Runtime adapter | Descriptor/live | Live state | Complete | Blockers |",
+    "| --- | --- | --- | ---: | --- | --- | --- |",
   ];
   for (const row of ledger.attached_apps) {
+    const liveDescriptor = row.live_state.descriptor_count === null
+      ? "-"
+      : `${row.live_state.descriptor_match_count}/${row.live_state.descriptor_count}`;
     lines.push(
-      `| ${row.app_id} | ${row.binding.mode}:${row.binding.module_id ?? "-"} | ${row.runtime_adapter} | ${row.descriptor_count}/${row.live_descriptor_count} | ${row.migration_complete ? "yes" : "no"} | ${row.blockers.join(", ") || "none"} |`,
+      `| ${row.app_id} | ${row.binding.mode}:${row.binding.module_id ?? "-"} | ${row.runtime_adapter} | ${row.descriptor_count}/${row.live_descriptor_count} | ${row.live_state.status} (${liveDescriptor}) | ${row.migration_complete ? "yes" : "no"} | ${row.blockers.join(", ") || "none"} |`,
     );
   }
   lines.push(
     "",
     "## Zero-Drain Candidates",
     "",
-    "| App | Standalone contract | Binding | Runtime adapter | Attached | Ready | Blockers |",
-    "| --- | ---: | --- | --- | --- | --- | --- |",
+    "| App | Scope | Standalone contract | Binding | Runtime adapter | Attached | Ready | Blockers |",
+    "| --- | --- | ---: | --- | --- | --- | --- | --- |",
   );
   for (const row of ledger.zero_drain_candidates) {
     lines.push(
-      `| ${row.app_id} | ${row.standalone_contract_bindings} | ${row.binding.mode}:${row.binding.module_id ?? "-"} | ${row.runtime_adapter} | ${row.attachment_status} | ${row.migration_complete ? "yes" : "no"} | ${row.blockers.join(", ") || "none"} |`,
+      `| ${row.app_id} | ${row.migration_scope} | ${row.standalone_contract_bindings} | ${row.binding.mode}:${row.binding.module_id ?? "-"} | ${row.runtime_adapter} | ${row.attachment_status} | ${row.migration_complete ? "yes" : "no"} | ${row.blockers.join(", ") || "none"} |`,
     );
   }
   lines.push(
@@ -264,7 +382,7 @@ export function renderPlatformGameMigrationMarkdown(ledger) {
     "",
     "1. Keep every attached app free of direct clone-shaped chain calls; route lifecycle writes through `app.game.reward` and use `app.platformGame` only for typed shared snapshots.",
     "2. Keep exact appId-first ABI arguments, prepaid-credit economics, Finalizing/Solved polling, tenant event filtering, and restart recovery locked in framework tests.",
-    "3. Define and review descriptors plus Morpheus engine wrappers for each zero-drain candidate before attachment or shared binding.",
+    "3. Keep future-local-only candidates contractless until a product release decision, reviewed descriptor, Morpheus engine wrapper, and framework route exist; only then consider attachment or shared binding.",
     "4. Run a funded testnet start/finalize/settle/withdraw lifecycle before claiming any runtime migration complete.",
   );
   return `${lines.join("\n")}\n`;
@@ -283,10 +401,10 @@ export function writePlatformGameMigrationLedger({ check = false } = {}) {
   const json = `${JSON.stringify(ledger, null, 2)}\n`;
   const markdown = renderPlatformGameMigrationMarkdown(ledger);
   if (check) {
-    const existingJson = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
-    const currentJson = JSON.parse(json);
-    delete existingJson.generated_at_utc;
-    delete currentJson.generated_at_utc;
+    const existingJson = withoutGeneratedTimestamps(
+      JSON.parse(fs.readFileSync(jsonPath, "utf8")),
+    );
+    const currentJson = withoutGeneratedTimestamps(JSON.parse(json));
     if (JSON.stringify(existingJson) !== JSON.stringify(currentJson)) {
       throw new Error("PlatformGame migration JSON is stale");
     }

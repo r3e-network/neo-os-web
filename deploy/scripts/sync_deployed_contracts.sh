@@ -58,23 +58,11 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
-resolve_neoxp() {
-  local resolved=""
-  resolved="$(command -v neoxp 2>/dev/null || true)"
-  if [[ -n "$resolved" ]]; then
-    echo "$resolved"
-    return 0
-  fi
-  local dotnet_tool="${HOME}/.dotnet/tools/neoxp"
-  if [[ -x "$dotnet_tool" ]]; then
-    echo "$dotnet_tool"
-    return 0
-  fi
-  echo "Error: neoxp not found. Install with: dotnet tool install -g Neo.Express" >&2
-  exit 1
-}
+# shellcheck source=deploy/scripts/lib/dotnet_tools.sh
+. "$SCRIPT_DIR/lib/dotnet_tools.sh"
+ensure_dotnet_root
 
-NEOXP="$(resolve_neoxp)"
+NEOXP="$(resolve_dotnet_tool "neoxp" "dotnet tool install -g Neo.Express")"
 
 if [[ ! -f "$NEOEXPRESS_CONFIG" ]]; then
   echo "Neo Express config not found: $NEOEXPRESS_CONFIG" >&2

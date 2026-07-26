@@ -14,6 +14,7 @@ import path from "node:path";
 import {
   ROOT,
   ORACLE_HASH,
+  DATAFEED_HASH,
   AA_CORE_HASH,
   getContractState,
   getNetworkConfig,
@@ -32,6 +33,20 @@ test("oracle hash in neo_network.js matches a deployed contract on testnet", asy
   assert.ok(
     state.manifest?.name,
     `deployed oracle contract at ${ORACLE_HASH} has no manifest name`,
+  );
+});
+
+// ── DataFeed hash matches deployed contract ───────────────────────────────
+
+test("datafeed hash in neo_network.js matches MorpheusDataFeed on testnet", async () => {
+  assert.ok(DATAFEED_HASH, "DATAFEED_HASH must be defined");
+  assert.match(DATAFEED_HASH, /^0x[0-9a-f]{40}$/i, "DATAFEED_HASH must be a valid script-hash");
+
+  const state = await getContractState(DATAFEED_HASH);
+  assert.equal(
+    state?.manifest?.name,
+    "MorpheusDataFeed",
+    `testnet datafeed hash ${DATAFEED_HASH} must resolve to MorpheusDataFeed`,
   );
 });
 

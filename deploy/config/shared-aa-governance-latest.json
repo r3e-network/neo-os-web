@@ -1,0 +1,31 @@
+{
+  "action": "status",
+  "target": "",
+  "network": "neo-n3-testnet",
+  "network_magic": 894710606,
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "aa_hash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
+  "registry_hash": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "dry_run": true,
+  "chain_writes_performed": false,
+  "transactions": [],
+  "validation": {
+    "aa_admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+    "governance_abi_ready": false,
+    "governance_read_errors": [
+      "aa_registrar: state=FAULT exception=at instruction 46 (SYSCALL): System.Contract.Call failed: method not found: getPlatformRegistrar/0",
+      "aa_pending_registrar: state=FAULT exception=at instruction 53 (SYSCALL): System.Contract.Call failed: method not found: getPendingPlatformRegistrar/0",
+      "aa_registrar_available_at: state=FAULT exception=at instruction 57 (SYSCALL): System.Contract.Call failed: method not found: getPlatformRegistrarAvailableAt/0",
+      "registry_core: state=FAULT exception=at instruction 45 (SYSCALL): System.Contract.Call failed: method not found: abstractAccountCore/0",
+      "registry_pending_core: state=FAULT exception=at instruction 52 (SYSCALL): System.Contract.Call failed: method not found: pendingAbstractAccountCore/0",
+      "registry_core_available_at: state=FAULT exception=at instruction 56 (SYSCALL): System.Contract.Call failed: method not found: abstractAccountCoreAvailableAt/0"
+    ],
+    "registry_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a"
+  },
+  "next_steps": [
+    "upgrade AA and Registry contracts with the current artifacts before governance writes",
+    "rerun PLATFORM_SHARED_AA_ACTION=status and require governance_abi_ready=true",
+    "do not attempt registrar or core governance actions while any required method is unavailable"
+  ],
+  "generated_at_utc": "2026-07-23T23:23:19Z"
+}

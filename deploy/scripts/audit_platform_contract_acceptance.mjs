@@ -71,6 +71,20 @@ const contracts = [
     deploymentStatus: "no deployment record",
     deploymentEvidence: [],
   },
+  {
+    name: "PlatformVesting",
+    moneyContract: true,
+    deploymentEvidenceClass: "none",
+    deploymentStatus: "source-only; no deployment record",
+    deploymentEvidence: [],
+  },
+  {
+    name: "PlatformEscrow",
+    moneyContract: true,
+    deploymentEvidenceClass: "none",
+    deploymentStatus: "source-only; no deployment record",
+    deploymentEvidence: [],
+  },
 ];
 
 const factoryTemplates = [
@@ -312,6 +326,8 @@ export function buildAcceptanceLedger() {
           generated_at_utc: liveTestnetReport.generated_at_utc,
           network: liveTestnetReport.network,
           network_magic: liveTestnetReport.network_magic,
+          read_only: liveTestnetReport.read_only === true,
+          chain_writes_performed: liveTestnetReport.chain_writes_performed === true,
         }
       : null,
     contracts: rows,

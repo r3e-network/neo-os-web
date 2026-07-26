@@ -11,48 +11,21 @@ CONFIG_DIR="$DEPLOY_DIR/config"
 echo "=== Service Layer Neo Express Setup ==="
 echo "Project root: $PROJECT_ROOT"
 
-# Ensure dotnet runtime can be resolved when installed under ~/.dotnet (common in CI/containers).
-if [ -z "${DOTNET_ROOT:-}" ] && [ -x "${HOME}/.dotnet/dotnet" ]; then
-    export DOTNET_ROOT="${HOME}/.dotnet"
-fi
-if [ -n "${DOTNET_ROOT:-}" ]; then
-    export PATH="${DOTNET_ROOT}:$PATH"
-fi
+# Dotnet runtime discovery and dotnet-tool resolution live in one shared helper so every
+# build/deploy script agrees on where the SDK and the global tools are installed.
+# shellcheck source=deploy/scripts/lib/dotnet_tools.sh
+. "$SCRIPT_DIR/lib/dotnet_tools.sh"
+ensure_dotnet_root
 
-# Resolve dotnet-tool style binaries. In CI/containers ~/.dotnet/tools may not be on PATH.
-resolve_tool() {
-    local name="$1"
-    local install_hint="$2"
-
-    local resolved=""
-    resolved="$(command -v "$name" 2>/dev/null || true)"
-    if [ -n "$resolved" ]; then
-        echo "$resolved"
-        return 0
-    fi
-
-    local dotnet_tool="${HOME}/.dotnet/tools/${name}"
-    if [ -x "$dotnet_tool" ]; then
-        echo "$dotnet_tool"
-        return 0
-    fi
-
-    echo "Error: ${name} is not installed" >&2
-    echo "Install with: ${install_hint}" >&2
-    echo "Then ensure ~/.dotnet/tools is on PATH." >&2
-    exit 1
-}
-
-NEOXP="$(resolve_tool "neoxp" "dotnet tool install -g Neo.Express")"
-NCCS="$(resolve_tool "nccs" "dotnet tool install -g Neo.Compiler.CSharp")"
+NEOXP="$(resolve_dotnet_tool "neoxp" "dotnet tool install -g Neo.Express")"
+NCCS="$(resolve_dotnet_tool "nccs" "dotnet tool install -g Neo.Compiler.CSharp")"
 
 mkdir -p "$WALLETS_DIR" "$CONFIG_DIR"
 
 NEOEXPRESS_CONFIG="$CONFIG_DIR/default.neo-express"
-if [ ! -f "$NEOEXPRESS_CONFIG" ]; then
-    echo "Initializing Neo Express configuration..."
-    "$NEOXP" create -o "$NEOEXPRESS_CONFIG" -f
-fi
+# shellcheck source=deploy/scripts/lib/neoexpress_config.sh
+. "$SCRIPT_DIR/lib/neoexpress_config.sh"
+ensure_neoexpress_config "$NEOEXPRESS_CONFIG" "$NEOXP"
 
 create_wallet() {
     local name=$1
@@ -95,7 +68,12 @@ ensure_balance() {
     local minimum="$3"
     local quantity="$4"
 
-    local current="$(get_balance "$wallet" "$asset")"
+    # An unreadable balance is a designed outcome here -- the guard below treats
+    # an empty value as "unknown, so fund it" -- and `|| true` states that, where
+    # assigning on the `local` line would have hidden a genuine neoxp failure
+    # behind `local`'s own exit status.
+    local current
+    current="$(get_balance "$wallet" "$asset" || true)"
     if [ -n "$current" ] && balance_at_least "$current" "$minimum"; then
         echo "$wallet already has ${current} ${asset}"
         return 0

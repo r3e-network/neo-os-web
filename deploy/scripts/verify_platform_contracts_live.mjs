@@ -325,6 +325,8 @@ export async function verifyPlatformContractsLive({
   return {
     generated_at_utc: now().toISOString(),
     network: "neo-n3-testnet",
+    read_only: true,
+    chain_writes_performed: false,
     rpc_url: selected.rpcUrl,
     network_magic: selected.networkMagic,
     rpc_user_agent: selected.userAgent,
@@ -355,6 +357,8 @@ export function renderLiveMarkdown(report) {
     "## Summary",
     "",
     `- Network: ${report.network} (magic ${report.network_magic})`,
+    `- Read-only: ${report.read_only === true ? "yes" : "no"}`,
+    `- Chain writes performed: ${report.chain_writes_performed === true ? "yes" : "no"}`,
     `- RPC: ${report.rpc_url}`,
     `- Live contracts found: ${report.summary.live_contracts_found}`,
     `- Active Registry artifacts: ${report.summary.active_registry_artifacts}`,

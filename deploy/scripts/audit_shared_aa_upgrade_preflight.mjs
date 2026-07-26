@@ -33,7 +33,10 @@ export const requiredRegistryMethods = [
 
 export const requiredAaMethods = [
   "computePlatformAccountId",
+  "computeStablePlatformAccountId",
   "registerPlatformAccount",
+  "registerStablePlatformAccount",
+  "rotatePlatformAccountOwner",
   "getPlatformRegistrar",
   "getPendingPlatformRegistrar",
   "getPlatformRegistrarAvailableAt",
@@ -134,6 +137,21 @@ function parseStoragePrefixes(sources) {
   return prefixes;
 }
 
+function parseLegacyStoragePrefixes(sources) {
+  const prefixes = new Map();
+  const pattern = /\b(LegacyStoragePrefix[A-Za-z0-9_]+)\s*=\s*new byte\[\]\s*\{\s*(0x[0-9A-Fa-f]{2})\s*\}/g;
+  for (const source of sources) {
+    for (const match of source.matchAll(pattern)) prefixes.set(match[1], match[2].toLowerCase());
+  }
+  return prefixes;
+}
+
+function hasStorageOperation(source, operation, prefix) {
+  return source
+    .split(/\r?\n/)
+    .some((line) => line.includes(`Storage.${operation}`) && line.includes(prefix));
+}
+
 function parseStoredRecordLayouts(sources) {
   const layouts = new Map();
   for (const source of sources) {
@@ -163,12 +181,32 @@ function parseStoredRecordLayouts(sources) {
 export function compareAaStorageSources({ baselineSources, candidateSources }) {
   const baselinePrefixes = parseStoragePrefixes(baselineSources);
   const candidatePrefixes = parseStoragePrefixes(candidateSources);
+  const legacyPrefixes = parseLegacyStoragePrefixes(candidateSources);
   const baselineLayouts = parseStoredRecordLayouts(baselineSources);
   const candidateLayouts = parseStoredRecordLayouts(candidateSources);
   const existingPrefixesChanged = [...baselinePrefixes].flatMap(([name, value]) => {
     const candidate = candidatePrefixes.get(name);
     return candidate && candidate !== value ? [{ name, baseline: value, candidate }] : [];
   });
+  const legacyPrefixMigrations = existingPrefixesChanged.flatMap((change) => {
+    const aliases = [...legacyPrefixes]
+      .filter(([, value]) => value === change.baseline)
+      .map(([name]) => name);
+    const alias = aliases.find((name) => (
+      candidateSources.some((source) => hasStorageOperation(source, "Get", name)) &&
+      candidateSources.some((source) => hasStorageOperation(source, "Delete", name))
+    ));
+    const activeWrite = candidateSources.some((source) => (
+      hasStorageOperation(source, "Put", change.name) ||
+      (source.includes(`Helper.Concat(${change.name}`) &&
+        source.split(/\r?\n/).some((line) => line.includes("Storage.Put")))
+    ));
+    return alias && activeWrite
+      ? [{ ...change, legacy_alias: alias, read_fallback: true, legacy_cleanup: true, active_write: true }]
+      : [];
+  });
+  const migratedNames = new Set(legacyPrefixMigrations.map(({ name }) => name));
+  const unmigratedExistingPrefixes = existingPrefixesChanged.filter(({ name }) => !migratedNames.has(name));
   const addedPrefixes = [...candidatePrefixes].flatMap(([name, value]) => (
     baselinePrefixes.has(name) ? [] : [{ name, value }]
   ));
@@ -180,6 +218,8 @@ export function compareAaStorageSources({ baselineSources, candidateSources }) {
   });
   return {
     existing_prefixes_changed: existingPrefixesChanged,
+    legacy_prefix_migrations: legacyPrefixMigrations,
+    unmigrated_existing_prefixes: unmigratedExistingPrefixes,
     added_prefixes: addedPrefixes,
     stored_record_layouts_changed: storedRecordLayoutsChanged,
   };
@@ -402,7 +442,7 @@ function aaUpgradeCompatibility({ aaRoot, liveManifest, liveNefChecksum }) {
   const storageComparison = compareAaStorageSources({ baselineSources, candidateSources });
   const baselineChecksum = nefChecksum(baselineNef);
   const exactLiveSourceRevisionKnown = baselineChecksum === Number(liveNefChecksum);
-  const storageCompatible = storageComparison.existing_prefixes_changed.length === 0 &&
+  const storageCompatible = storageComparison.unmigrated_existing_prefixes.length === 0 &&
     storageComparison.stored_record_layouts_changed.length === 0;
   const compatible = manifestComparison.semantic_baseline_matches_live && storageCompatible;
 
@@ -443,8 +483,16 @@ export async function buildLivePreflight({
     liveManifest: aaState.manifest,
     liveNefChecksum: aaState.nef?.checksum,
   });
-  const registryHasState = requiredRegistryMethods.slice(0, 3).every((method) => registryMethods.includes(method));
-  const aaHasState = requiredAaMethods.slice(2, 5).every((method) => aaMethods.includes(method));
+  const registryHasState = [
+    "abstractAccountCore",
+    "pendingAbstractAccountCore",
+    "abstractAccountCoreAvailableAt",
+  ].every((method) => registryMethods.includes(method));
+  const aaHasState = [
+    "getPlatformRegistrar",
+    "getPendingPlatformRegistrar",
+    "getPlatformRegistrarAvailableAt",
+  ].every((method) => aaMethods.includes(method));
   const registryValues = registryHasState ? {
     registryCore: await invokeRead(selected.rpcUrl, registryHash, "abstractAccountCore", hash160StackValue, rpcCall),
     registryPendingCore: await invokeRead(selected.rpcUrl, registryHash, "pendingAbstractAccountCore", hash160StackValue, rpcCall),
@@ -570,6 +618,8 @@ function writeReport(report) {
     `- Exact live source revision known: **${report.aa_upgrade.compatibility.exact_live_source_revision_known ? "YES" : "NO"}**.`,
     `- Candidate ABI removals: ${report.aa_upgrade.compatibility.candidate_abi_delta.removed_methods.map((method) => `\`${method}\``).join(", ") || "none"}.`,
     `- Changed existing storage prefixes: ${report.aa_upgrade.compatibility.storage.existing_prefixes_changed.length}.`,
+    `- Legacy prefix migrations with read/cleanup proof: ${report.aa_upgrade.compatibility.storage.legacy_prefix_migrations.length}.`,
+    `- Unmigrated existing storage prefixes: ${report.aa_upgrade.compatibility.storage.unmigrated_existing_prefixes.length}.`,
     `- Changed stored-record layouts: ${report.aa_upgrade.compatibility.storage.stored_record_layouts_changed.length}.`,
     `- Provenance boundary: ${report.aa_upgrade.compatibility.boundary}`,
     "",

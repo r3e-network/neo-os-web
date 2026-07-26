@@ -81,11 +81,25 @@ check_dependencies() {
 check_resources() {
     step "Checking system resources..."
 
-    local cpu_cores=$(nproc)
-    local mem_gb=$(free -g | awk '/^Mem:/{print $2}')
-    local disk_gb=$(df -BG "$HOME" | awk 'NR==2 {print $4}' | sed 's/G//')
+    # nproc and `free` are Linux-only and check_dependencies does not require
+    # them, so each probe is allowed to come back empty. The declarations are
+    # split from the assignments because assigning on the `local` line reports
+    # `local`'s status instead of the command's, which would hide the failure
+    # from `set -e`; the explicit `|| true` then says that an unavailable probe
+    # is tolerated rather than fatal.
+    local cpu_cores mem_gb disk_gb
+    cpu_cores=$(nproc 2>/dev/null || true)
+    mem_gb=$(free -g 2>/dev/null | awk '/^Mem:/{print $2}' || true)
+    disk_gb=$(df -BG "$HOME" 2>/dev/null | awk 'NR==2 {print $4}' | sed 's/G//' || true)
 
-    log "CPU: ${cpu_cores} cores, Memory: ${mem_gb}GB, Disk: ${disk_gb}GB available"
+    log "CPU: ${cpu_cores:-unknown} cores, Memory: ${mem_gb:-unknown}GB, Disk: ${disk_gb:-unknown}GB available"
+
+    # An unmeasured value must not be compared: in [[ -lt ]] an empty string
+    # counts as 0, which would report every missing probe as a failed threshold.
+    if [[ -z "$cpu_cores" || -z "$mem_gb" || -z "$disk_gb" ]]; then
+        warn "Could not measure all system resources; skipping threshold checks"
+        return 0
+    fi
 
     if [[ $cpu_cores -lt 4 ]]; then
         warn "CPU cores < 4 (current: $cpu_cores), may be slow"
@@ -104,7 +118,8 @@ check_resources() {
 install_k3s() {
     step "Installing k3s..."
 
-    local current_state=$(get_state)
+    local current_state
+    current_state=$(get_state)
     if [[ "$current_state" == "k3s_installed" ]] || command -v k3s &> /dev/null; then
         if systemctl is-active --quiet k3s 2>/dev/null || k3s kubectl get nodes &> /dev/null; then
             log "k3s already installed and running"
@@ -166,7 +181,7 @@ setup_kubeconfig() {
 
     if [[ ! -f "$kubeconfig_file" ]] || ! grep -q "k3s" "$kubeconfig_file" 2>/dev/null; then
         sudo cp /etc/rancher/k3s/k3s.yaml "$kubeconfig_file"
-        sudo chown $(id -u):$(id -g) "$kubeconfig_file"
+        sudo chown "$(id -u):$(id -g)" "$kubeconfig_file"
         chmod 600 "$kubeconfig_file"
         log "✓ kubeconfig copied to $kubeconfig_file"
     else

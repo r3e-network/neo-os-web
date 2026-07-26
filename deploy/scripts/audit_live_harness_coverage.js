@@ -37,28 +37,12 @@ const LIVE_CHAIN_FLOWS = new Map([
   ["miniapp-dice-game", { script: "deploy/scripts/live_validate_dicegame.mjs", target: "dicegame" }],
   ["miniapp-event-ticket-pass", { script: "deploy/scripts/live_validate_remaining_contracts_part2.js", target: "eventticket" }],
   ["miniapp-flashloan", { script: "deploy/scripts/live_validate_selected_miniapps.js", target: "flashloan" }],
-  // C6 NOTE: fogplay migrated to the standalone MiniAppCoinFlip contract and a per-app
-  // harness exists (deploy/scripts/live_validate_coinflip.mjs), but retargeting here
-  // requires removing the matching fogPlay task from FLAGSHIP_TASKS in
-  // live_validate_flagship_user_flows.js (enforced by flagship_live_targets.test.mjs) —
-  // that validator is a separate, out-of-scope file, so the routing flip is deferred to a
-  // coordinated follow-up. The flagship flow still exercises the dead PlatformGame kernel path.
-  ["miniapp-fogplay", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "fogPlay" }],
+  ["miniapp-fogplay", { script: "deploy/scripts/live_validate_coinflip.mjs", target: "coinflip" }],
   ["miniapp-gas-sponsor", { script: "deploy/scripts/live_validate_remaining_contracts_part2.js", target: "gassponsor" }],
-  // gasbox migrated to the standalone MiniAppGasBox contract, but no per-app standalone
-  // harness exists yet (the flagship PlatformGame flow exercises the dead kernel ABI keyed
-  // by appId). This entry keeps it classified as live-chain-flow until a dedicated
-  // deploy/scripts/live_validate_gasbox.mjs against MiniAppGasBox 0xeb635b6e… is written;
-  // reclassifying it as missing-live-chain-harness here would diverge from the
-  // KNOWN_MISSING_LIVE_HARNESS allowlist in build_goal_validation_report.js. KNOWN GAP.
-  ["miniapp-gasbox", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "gasBox" }],
+  ["miniapp-gasbox", { script: "deploy/scripts/live_validate_gasbox.mjs", target: "gasbox" }],
   ["miniapp-gov-merc", { script: "deploy/scripts/live_validate_remaining_contracts_part3.js", target: "govmerc" }],
   ["miniapp-graveyard", { script: "deploy/scripts/live_validate_selected_miniapps.js", target: "graveyard" }],
-  // C6 NOTE: last-survivor migrated to the standalone MiniAppLastSurvivor contract and a
-  // per-app harness exists (deploy/scripts/live_validate_lastsurvivor.mjs), but retargeting
-  // requires removing the lastSurvivor task from FLAGSHIP_TASKS (out-of-scope validator;
-  // see fogplay note) — deferred to a coordinated follow-up.
-  ["miniapp-last-survivor", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "lastSurvivor" }],
+  ["miniapp-last-survivor", { script: "deploy/scripts/live_validate_lastsurvivor.mjs", target: "lastsurvivor" }],
   ["miniapp-memorial-shrine", { script: "deploy/scripts/live_validate_remaining_contracts_part2.js", target: "memorial" }],
   ["miniapp-milestone-escrow", { script: "deploy/scripts/live_validate_remaining_contracts_part2.js", target: "milestone" }],
   ["miniapp-neo-pay", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "neoPay" }],
@@ -70,11 +54,7 @@ const LIVE_CHAIN_FLOWS = new Map([
   ["miniapp-profitanchor", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "profitAnchor" }],
   ["miniapp-quadratic-funding", { script: "deploy/scripts/live_validate_remaining_contracts_part3.js", target: "quadratic" }],
   ["miniapp-redenvelope", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "redEnvelope" }],
-  // C6 NOTE: self-loan migrated to the standalone MiniAppSelfLoan contract and a per-app
-  // smoke exists (deploy/scripts/live_validate_selfloan_smoke.mjs, owner-path; full lifecycle
-  // in the NeoVM TestEngine), but retargeting requires removing the selfLoan task from
-  // FLAGSHIP_TASKS (out-of-scope validator; see fogplay note) — deferred to a coordinated follow-up.
-  ["miniapp-self-loan", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "selfLoan" }],
+  ["miniapp-self-loan", { script: "deploy/scripts/live_validate_selfloan_smoke.mjs", target: "selfloan" }],
   ["miniapp-soulbound-certificate", { script: "deploy/scripts/live_validate_remaining_contracts_part2.js", target: "soulbound" }],
   ["miniapp-time-capsule", { script: "deploy/scripts/live_validate_remaining_contracts_part3.js", target: "timecapsule" }],
   ["miniapp-trustanchor", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "trustAnchor" }],
@@ -88,14 +68,6 @@ const SHARED_RUNTIME_FLOWS = new Map([
       script: "deploy/scripts/live_validate_flagship_user_flows.js",
       target: "profitAnchor/trustAnchor",
       coveredBy: ["miniapp-profitanchor", "miniapp-trustanchor"],
-    },
-  ],
-  [
-    "PlatformGame",
-    {
-      script: "deploy/scripts/live_validate_flagship_user_flows.js",
-      target: "lastSurvivor/gasBox/fogPlay",
-      coveredBy: ["miniapp-last-survivor", "miniapp-gasbox", "miniapp-fogplay"],
     },
   ],
 ]);

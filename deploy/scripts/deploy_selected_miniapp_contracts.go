@@ -54,17 +54,6 @@ type appManifest struct {
 var deployTargets = []deployTarget{
 	{"MiniAppMultisig", "contracts/build/MiniAppMultisig.nef", "contracts/build/MiniAppMultisig.manifest.json", "apps/neo-multisig/neo-manifest.json"},
 	{"MiniAppBurnLeague", "contracts/build/MiniAppBurnLeague.nef", "contracts/build/MiniAppBurnLeague.manifest.json", "apps/burn-league/neo-manifest.json"},
-	{"MiniAppAimMaster", "contracts/build/MiniAppAimMaster.nef", "contracts/build/MiniAppAimMaster.manifest.json", "apps/aim-master/neo-manifest.json"},
-	{"MiniAppColorClash", "contracts/build/MiniAppColorClash.nef", "contracts/build/MiniAppColorClash.manifest.json", "apps/color-clash/neo-manifest.json"},
-	{"MiniAppFlappyDash", "contracts/build/MiniAppFlappyDash.nef", "contracts/build/MiniAppFlappyDash.manifest.json", "apps/flappy-dash/neo-manifest.json"},
-	{"MiniAppGame2048", "contracts/build/MiniAppGame2048.nef", "contracts/build/MiniAppGame2048.manifest.json", "apps/game-2048/neo-manifest.json"},
-	{"MiniAppJumpRush", "contracts/build/MiniAppJumpRush.nef", "contracts/build/MiniAppJumpRush.manifest.json", "apps/jump-rush/neo-manifest.json"},
-	{"MiniAppMergeKingdom", "contracts/build/MiniAppMergeKingdom.nef", "contracts/build/MiniAppMergeKingdom.manifest.json", "apps/merge-kingdom/neo-manifest.json"},
-	{"MiniAppPetPotion", "contracts/build/MiniAppPetPotion.nef", "contracts/build/MiniAppPetPotion.manifest.json", "apps/pet-potion/neo-manifest.json"},
-	{"MiniAppSheepSolitaire", "contracts/build/MiniAppSheepSolitaire.nef", "contracts/build/MiniAppSheepSolitaire.manifest.json", "apps/sheep-solitaire/neo-manifest.json"},
-	{"MiniAppCurveArrow", "contracts/build/MiniAppCurveArrow.nef", "contracts/build/MiniAppCurveArrow.manifest.json", "apps/curve-arrow/neo-manifest.json"},
-	{"MiniAppSnakeBounty", "contracts/build/MiniAppSnakeBounty.nef", "contracts/build/MiniAppSnakeBounty.manifest.json", "apps/snake-bounty/neo-manifest.json"},
-	{"MiniAppSudoku", "contracts/build/MiniAppSudoku.nef", "contracts/build/MiniAppSudoku.manifest.json", "apps/sudoku/neo-manifest.json"},
 	{"MiniAppEventTicketPass", "contracts/build/MiniAppEventTicketPass.nef", "contracts/build/MiniAppEventTicketPass.manifest.json", "apps/event-ticket-pass/neo-manifest.json"},
 	{"MiniAppMilestoneEscrow", "contracts/build/MiniAppMilestoneEscrow.nef", "contracts/build/MiniAppMilestoneEscrow.manifest.json", "apps/milestone-escrow/neo-manifest.json"},
 	{"MiniAppQuadraticFunding", "contracts/build/MiniAppQuadraticFunding.nef", "contracts/build/MiniAppQuadraticFunding.manifest.json", "apps/quadratic-funding/neo-manifest.json"},
@@ -86,6 +75,28 @@ var deployTargets = []deployTarget{
 	{"MiniAppHallOfFame", "contracts/build/MiniAppHallOfFame.nef", "contracts/build/MiniAppHallOfFame.manifest.json", ""},
 	{"MiniAppTimeCapsule", "contracts/build/MiniAppTimeCapsule.nef", "contracts/build/MiniAppTimeCapsule.manifest.json", "apps/time-capsule/neo-manifest.json"},
 	{"MiniAppTurtleMatch", "contracts/build/MiniAppTurtleMatch.nef", "contracts/build/MiniAppTurtleMatch.manifest.json", ""},
+}
+
+var legacyCloneDeployTargets = []deployTarget{
+	{"MiniAppAimMaster", "contracts/build/MiniAppAimMaster.nef", "contracts/build/MiniAppAimMaster.manifest.json", ""},
+	{"MiniAppColorClash", "contracts/build/MiniAppColorClash.nef", "contracts/build/MiniAppColorClash.manifest.json", ""},
+	{"MiniAppFlappyDash", "contracts/build/MiniAppFlappyDash.nef", "contracts/build/MiniAppFlappyDash.manifest.json", ""},
+	{"MiniAppGame2048", "contracts/build/MiniAppGame2048.nef", "contracts/build/MiniAppGame2048.manifest.json", ""},
+	{"MiniAppJumpRush", "contracts/build/MiniAppJumpRush.nef", "contracts/build/MiniAppJumpRush.manifest.json", ""},
+	{"MiniAppMergeKingdom", "contracts/build/MiniAppMergeKingdom.nef", "contracts/build/MiniAppMergeKingdom.manifest.json", ""},
+	{"MiniAppPetPotion", "contracts/build/MiniAppPetPotion.nef", "contracts/build/MiniAppPetPotion.manifest.json", ""},
+	{"MiniAppSheepSolitaire", "contracts/build/MiniAppSheepSolitaire.nef", "contracts/build/MiniAppSheepSolitaire.manifest.json", ""},
+	{"MiniAppCurveArrow", "contracts/build/MiniAppCurveArrow.nef", "contracts/build/MiniAppCurveArrow.manifest.json", ""},
+	{"MiniAppSnakeBounty", "contracts/build/MiniAppSnakeBounty.nef", "contracts/build/MiniAppSnakeBounty.manifest.json", ""},
+	{"MiniAppSudoku", "contracts/build/MiniAppSudoku.nef", "contracts/build/MiniAppSudoku.manifest.json", ""},
+}
+
+func selectedDeployTargets() []deployTarget {
+	targets := append([]deployTarget(nil), deployTargets...)
+	if truthy(os.Getenv("MINIAPP_DEPLOY_INCLUDE_LEGACY_CLONES")) {
+		targets = append(targets, legacyCloneDeployTargets...)
+	}
+	return targets
 }
 
 func main() {
@@ -159,10 +170,11 @@ func main() {
 	fmt.Printf("Network: %s (magic %d)\n", network, actualMagic)
 	fmt.Printf("Mode: %s\n\n", map[bool]string{true: "apply", false: "dry-run"}[apply])
 
-	results := make([]deployRecord, 0, len(deployTargets))
+	targets := selectedDeployTargets()
+	results := make([]deployRecord, 0, len(targets))
 	var failed bool
 
-	for _, target := range deployTargets {
+	for _, target := range targets {
 		if !matchesFilter(target.Name, filter) {
 			continue
 		}

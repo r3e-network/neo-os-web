@@ -13,57 +13,56 @@ DEPLOYED_FILE="$CONFIG_DIR/factory_deployed.json"
 NETWORK=${1:-neoexpress}
 NEOEXPRESS_CONFIG="$CONFIG_DIR/default.neo-express"
 
+# shellcheck source=deploy/scripts/lib/neoexpress_config.sh
+. "$SCRIPT_DIR/../lib/neoexpress_config.sh"
+# shellcheck source=deploy/scripts/lib/build_artifacts.sh
+. "$SCRIPT_DIR/../lib/build_artifacts.sh"
+# shellcheck source=deploy/scripts/lib/dotnet_tools.sh
+. "$SCRIPT_DIR/../lib/dotnet_tools.sh"
+
 echo "=== MiniAppFactoryV2 Deployment ==="
 echo "Network: $NETWORK"
 echo "Project root: $PROJECT_ROOT"
 
-# Ensure dotnet runtime
-if [ -z "${DOTNET_ROOT:-}" ] && [ -x "${HOME}/.dotnet/dotnet" ]; then
-    export DOTNET_ROOT="${HOME}/.dotnet"
-fi
-if [ -n "${DOTNET_ROOT:-}" ]; then
-    export PATH="${DOTNET_ROOT}:$PATH"
-fi
+ensure_dotnet_root
 
-# Resolve tools
-resolve_tool() {
-    local name=$1
-    local hint=$2
-    if command -v "$name" &> /dev/null; then
-        echo "$name"
-        return 0
-    fi
-    if [ -x "${HOME}/.dotnet/tools/$name" ]; then
-        echo "${HOME}/.dotnet/tools/$name"
-        return 0
-    fi
-    echo "Error: $name not found. Install with: $hint" >&2
-    exit 1
-}
-
-NCCS=$(resolve_tool "nccs" "dotnet tool install -g Neo.Compiler.CSharp")
-NEOXP=$(resolve_tool "neoxp" "dotnet tool install -g Neo.Express")
+NCCS="$(resolve_dotnet_tool "nccs" "dotnet tool install -g Neo.Compiler.CSharp")"
+NEOXP="$(resolve_dotnet_tool "neoxp" "dotnet tool install -g Neo.Express")"
 
 # Build MiniAppFactoryV2
 echo ""
 echo "=== Building MiniAppFactoryV2 ==="
 cd "$PROJECT_ROOT/contracts"
 
+rm -rf build/temp_factory
 mkdir -p build/temp_factory
-cs_files=$(find MiniAppFactoryV2 -maxdepth 1 -name "*.cs" -type f | sort)
 
-if ! "$NCCS" $cs_files -o build/temp_factory; then
-    echo "Compilation failed for MiniAppFactoryV2"
+# Glob expansion is already collation-ordered, so it needs no `sort`, and it
+# keeps each source path in its own array element for the compiler invocation.
+cs_files=()
+for cs_file in MiniAppFactoryV2/*.cs; do
+    if [ -f "$cs_file" ]; then
+        cs_files+=("$cs_file")
+    fi
+done
+
+if [ "${#cs_files[@]}" -eq 0 ]; then
+    echo "No C# sources found in MiniAppFactoryV2" >&2
     rm -rf build/temp_factory
     exit 1
 fi
 
-# Collect artifacts
-if [ -f build/temp_factory/*.nef ]; then
-    mv build/temp_factory/*.nef build/MiniAppFactoryV2.nef
-    mv build/temp_factory/*.manifest.json build/MiniAppFactoryV2.manifest.json
-    echo "  ✓ MiniAppFactoryV2.nef"
-    echo "  ✓ MiniAppFactoryV2.manifest.json"
+if ! "$NCCS" "${cs_files[@]}" -o build/temp_factory; then
+    echo "Compilation failed for MiniAppFactoryV2" >&2
+    rm -rf build/temp_factory
+    exit 1
+fi
+
+# Collect artifacts. nccs names its output after the project, so the pair is
+# renamed here; the helper refuses to continue unless exactly one of each landed.
+if ! promote_contract_artifacts "build/temp_factory" build "MiniAppFactoryV2"; then
+    rm -rf build/temp_factory
+    exit 1
 fi
 rm -rf build/temp_factory
 
@@ -72,10 +71,7 @@ echo ""
 echo "=== Deploying MiniAppFactoryV2 ==="
 
 if [ "$NETWORK" = "neoexpress" ]; then
-    if [ ! -f "$NEOEXPRESS_CONFIG" ]; then
-        echo "Creating Neo Express config..."
-        "$NEOXP" create -o "$NEOEXPRESS_CONFIG" -f
-    fi
+    ensure_neoexpress_config "$NEOEXPRESS_CONFIG" "$NEOXP"
     
     # Check if already deployed
     if [ -f "$DEPLOYED_FILE" ] && command -v jq &> /dev/null; then

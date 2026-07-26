@@ -35,6 +35,7 @@ test("resolveExpectedMethods matches by deployed contract name, null otherwise",
   const resolved = resolveExpectedMethods("MiniAppRedEnvelope", abis);
   assert.ok(resolved);
   assert.equal(resolved.contractName, "MiniAppRedEnvelope");
+  assert.equal(resolved.manifestPath, path.join(repoRoot, "contracts", "build", "MiniAppRedEnvelope.manifest.json"));
   assert.ok(resolved.safeMethods.length > 0);
   assert.equal(resolveExpectedMethods("NoSuchContract", abis), null);
   assert.equal(resolveExpectedMethods("", abis), null);
@@ -68,6 +69,31 @@ test("a malformed build manifest is surfaced, not silently skipped", () => {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "Broken.manifest.json"), "{ not json", "utf8");
     assert.throws(() => loadBuildManifestAbis({ repoRoot: root }), /invalid build manifest Broken\.manifest\.json/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("loadBuildManifestAbis accepts canonical manifests from sibling repositories", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "build-abi-siblings-"));
+  try {
+    const additional = path.join(root, "external", "contracts", "build");
+    fs.mkdirSync(additional, { recursive: true });
+    fs.writeFileSync(
+      path.join(additional, "ExternalKernel.manifest.json"),
+      JSON.stringify({
+        name: "ExternalKernel",
+        abi: { methods: [{ name: "getState", safe: true, parameters: [] }] },
+      }),
+      "utf8",
+    );
+
+    const abis = loadBuildManifestAbis({ repoRoot: root, additionalDirs: [additional] });
+    const external = abis.byName.get("ExternalKernel");
+    assert.ok(external);
+    assert.equal(external.manifestFile, "ExternalKernel.manifest.json");
+    assert.equal(external.manifestPath, path.join(additional, "ExternalKernel.manifest.json"));
+    assert.deepEqual(external.safeMethods, ["getState"]);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

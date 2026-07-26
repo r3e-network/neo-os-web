@@ -7,7 +7,7 @@
 //	deploy             (default) deploy PlatformRegistry (idempotent by
 //	                   predicted hash), propose the canonical AppAccount
 //	                   artifact, propose the platform-game engine row, and
-//	                   smoke-test a lite (engineless) registerApp.
+//	                   smoke-test a lite (engineless) registration.
 //	execute-timelocks  after the 24h timelocks mature: setAppAccountArtifact
 //	                   + registerEngine("platform-game").
 //	wire-engine        bind the engine to the registry: setRegistry(registry)
@@ -104,6 +104,7 @@ const (
 	prLiteRegistrationFee = int64(100_000_000) // 1 GAS in fractions
 	prArtifactProbeID     = "artifact-probe.app_1"
 	prMaxAppIDLength      = 64
+	prPlatformAppIDPrefix = "miniapp-"
 	prMaxManifestLength   = 65536
 
 	prDefaultEngineID          = "platform-game"
@@ -136,6 +137,17 @@ const (
 )
 
 var prAppIDPattern = regexp.MustCompile(`^[a-z0-9\-_.]{1,64}$`)
+
+func prIsPlatformOwnedAppID(appID string) bool {
+	return strings.HasPrefix(appID, prPlatformAppIDPrefix)
+}
+
+func prRegistrationMethod(appID string) string {
+	if prIsPlatformOwnedAppID(appID) {
+		return "registerAppByPlatform"
+	}
+	return "registerApp"
+}
 
 type prCaller interface {
 	Call(util.Uint160, string, ...any) (*result.Invoke, error)
@@ -705,7 +717,7 @@ func prProposeEngine(ctx context.Context, client *rpcclient.Client, act *actor.A
 }
 
 // prSmokeTest deposits memo-routed credit ("<appId>:credit") and performs a
-// lite (engineless, descriptor-null) registerApp, then prints the getApp row.
+// lite (engineless, descriptor-null) registration, then prints the getApp row.
 // In dry-run all steps are test-invocations only.
 func prSmokeTest(ctx context.Context, client *rpcclient.Client, act *actor.Actor, registry util.Uint160, signerHash util.Uint160, dryRun bool, report *prReport) error {
 	appID := strings.TrimSpace(os.Getenv("PLATFORM_REGISTRY_SMOKE_APP_ID"))
@@ -715,11 +727,16 @@ func prSmokeTest(ctx context.Context, client *rpcclient.Client, act *actor.Actor
 	if !prAppIDPattern.MatchString(appID) {
 		return fmt.Errorf("invalid PLATFORM_REGISTRY_SMOKE_APP_ID %q (charset [a-z0-9-_.], 1-64 chars)", appID)
 	}
-	creditGas, err := strconv.ParseFloat(prFirstNonEmpty(os.Getenv("PLATFORM_REGISTRY_SMOKE_CREDIT_GAS"), strconv.FormatFloat(prDefaultSmokeCreditGas, 'f', -1, 64)), 64)
-	if err != nil || creditGas <= 0 {
-		return fmt.Errorf("invalid PLATFORM_REGISTRY_SMOKE_CREDIT_GAS (must be a positive number of GAS)")
+	creditGas := float64(0)
+	creditFractions := int64(0)
+	if !prIsPlatformOwnedAppID(appID) {
+		var err error
+		creditGas, err = strconv.ParseFloat(prFirstNonEmpty(os.Getenv("PLATFORM_REGISTRY_SMOKE_CREDIT_GAS"), strconv.FormatFloat(prDefaultSmokeCreditGas, 'f', -1, 64)), 64)
+		if err != nil || creditGas <= 0 {
+			return fmt.Errorf("invalid PLATFORM_REGISTRY_SMOKE_CREDIT_GAS (must be a positive number of GAS)")
+		}
+		creditFractions = int64(math.Round(creditGas * prGasFractionsPerGas))
 	}
-	creditFractions := int64(math.Round(creditGas * prGasFractionsPerGas))
 	record := &prSmokeRecord{AppID: appID, CreditGas: creditGas}
 	report.SmokeTest = record
 
@@ -731,80 +748,85 @@ func prSmokeTest(ctx context.Context, client *rpcclient.Client, act *actor.Actor
 		return nil
 	}
 
-	credit, err := prCallInteger(act, registry, "creditOf", appID, signerHash)
-	if err != nil {
-		return fmt.Errorf("read creditOf(%s): %w", appID, err)
-	}
-	record.CreditBefore = prFormatBigGas(credit)
-	gasHash, err := prParseHash(prGasHashLE)
-	if err != nil {
-		return err
-	}
-	memo := appID + ":credit"
-
-	if credit.Cmp(big.NewInt(prLiteRegistrationFee)) < 0 {
-		if dryRun {
-			inv, err := act.Call(gasHash, "transfer", signerHash, registry, creditFractions, memo)
-			if err != nil {
-				return fmt.Errorf("simulate smoke credit transfer: %w", err)
-			}
-			if inv.State != "HALT" {
-				return fmt.Errorf("simulate smoke credit transfer fault: %s", inv.FaultException)
-			}
-			record.RegisterSimNote = fmt.Sprintf("dry run: would transfer %s GAS with memo %q", prFormatGas(creditFractions), memo)
-		} else {
-			inv, err := act.Call(gasHash, "transfer", signerHash, registry, creditFractions, memo)
-			if err != nil {
-				return fmt.Errorf("simulate smoke credit transfer: %w", err)
-			}
-			if inv.State != "HALT" {
-				return fmt.Errorf("simulate smoke credit transfer fault: %s", inv.FaultException)
-			}
-			txid, _, err := prSendAndWait(ctx, client, act, gasHash, "transfer", report, "Smoke credit deposit ("+memo+")", signerHash, registry, creditFractions, memo)
-			if err != nil {
-				return err
-			}
-			record.CreditTxID = "0x" + txid.StringLE()
-			fmt.Printf("smoke credit tx: 0x%s (%s GAS, memo %q)\n", txid.StringLE(), prFormatGas(creditFractions), memo)
-			credit, err = prCallInteger(act, registry, "creditOf", appID, signerHash)
-			if err != nil {
-				return fmt.Errorf("read creditOf(%s) after deposit: %w", appID, err)
-			}
-		}
+	method := prRegistrationMethod(appID)
+	if prIsPlatformOwnedAppID(appID) {
+		record.RegisterSimNote = "platform-owned namespace: fee-exempt registerAppByPlatform"
 	} else {
-		record.RegisterSimNote = "existing credit covers the 1 GAS registration fee; deposit skipped"
+		credit, err := prCallInteger(act, registry, "creditOf", appID, signerHash)
+		if err != nil {
+			return fmt.Errorf("read creditOf(%s): %w", appID, err)
+		}
+		record.CreditBefore = prFormatBigGas(credit)
+		gasHash, err := prParseHash(prGasHashLE)
+		if err != nil {
+			return err
+		}
+		memo := appID + ":credit"
+
+		if credit.Cmp(big.NewInt(prLiteRegistrationFee)) < 0 {
+			if dryRun {
+				inv, err := act.Call(gasHash, "transfer", signerHash, registry, creditFractions, memo)
+				if err != nil {
+					return fmt.Errorf("simulate smoke credit transfer: %w", err)
+				}
+				if inv.State != "HALT" {
+					return fmt.Errorf("simulate smoke credit transfer fault: %s", inv.FaultException)
+				}
+				record.RegisterSimNote = fmt.Sprintf("dry run: would transfer %s GAS with memo %q", prFormatGas(creditFractions), memo)
+			} else {
+				inv, err := act.Call(gasHash, "transfer", signerHash, registry, creditFractions, memo)
+				if err != nil {
+					return fmt.Errorf("simulate smoke credit transfer: %w", err)
+				}
+				if inv.State != "HALT" {
+					return fmt.Errorf("simulate smoke credit transfer fault: %s", inv.FaultException)
+				}
+				txid, _, err := prSendAndWait(ctx, client, act, gasHash, "transfer", report, "Smoke credit deposit ("+memo+")", signerHash, registry, creditFractions, memo)
+				if err != nil {
+					return err
+				}
+				record.CreditTxID = "0x" + txid.StringLE()
+				fmt.Printf("smoke credit tx: 0x%s (%s GAS, memo %q)\n", txid.StringLE(), prFormatGas(creditFractions), memo)
+				credit, err = prCallInteger(act, registry, "creditOf", appID, signerHash)
+				if err != nil {
+					return fmt.Errorf("read creditOf(%s) after deposit: %w", appID, err)
+				}
+			}
+		} else {
+			record.RegisterSimNote = "existing credit covers the 1 GAS registration fee; deposit skipped"
+		}
 	}
 
 	// Lite registration: empty engineId, null descriptor (the registry
 	// asserts descriptor == null || empty when no engine is attached).
-	inv, err := act.Call(registry, "registerApp", appID, "", signerHash, nil)
+	inv, err := act.Call(registry, method, appID, "", signerHash, nil)
 	if err != nil {
-		return fmt.Errorf("simulate registerApp(%s): %w", appID, err)
+		return fmt.Errorf("simulate %s(%s): %w", method, appID, err)
 	}
 	if inv.State != "HALT" {
 		if dryRun && strings.Contains(inv.FaultException, "insufficient credit") {
-			note := "registerApp becomes eligible after the credit deposit"
+			note := method + " becomes eligible after the credit deposit"
 			if record.RegisterSimNote != "" {
 				note = record.RegisterSimNote + "; " + note
 			}
 			record.RegisterSimNote = note
-			fmt.Printf("dry run: registerApp(%s) pending credit deposit (simulation faulted with %q as expected)\n", appID, inv.FaultException)
+			fmt.Printf("dry run: %s(%s) pending credit deposit (simulation faulted with %q as expected)\n", method, appID, inv.FaultException)
 			return nil
 		}
-		return fmt.Errorf("simulate registerApp(%s) fault: %s", appID, inv.FaultException)
+		return fmt.Errorf("simulate %s(%s) fault: %s", method, appID, inv.FaultException)
 	}
 	if dryRun {
-		record.RegisterSimNote = prFirstNonEmpty(record.RegisterSimNote, "dry run: registerApp simulation HALT (eligible)")
-		fmt.Printf("dry run: registerApp(%s) simulation HALT (eligible)\n", appID)
+		record.RegisterSimNote = prFirstNonEmpty(record.RegisterSimNote, "dry run: "+method+" simulation HALT (eligible)")
+		fmt.Printf("dry run: %s(%s) simulation HALT (eligible)\n", method, appID)
 		return nil
 	}
 
-	txid, _, err := prSendAndWait(ctx, client, act, registry, "registerApp", report, "Smoke registerApp "+appID, appID, "", signerHash, nil)
+	txid, _, err := prSendAndWait(ctx, client, act, registry, method, report, "Smoke "+method+" "+appID, appID, "", signerHash, nil)
 	if err != nil {
 		return err
 	}
 	record.RegisterTxID = "0x" + txid.StringLE()
-	fmt.Printf("registerApp tx: 0x%s\n", txid.StringLE())
+	fmt.Printf("%s tx: 0x%s\n", method, txid.StringLE())
 
 	row, err := prCallAppRow(act, registry, appID)
 	if err != nil {
@@ -937,7 +959,7 @@ func prExecuteEngineTimelock(ctx context.Context, client *rpcclient.Client, act 
 		return fmt.Errorf("registered engine hash %v does not match resolved PlatformGame hash 0x%s", row[0], engineHash.StringLE())
 	}
 	report.NextSteps = append(report.NextSteps,
-		fmt.Sprintf("Engine %q is REGISTERED: apps can attach it via registerApp(appId, %q, appAdmin, descriptor) or attachEngine.", engineID, engineID))
+		fmt.Sprintf("Engine %q is REGISTERED: custom apps can use registerApp(appId, %q, appAdmin, descriptor); platform-owned miniapp-* ids use registerAppByPlatform or attachEngine.", engineID, engineID))
 	return nil
 }
 
@@ -1082,7 +1104,7 @@ func prWireEngine(ctx context.Context, client *rpcclient.Client, act *actor.Acto
 	}
 	report.Validation["wire_engine_bound"] = true
 	report.NextSteps = append(report.NextSteps,
-		"PlatformGame is BOUND to the registry: registerApp(..., \"platform-game\", ...) and setDescriptor now push activateApp / validateAndApplyDescriptor into the engine.")
+		"PlatformGame is BOUND to the registry: registration (registerApp for custom ids or registerAppByPlatform for miniapp-* ids) and setDescriptor now push activateApp / validateAndApplyDescriptor into the engine.")
 	return nil
 }
 
@@ -1398,7 +1420,7 @@ func prFullLoopRegister(ctx context.Context, client *rpcclient.Client, act *acto
 		}
 	}
 
-	if !attachOnly {
+	if !attachOnly && !prIsPlatformOwnedAppID(appID) {
 		creditGas, err := strconv.ParseFloat(prFirstNonEmpty(os.Getenv("PLATFORM_REGISTRY_FULLLOOP_CREDIT_GAS"), strconv.FormatFloat(prFullLoopCreditGas, 'f', -1, 64)), 64)
 		if err != nil || creditGas <= 0 {
 			return fmt.Errorf("invalid PLATFORM_REGISTRY_FULLLOOP_CREDIT_GAS (must be a positive number of GAS)")
@@ -1424,7 +1446,7 @@ func prFullLoopRegister(ctx context.Context, client *rpcclient.Client, act *acto
 		}
 	}
 
-	method, label := "registerApp", "Full-loop registerApp "+appID
+	method, label := prRegistrationMethod(appID), "Full-loop "+prRegistrationMethod(appID)+" "+appID
 	var params []any
 	if attachOnly {
 		method, label = "attachEngine", "Full-loop attachEngine "+appID

@@ -283,6 +283,23 @@ function usesSharedWalletRuntime(source) {
   );
 }
 
+function collectDomainSupportSource(source) {
+  const relatedPaths = [];
+  if (source.includes("useNeoPayApp")) {
+    relatedPaths.push("apps/shared/composables/neo-pay/useNeoPayApp.ts");
+  }
+  if (source.includes("useProfitAnchor")) {
+    relatedPaths.push("apps/shared/composables/profitanchor/useProfitAnchor.ts");
+  }
+  if (source.includes("useTrustAnchor")) {
+    relatedPaths.push("apps/shared/composables/trustanchor/useTrustAnchor.ts");
+  }
+  if (source.includes("createAnchorRuntime")) {
+    relatedPaths.push("apps/trustanchor/src/anchor-runtime.ts");
+  }
+  return collectExistingSource(relatedPaths);
+}
+
 function manifestFlags(manifest) {
   const tags = asArray(manifest.tags).map((tag) => asString(tag).toLowerCase());
   const permissions = asObject(manifest.permissions);
@@ -314,12 +331,15 @@ function validateDomainApps(sourceApps) {
     if (!flags.aa && !flags.morpheus && !flags.oracle && !flags.wallet) continue;
     domainApps.push({ app, flags });
     const source = collectSource(app.slug);
-    const sourceForAudit = usesSharedWalletRuntime(source)
-      ? `${source}\n${sharedWalletRuntimeSource}`
-      : source;
+    const domainSupportSource = collectDomainSupportSource(source);
+    const sourceForAudit = [
+      source,
+      domainSupportSource,
+      usesSharedWalletRuntime(source) ? sharedWalletRuntimeSource : "",
+    ].join("\n");
     const hasRuntime = source.includes("defineMiniApp(");
     const hasWalletPath =
-      /useWallet\(|ChainService|chain\.ensureWallet|services\.chain|ctx\.services\.chain|wallet\.connect|invokeContract|invokeMultiple|invokeWithPayment|invokeWithDirectPrepaidGas|signMessage|ctx\.os\.|OSServiceProxy|EdgeClient|PaymentProxy|GameProxy|CheckinProxy|createFactorySetup/.test(
+      /useWallet\(|ChainService|chain\.ensureWallet|services\.chain|ctx\.services\.chain|ctx\.framework\.wallet|app\.wallet|app\.chain\.invoke|invokeContract|invokeMultiple|invokeWithPayment|invokeWithDirectPrepaidGas|signMessage|ctx\.os\.|OSServiceProxy|EdgeClient|PaymentProxy|GameProxy|CheckinProxy|createFactorySetup/.test(
         sourceForAudit,
       );
     const hasAaPath = /ctx\.services\.aa|services\.aa|AAService|submitRelay|checkSponsorship|requestSponsor/.test(

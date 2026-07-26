@@ -15,6 +15,11 @@ const NETWORK_DEFAULTS = {
       || process.env.CONTRACT_MORPHEUS_ORACLE_MAINNET_HASH
       || "0xf54d8584ef82315c1800373272ab08ae0db2d5ef"
     ).trim(),
+    datafeedHash: (
+      process.env.MORPHEUS_DATAFEED_MAINNET_HASH
+      || process.env.CONTRACT_MORPHEUS_DATAFEED_MAINNET_HASH
+      || "0x03013f49c42a14546c8bbe58f9d434c3517fccab"
+    ).trim(),
     aaCoreHash: (
       process.env.AA_CORE_HASH_MAINNET
       || process.env.CONTRACT_AA_CORE_MAINNET_HASH
@@ -31,6 +36,12 @@ const NETWORK_DEFAULTS = {
       // Canonical testnet kernel per the Morpheus public registry
       // (0x4b882e… retired as legacy_v1, 2026-07).
       || "0xf54d8584ef82315c1800373272ab08ae0db2d5ef"
+    ).trim(),
+    datafeedHash: (
+      process.env.MORPHEUS_DATAFEED_TESTNET_HASH
+      || process.env.CONTRACT_MORPHEUS_DATAFEED_HASH
+      || process.env.DATAFEED_HASH_TESTNET
+      || "0x9bea75cf702f6afc09125aa6d22f082bfd2ee064"
     ).trim(),
     aaCoreHash: (
       process.env.AA_CORE_HASH_TESTNET

@@ -55,19 +55,29 @@ generate_jwt_secret() {
 generate_jwt_token() {
     local secret="$1"
     local role="$2"
-    local iat=$(date +%s)
     local exp=1957345300  # Far future expiry (2032)
+
+    # Every substitution below is declared first and assigned second. Assigning
+    # on the `local` line would return `local`'s own status -- always 0 -- so a
+    # failing openssl would slip past `set -e` and this function would hand back
+    # a truncated token that then gets written into a Kubernetes secret. Aborting
+    # is the only safe outcome for a credential.
+    local iat
+    iat=$(date +%s)
 
     # JWT Header
     local header='{"alg":"HS256","typ":"JWT"}'
-    local header_b64=$(echo -n "$header" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    local header_b64
+    header_b64=$(echo -n "$header" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
 
     # JWT Payload
     local payload="{\"iss\":\"supabase\",\"ref\":\"local\",\"role\":\"$role\",\"iat\":$iat,\"exp\":$exp}"
-    local payload_b64=$(echo -n "$payload" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    local payload_b64
+    payload_b64=$(echo -n "$payload" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
 
     # JWT Signature
-    local signature=$(echo -n "${header_b64}.${payload_b64}" | openssl dgst -sha256 -hmac "$secret" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    local signature
+    signature=$(echo -n "${header_b64}.${payload_b64}" | openssl dgst -sha256 -hmac "$secret" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
 
     echo "${header_b64}.${payload_b64}.${signature}"
 }
@@ -199,8 +209,16 @@ create_postgres_roles() {
         return 1
     }
 
-    # Get the postgres pod name
-    local postgres_pod=$(kubectl get pod -n supabase -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+    # Get the postgres pod name. Split from the declaration so a kubectl failure
+    # aborts here, and checked for emptiness because a jsonpath that matches
+    # nothing still exits 0 -- `kubectl exec` on an empty pod name would fail
+    # several lines later with a far less obvious message.
+    local postgres_pod
+    postgres_pod=$(kubectl get pod -n supabase -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+    if [[ -z "$postgres_pod" ]]; then
+        log_error "No postgres pod found in namespace supabase"
+        return 1
+    fi
 
     # Create anon and service_role roles
     log_info "Creating database roles..."
@@ -304,7 +322,12 @@ verify_deployment() {
 
     # Test PostgREST endpoint
     log_info "Testing PostgREST endpoint..."
-    local anon_key=$(kubectl get secret supabase-secrets -n supabase -o jsonpath='{.data.ANON_KEY}' | base64 -d)
+    local anon_key
+    anon_key=$(kubectl get secret supabase-secrets -n supabase -o jsonpath='{.data.ANON_KEY}' | base64 -d)
+    if [[ -z "$anon_key" ]]; then
+        log_error "Secret supabase-secrets has no ANON_KEY"
+        return 1
+    fi
 
     # Note: This will fail if ingress/TLS is not set up yet
     log_info "To test the API, run:"
@@ -318,7 +341,14 @@ verify_deployment() {
 update_service_layer_config() {
     log_info "Updating service-layer ConfigMap..."
 
-    local service_key=$(kubectl get secret supabase-secrets -n supabase -o jsonpath='{.data.SERVICE_ROLE_KEY}' | base64 -d)
+    # This value is written into a ConfigMap below, so an empty read has to stop
+    # the run rather than publish a blank credential.
+    local service_key
+    service_key=$(kubectl get secret supabase-secrets -n supabase -o jsonpath='{.data.SERVICE_ROLE_KEY}' | base64 -d)
+    if [[ -z "$service_key" ]]; then
+        log_error "Secret supabase-secrets has no SERVICE_ROLE_KEY"
+        return 1
+    fi
 
     # Check if service-layer namespace exists
     if ! kubectl get namespace service-layer &>/dev/null; then

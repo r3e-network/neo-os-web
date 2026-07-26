@@ -1,18 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$ROOT"
 
-if [[ -z "${DOTNET_ROOT:-}" && -d /opt/homebrew/opt/dotnet/libexec ]]; then
-  export DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec
-fi
+# shellcheck source=deploy/scripts/lib/dotnet_tools.sh
+. "$SCRIPT_DIR/lib/dotnet_tools.sh"
+ensure_dotnet_root
 
-NCCS="${NCCS:-$HOME/.dotnet/tools/nccs}"
-if [[ ! -x "$NCCS" ]]; then
-  echo "nccs not found at $NCCS; install Neo.Compiler.CSharp 3.9.1 first" >&2
-  exit 1
-fi
+# NCCS still overrides discovery, so a locally built 3.9.1 compiler can be used.
+NCCS="$(resolve_dotnet_tool nccs "dotnet tool install -g Neo.Compiler.CSharp --version 3.9.1")"
 
 NCCS_VERSION="$("$NCCS" --version)"
 if [[ "$NCCS_VERSION" != 3.9.1* ]]; then

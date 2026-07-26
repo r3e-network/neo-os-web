@@ -66,3 +66,43 @@ test("goal gate rejects drifted live-harness summaries", () => {
   assert.ok(!liveHarnessCoverageOk(null, expected));
   assert.ok(!liveHarnessCoverageOk({ ...base, missingLiveChainHarness: null }, expected));
 });
+
+test("goal report uses the current active miniapp count for UI evidence", () => {
+  const report = require("../build_goal_validation_report.js").buildReport();
+  const runtimeUi = report.requirements.find(({ id }) => id === "frontend.runtime-ui");
+  const coverage = report.requirements.find(({ id }) => id === "miniapps.coverage");
+  const expected = expectedActiveMiniAppCount();
+
+  assert.match(runtimeUi.title, new RegExp(`All ${expected} active miniapps`));
+  assert.equal(runtimeUi.status, "pass");
+  assert.match(coverage.title, new RegExp(`All ${expected} active miniapps`));
+});
+
+test("goal report accepts current host and admin gate counts without hardcoding totals", () => {
+  const report = require("../build_goal_validation_report.js").buildReport();
+  const gate = report.requirements.find(({ id }) => id === "platform.host-admin-gates");
+
+  assert.equal(gate.status, "pass");
+  assert.deepEqual(gate.evidence.host_full.checks, {
+    jestSuites: true,
+    jestTests: true,
+    e2e: true,
+  });
+  assert.deepEqual(gate.evidence.local_gates.checks, {
+    completed: true,
+    adminTests: true,
+    adminFiles: true,
+  });
+});
+
+test("goal report keeps combined Oracle gate counts scoped to their headings", () => {
+  const report = require("../build_goal_validation_report.js").buildReport();
+  const gate = report.requirements.find(({ id }) => id === "oracle.service-gates");
+
+  assert.equal(gate.status, "pass");
+  assert.equal(gate.evidence.worker.pass, 470);
+  assert.equal(gate.evidence.relayer.pass, 440);
+  assert.equal(gate.evidence.runtime_matrix.pass, 6);
+  assert.equal(gate.evidence.web_build.compiled, true);
+  assert.equal(gate.evidence.web_build.staticPages, true);
+});
