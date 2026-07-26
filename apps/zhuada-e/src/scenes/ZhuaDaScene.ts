@@ -1280,6 +1280,7 @@ export class ZhuaDaScene {
     goose.rotation.y = Math.PI * 0.1;
     this.overlayGroup.add(goose);
     if (!this.reducedMotion) {
+      this.spawnWinConfetti();
       const overlayEpoch = this.overlayEpoch;
       let t = 0;
       let lastBobAt = performance.now();
@@ -1294,6 +1295,87 @@ export class ZhuaDaScene {
       };
       bob();
     }
+  }
+
+  /** Celebratory confetti rain — 40 colorful instanced quads with gravity + tumble. */
+  private spawnWinConfetti(): void {
+    const count = SCENE_MOTION.winConfettiCount;
+    const geo = new THREE.PlaneGeometry(0.12, 0.18);
+    const mat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      side: THREE.DoubleSide,
+      transparent: true,
+      roughness: 0.6,
+      metalness: 0.1,
+    });
+    const instanced = new THREE.InstancedMesh(geo, mat, count);
+    instanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    // Per-instance colors from a celebratory palette.
+    const palette = [0x16c784, 0xf59e0b, 0xef4444, 0x7c3aed, 0x3b82f6, 0xec4899];
+    const color = new THREE.Color();
+    for (let i = 0; i < count; i += 1) {
+      color.setHex(palette[i % palette.length]!);
+      instanced.setColorAt(i, color);
+    }
+    if (instanced.instanceColor) instanced.instanceColor.needsUpdate = true;
+
+    const dummy = new THREE.Object3D();
+    const spread = this.boxHalf * 1.6;
+    const parts: { pos: THREE.Vector3; vel: THREE.Vector3; rot: THREE.Euler; spin: THREE.Vector3 }[] = [];
+    for (let i = 0; i < count; i += 1) {
+      const pos = new THREE.Vector3(
+        (Math.random() - 0.5) * spread,
+        this.boxHeight + 2.5 + Math.random() * 2,
+        (Math.random() - 0.5) * spread,
+      );
+      parts.push({
+        pos,
+        vel: new THREE.Vector3((Math.random() - 0.5) * 1.2, -0.5 - Math.random() * 1.5, (Math.random() - 0.5) * 1.2),
+        rot: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
+        spin: new THREE.Vector3(3 + Math.random() * 6, 2 + Math.random() * 5, 4 + Math.random() * 7),
+      });
+      dummy.position.copy(pos);
+      dummy.rotation.copy(parts[i]!.rot);
+      dummy.updateMatrix();
+      instanced.setMatrixAt(i, dummy.matrix);
+    }
+    instanced.instanceMatrix.needsUpdate = true;
+    this.overlayGroup.add(instanced);
+
+    const t0 = performance.now();
+    const dur = SCENE_MOTION.winConfettiMs;
+    const overlayEpoch = this.overlayEpoch;
+    let last = t0;
+    const step = (): void => {
+      if (this.disposed || overlayEpoch !== this.overlayEpoch) return;
+      const now = performance.now();
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const t = Math.min(1, (now - t0) / dur);
+      for (let i = 0; i < count; i += 1) {
+        const p = parts[i]!;
+        p.vel.y -= 3.2 * dt; // gentle gravity
+        p.vel.x += Math.sin(now * 0.003 + i) * 0.4 * dt; // wind flutter
+        p.pos.addScaledVector(p.vel, dt);
+        p.rot.x += p.spin.x * dt;
+        p.rot.y += p.spin.y * dt;
+        p.rot.z += p.spin.z * dt;
+        dummy.position.copy(p.pos);
+        dummy.rotation.copy(p.rot);
+        dummy.updateMatrix();
+        instanced.setMatrixAt(i, dummy.matrix);
+      }
+      instanced.instanceMatrix.needsUpdate = true;
+      mat.opacity = t > 0.7 ? Math.max(0, 1 - (t - 0.7) / 0.3) : 1;
+      if (t < 1) requestAnimationFrame(step);
+      else {
+        this.overlayGroup.remove(instanced);
+        geo.dispose();
+        mat.dispose();
+        instanced.dispose();
+      }
+    };
+    requestAnimationFrame(step);
   }
 
   private playFail(): void {

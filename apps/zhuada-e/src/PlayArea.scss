@@ -140,6 +140,16 @@
   animation: goose-overlay-fade 0.3s var(--goose-motion-soft) both;
 }
 
+// Lobby overlay exit — fade + scale-down before unmount.
+.goose-overlay[data-exiting="true"] {
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 320ms ease-out,
+    transform 320ms ease-out;
+  pointer-events: none;
+}
+
 .goose-overlay__card {
   width: 100%;
   max-width: 320px;
@@ -253,16 +263,29 @@
 
 // ── 3D canvas host ───────────────────────────────────────────────
 .goose-three-canvas.three-game-host {
+  position: relative;
   width: 100% !important;
   max-width: 420px;
   border-radius: 20px;
-  overflow: hidden;
   // NOTE: no url() image layer here — an absolute "/banner.png" would 404
   // under the host's /miniapps/zhuada-e/ layout; the gradients carry the look.
   background: linear-gradient(160deg, #fbf7f0 0%, #f1e8da 100%);
   box-shadow:
     0 18px 40px rgba(31, 49, 58, 0.14),
     inset 0 0 0 1px rgba(22, 199, 132, 0.12);
+}
+
+// Breathe effect via pseudo-element opacity (compositor-only, no repaint).
+.goose-three-canvas.three-game-host::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    0 22px 46px rgba(31, 49, 58, 0.18),
+    inset 0 0 0 1px rgba(22, 199, 132, 0.18);
+  opacity: 0;
   animation: goose-canvas-breathe 4s var(--goose-motion-loop) infinite;
 }
 
@@ -471,6 +494,27 @@
 
 .goose-powerbar__btn[data-empty="true"] .goose-powerbar__count {
   color: var(--mx2-text-sub, #5c5a56);
+}
+
+// Milestone power-up refund flash — golden glow when a power-up is earned mid-level.
+.goose-powerbar__btn[data-refund-flash="true"] {
+  animation: goose-refund-flash 600ms ease-out both;
+}
+
+@keyframes goose-refund-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+
+  35% {
+    box-shadow:
+      0 0 12px 3px rgba(245, 158, 11, 0.55),
+      0 0 28px 6px rgba(245, 158, 11, 0.25);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
 }
 
 // ── Long-run progress + tray strip ───────────────────────────────
@@ -1244,15 +1288,11 @@
 @keyframes goose-canvas-breathe {
   0%,
   100% {
-    box-shadow:
-      0 18px 40px rgba(31, 49, 58, 0.14),
-      inset 0 0 0 1px rgba(22, 199, 132, 0.12);
+    opacity: 0;
   }
 
   50% {
-    box-shadow:
-      0 22px 46px rgba(31, 49, 58, 0.18),
-      inset 0 0 0 1px rgba(22, 199, 132, 0.18);
+    opacity: 1;
   }
 }
 
@@ -1321,6 +1361,28 @@
 
   50% {
     transform: scale(1.04);
+  }
+}
+
+// HUD score "pop" — one-shot feedback when the score value changes.
+.goose-hud-score[data-pop="true"] {
+  animation: goose-score-pop 280ms ease-out both;
+}
+
+@keyframes goose-score-pop {
+  0% {
+    transform: scale(1);
+    color: inherit;
+  }
+
+  40% {
+    transform: scale(1.18);
+    color: #16c784;
+  }
+
+  100% {
+    transform: scale(1);
+    color: inherit;
   }
 }
 
@@ -2995,6 +3057,31 @@
 
   .goose-playarea .goose-stage-hud[data-haptics="true"] .goose-stage-hud__sound--audio {
     right: 99px;
+  }
+}
+
+// ── Fallback for browsers without backdrop-filter ─────────────────
+@supports not (backdrop-filter: blur(1px)) {
+  .goose-overlay {
+    background: rgba(240, 245, 241, 0.92);
+  }
+
+  .goose-tray {
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  .goose-shelf {
+    background: rgba(255, 250, 235, 0.97);
+  }
+
+  .goose-playarea .goose-overlay {
+    background: color-mix(in srgb, var(--goose-page, #f7f6d8) 88%, #fff);
+  }
+
+  .goose-playarea .goose-stage-hud__metric,
+  .goose-playarea .goose-stage-hud__sound,
+  .goose-playarea .goose-stage-hud__drawer {
+    background: color-mix(in srgb, var(--goose-surface-strong, #fffaf0) 95%, #fff);
   }
 }
 
