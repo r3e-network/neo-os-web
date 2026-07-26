@@ -5,6 +5,21 @@ try {
 } catch {}
 
 const ONEGATE_VAULT_STANDALONE_ENTRY = "/miniapps/gas-lucky-pool/index.html";
+// MiniApp and MiniGame bundles are served from the CDN now (their sources live
+// in r3e-network/neo-miniapps and r3e-network/neo-minigames). The host frames
+// that origin, so it has to be allowed in frame-src/connect-src/img-src.
+const MINIAPP_CDN_ORIGIN = (() => {
+  const raw = (
+    process.env.MINIAPP_CDN_BASE_URL ||
+    process.env.NEXT_PUBLIC_MINIAPP_CDN_BASE_URL ||
+    "https://meshmini.app"
+  ).trim();
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return "https://meshmini.app";
+  }
+})();
 const MINIAPP_FRAME_ANCESTORS = [
   "'self'",
   "https://neomini.app",
@@ -49,6 +64,24 @@ const MiniAppCSP = `
   .replace(/\s{2,}/g, " ")
   .trim();
 
+const PlayCSP = `
+  default-src 'self' 'unsafe-inline';
+  script-src 'self' 'unsafe-inline' blob: 'unsafe-hashes';
+  script-src-elem 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
+  style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
+  img-src 'self' data: blob: https:;
+  font-src 'self' data: https:;
+  connect-src 'self' ${MINIAPP_CDN_ORIGIN} https://*.r3e.network https://*.neo.coz.io https://api.n3index.dev https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
+  frame-src 'self' blob: ${MINIAPP_CDN_ORIGIN};
+  frame-ancestors ${MINIAPP_FRAME_ANCESTORS};
+  form-action 'self';
+  base-uri 'self';
+  object-src 'none';
+`
+  .replace(/\s{2,}/g, " ")
+  .trim();
+
 const MainCSP = `
   default-src 'self' 'unsafe-inline';
   script-src 'self' 'unsafe-inline' blob: 'unsafe-hashes';
@@ -57,8 +90,8 @@ const MainCSP = `
   style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
   img-src 'self' data: blob: https:;
   font-src 'self' data: https:;
-  connect-src 'self' https://*.r3e.network https://*.neo.coz.io https://api.n3index.dev https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
-  frame-src 'self' blob:;
+  connect-src 'self' ${MINIAPP_CDN_ORIGIN} https://*.r3e.network https://*.neo.coz.io https://api.n3index.dev https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
+  frame-src 'self' blob: ${MINIAPP_CDN_ORIGIN};
   frame-ancestors 'self';
   form-action 'self';
   base-uri 'self';
@@ -85,6 +118,11 @@ const nextConfig = {
         protocol: "https",
         hostname: "neomini.app",
         pathname: "/miniapps/**",
+      },
+      {
+        // Catalogue artwork now comes from the bundle CDN.
+        protocol: "https",
+        hostname: new URL(MINIAPP_CDN_ORIGIN).hostname,
       },
     ],
     unoptimized: process.env.NODE_ENV === "development",
@@ -220,7 +258,26 @@ const nextConfig = {
         ],
       },
       {
-        source: "/((?!miniapps|miniapp-assets).*)",
+        // The chrome-free launch surface. Unlike the rest of the host it must
+        // be embeddable by OneGate, so it carries the miniapp frame-ancestors
+        // list and no X-Frame-Options (which cannot express an allowlist).
+        source: "/play/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Content-Security-Policy", value: PlayCSP },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), accelerometer=*, gyroscope=*",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+        ],
+      },
+      {
+        source: "/((?!miniapps|miniapp-assets|play).*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
