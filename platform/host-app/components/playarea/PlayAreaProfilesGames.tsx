@@ -315,6 +315,24 @@ export const GAME_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       slots: ["Grid", "Notes", "Conflicts", "Complete"],
     },
   }),
+  "miniapp-gomoku": gameProfile({
+    title: "Gomoku Arena board",
+    subtitle:
+      "Play Five-in-a-Row against a local AI on a 15×15 wooden board with three difficulty levels, undo, pause, and win-line highlights.",
+    tone: "amber",
+    icon: <Layers3 className="h-5 w-5" />,
+    cards: [
+      { label: "Mode", value: "vs AI" },
+      { label: "Board", value: "15x15" },
+      { label: "Recovery", value: "saved game" },
+    ],
+    steps: ["Choose difficulty", "Place your stone", "Block the AI", "Connect five"],
+    primaryAction: "Start game",
+    visual: {
+      headline: "Gomoku board",
+      slots: ["Stones", "Turn", "Threats", "Win line"],
+    },
+  }),
   "miniapp-zhuada-e": gameProfile({
     title: "Goose pen",
     subtitle:
