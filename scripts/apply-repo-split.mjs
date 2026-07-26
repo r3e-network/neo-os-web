@@ -341,6 +341,20 @@ function buildAppRepo(repoName) {
   ]);
 
   // @shared / @framework now resolve to the published SDK packages.
+  // Stylesheets and per-app build configs that reached apps/shared by relative
+  // path. Every other app already goes through the @shared alias; these kept the
+  // sibling-directory form, which points at a placeholder after the split.
+  const stylesRepointed = replaceLiterals("apps", [".scss"], [
+    ['@use "../../shared/', '@use "@shared/'],
+    ['@use "../shared/', '@use "@shared/'],
+    ['@import "../../shared/', '@import "@shared/'],
+    ['@import "../shared/', '@import "@shared/'],
+  ]);
+  const appConfigsRepointed = replaceLiterals("apps", [".ts"], [
+    ['"../shared/shims/', `"../../node_modules/${SHARED_PKG}/shims/`],
+    ['"../../shared/shims/', `"../../node_modules/${SHARED_PKG}/shims/`],
+  ]);
+
   const viteRepointed = replaceLiterals("apps/vite.shared.react.ts", [".ts"], [
     [
       'import fs from "fs";',
@@ -398,6 +412,8 @@ function buildAppRepo(repoName) {
     contract_test_files: contractTestFiles,
     test_imports_aliased: testsAliased,
     app_imports_aliased: appsAliased,
+    styles_repointed: stylesRepointed,
+    app_configs_repointed: appConfigsRepointed,
     vite_shared_repointed: viteRepointed,
     app_tsconfigs_repointed: tsconfigsRepointed,
   };
