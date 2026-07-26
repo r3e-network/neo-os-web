@@ -10,7 +10,7 @@
   --goose-motion-celebrate: cubic-bezier(0.2, 0.9, 0.2, 1.25);
   /* Spring overshoot for tray compaction — tokens slightly overshoot then settle. */
   --goose-motion-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --goose-tray-entry-ms: 692ms;
+  --goose-tray-entry-ms: 750ms;
   --goose-tray-grouping-ms: 620ms;
   --goose-tray-highlight-ms: 240ms;
   --goose-tray-clear-ms: 420ms;
