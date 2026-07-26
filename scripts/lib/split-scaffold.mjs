@@ -446,11 +446,14 @@ export function renderAppRepoFiles(repoName, kind, apps) {
     repository: { type: "git", url: `git+https://github.com/r3e-network/${repoName}.git` },
     scripts: {
       build: "node scripts/build-all.mjs",
-      test: "vitest run",
+      // The monorepo ran this suite as `cd apps/shared && vitest`, and the tests
+      // resolve sibling app paths from process.cwd(). apps/tests sits at the
+      // same depth apps/shared did, so running from there keeps that working.
+      test: "cd apps/tests && vitest run --config ../../vitest.config.ts",
       // Repo-wide audits carried over from the monorepo. They still assume the
       // full app catalogue in places, so they report rather than gate until
       // their hardcoded app lists are made subset-tolerant.
-      "test:conformance": "vitest run --dir apps/tests/conformance",
+      "test:conformance": "cd apps/tests && vitest run --config ../../vitest.config.ts --dir conformance",
       "test:apps": "node scripts/run-app-tests.mjs",
       "publish:cdn": "node scripts/publish-bundles-r2.mjs",
       "publish:cdn:dry-run": "node scripts/publish-bundles-r2.mjs --dry-run",
