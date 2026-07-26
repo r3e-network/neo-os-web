@@ -39,7 +39,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import type { ComponentType } from "react";
-import type { MiniAppManifest } from "../types/miniapp-manifest";
+import type { MiniAppManifest, MiniAppPlatformBindings } from "../types/miniapp-manifest";
 import type { TranslationMap } from "../utils/i18n";
 import type { MiniAppFrameworkOptions } from "../../../framework";
 import { MiniAppRoot } from "./MiniAppRoot";
@@ -130,46 +130,90 @@ export interface MiniAppDefinition {
   platformSocial?: MiniAppFrameworkOptions["platformSocial"];
   platformAnchor?: MiniAppFrameworkOptions["platformAnchor"];
   platformDeFi?: MiniAppFrameworkOptions["platformDeFi"];
+  platformVesting?: MiniAppFrameworkOptions["platformVesting"];
+  platformEscrow?: MiniAppFrameworkOptions["platformEscrow"];
   platformFactory?: MiniAppFrameworkOptions["platformFactory"];
+}
+
+function configuredPlatformHash(
+  manifest: MiniAppManifest,
+  key: Exclude<keyof MiniAppPlatformBindings, "factory">,
+): string {
+  return String(manifest.platformBindings?.[key] ?? "").trim();
+}
+
+function legacySharedHash(manifest: MiniAppManifest, moduleIds: string[]): string {
+  const binding = manifest.contract;
+  const moduleId = String(binding?.moduleId ?? "").trim().toLowerCase();
+  if (binding?.mode !== "shared" || !moduleIds.includes(moduleId)) return "";
+  return String(binding.engine ?? "").trim();
+}
+
+export function platformRegistryConfigFromManifest(
+  manifest: MiniAppManifest,
+): MiniAppFrameworkOptions["registry"] | undefined {
+  const registryHash = configuredPlatformHash(manifest, "registry") ||
+    legacySharedHash(manifest, ["platformregistry", "platform-registry"]);
+  return registryHash ? { registryHash } : undefined;
 }
 
 export function platformGameConfigFromManifest(
   manifest: MiniAppManifest,
 ): MiniAppFrameworkOptions["platformGame"] | undefined {
-  const binding = manifest.contract;
-  if (binding?.mode !== "shared" || binding.moduleId !== "platform-game") return undefined;
-  const gameHash = String(binding.engine ?? "").trim();
+  const gameHash = configuredPlatformHash(manifest, "game") ||
+    legacySharedHash(manifest, ["platform-game"]);
   return gameHash ? { gameHash } : undefined;
 }
 
 export function platformSocialConfigFromManifest(
   manifest: MiniAppManifest,
 ): MiniAppFrameworkOptions["platformSocial"] | undefined {
-  const binding = manifest.contract;
-  if (binding?.mode !== "shared" || binding.moduleId !== "platform-social") return undefined;
-  const socialHash = String(binding.engine ?? "").trim();
+  const socialHash = configuredPlatformHash(manifest, "social") ||
+    legacySharedHash(manifest, ["platform-social"]);
   return socialHash ? { socialHash } : undefined;
 }
 
 export function platformAnchorConfigFromManifest(
   manifest: MiniAppManifest,
 ): MiniAppFrameworkOptions["platformAnchor"] | undefined {
-  const binding = manifest.contract;
-  if (binding?.mode !== "shared" || String(binding.moduleId ?? "").toLowerCase() !== "platformanchor") return undefined;
-  const anchorHash = String(binding.engine ?? "").trim();
+  const anchorHash = configuredPlatformHash(manifest, "anchor") ||
+    legacySharedHash(manifest, ["platformanchor", "platform-anchor"]);
   return anchorHash ? { anchorHash } : undefined;
 }
 
 export function platformDeFiConfigFromManifest(
   manifest: MiniAppManifest,
 ): MiniAppFrameworkOptions["platformDeFi"] | undefined {
-  const binding = manifest.contract;
-  const moduleId = String(binding?.moduleId ?? "").toLowerCase();
-  if (binding?.mode !== "shared" || (moduleId !== "platformdefi" && moduleId !== "platform-defi")) {
-    return undefined;
-  }
-  const defiHash = String(binding.engine ?? "").trim();
+  const defiHash = configuredPlatformHash(manifest, "defi") ||
+    legacySharedHash(manifest, ["platformdefi", "platform-defi"]);
   return defiHash ? { defiHash } : undefined;
+}
+
+export function platformVestingConfigFromManifest(
+  manifest: MiniAppManifest,
+): MiniAppFrameworkOptions["platformVesting"] | undefined {
+  const vestingHash = configuredPlatformHash(manifest, "vesting") ||
+    legacySharedHash(manifest, ["platformvesting", "platform-vesting"]);
+  return vestingHash ? { vestingHash } : undefined;
+}
+
+export function platformEscrowConfigFromManifest(
+  manifest: MiniAppManifest,
+): MiniAppFrameworkOptions["platformEscrow"] | undefined {
+  const escrowHash = configuredPlatformHash(manifest, "escrow") ||
+    legacySharedHash(manifest, ["platformescrow", "platform-escrow"]);
+  return escrowHash ? { escrowHash } : undefined;
+}
+
+export function platformFactoryConfigFromManifest(
+  manifest: MiniAppManifest,
+): MiniAppFrameworkOptions["platformFactory"] | undefined {
+  const hashes = Object.fromEntries(
+    Object.entries(manifest.platformBindings?.factory ?? {})
+      .map(([network, hash]) => [network, String(hash ?? "").trim()])
+      .filter(([, hash]) => Boolean(hash)),
+  ) as NonNullable<MiniAppFrameworkOptions["platformFactory"]>["hashes"];
+  return Object.keys(hashes).length > 0 ? { hashes } : undefined;
 }
 
 /**
@@ -198,12 +242,18 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
     platformSocial,
     platformAnchor,
     platformDeFi,
+    platformVesting,
+    platformEscrow,
     platformFactory,
   } = definition;
+  const resolvedRegistry = registry ?? platformRegistryConfigFromManifest(manifest);
   const resolvedPlatformGame = platformGame ?? platformGameConfigFromManifest(manifest);
   const resolvedPlatformSocial = platformSocial ?? platformSocialConfigFromManifest(manifest);
   const resolvedPlatformAnchor = platformAnchor ?? platformAnchorConfigFromManifest(manifest);
   const resolvedPlatformDeFi = platformDeFi ?? platformDeFiConfigFromManifest(manifest);
+  const resolvedPlatformVesting = platformVesting ?? platformVestingConfigFromManifest(manifest);
+  const resolvedPlatformEscrow = platformEscrow ?? platformEscrowConfigFromManifest(manifest);
+  const resolvedPlatformFactory = platformFactory ?? platformFactoryConfigFromManifest(manifest);
 
   const container = document.querySelector(mountTo);
   if (!container) {
@@ -226,12 +276,14 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
         storagePrefix={storagePrefix}
         oracle={oracle}
         credits={credits}
-        registry={registry}
+        registry={resolvedRegistry}
         platformGame={resolvedPlatformGame}
         platformSocial={resolvedPlatformSocial}
         platformAnchor={resolvedPlatformAnchor}
         platformDeFi={resolvedPlatformDeFi}
-        platformFactory={platformFactory}
+        platformVesting={resolvedPlatformVesting}
+        platformEscrow={resolvedPlatformEscrow}
+        platformFactory={resolvedPlatformFactory}
       />
     </React.StrictMode>,
   );

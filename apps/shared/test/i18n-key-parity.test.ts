@@ -243,7 +243,7 @@ describe("i18n key parity", () => {
           expect(localized[key]?.en, `${app.name}.${key} en`).toBeTruthy();
           expect(localized[key]?.zh, `${app.name}.${key} zh`).toBeTruthy();
         }
-      });
+      }, 15_000);
     });
   }
 

@@ -140,6 +140,7 @@ describe("game miniapp experience audit", () => {
       "game-2048",
       "gas-lucky-pool",
       "gasbox",
+      "gomoku",
       "jump-rush",
       "last-survivor",
       "merge-kingdom",

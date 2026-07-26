@@ -28,6 +28,34 @@ export function clampDifficulty(value: number): number {
   return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
+export interface DifficultyRuleLike {
+  difficulty: number;
+}
+
+/**
+ * Build the common difficulty lookup used by standard reward-game rule files.
+ * The fallback mode preserves the fleet convention that malformed difficulty
+ * values open the easy rule; strict mode is for games that reject unknown
+ * values at their public boundary.
+ */
+export function createDifficultyRuleSelector<TRule extends DifficultyRuleLike>(
+  rules: readonly TRule[],
+  options: { fallbackDifficulty?: number; strict?: boolean } = {},
+): (difficulty: number) => TRule {
+  const fallbackDifficulty = options.fallbackDifficulty ?? 0;
+  return (difficulty: number): TRule => {
+    const rule = rules.find((candidate) => candidate.difficulty === difficulty);
+    if (rule) return rule;
+    if (options.strict) {
+      throw new Error(`unknown difficulty ${difficulty}`);
+    }
+    const fallback = rules.find((candidate) => candidate.difficulty === fallbackDifficulty);
+    if (fallback) return fallback;
+    if (rules.length === 0) throw new Error("no difficulty rules configured");
+    return rules[0] as TRule;
+  };
+}
+
 /**
  * Build the standard game-rules helpers (see {@link FrameworkGameRules}).
  *

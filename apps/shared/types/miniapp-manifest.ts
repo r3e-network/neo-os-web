@@ -319,6 +319,25 @@ export interface ContractBinding {
   engine?: string;
 }
 
+/**
+ * Optional per-module shared contract hashes. Unlike `contract`, this map
+ * lets one miniapp compose several platform engines without changing its
+ * primary contract binding.
+ */
+export interface MiniAppPlatformBindings {
+  registry?: string;
+  game?: string;
+  social?: string;
+  anchor?: string;
+  defi?: string;
+  vesting?: string;
+  escrow?: string;
+  factory?: {
+    "neo-n3-mainnet"?: string;
+    "neo-n3-testnet"?: string;
+  };
+}
+
 // ============================================================================
 // Platform Permissions
 // ============================================================================
@@ -336,6 +355,10 @@ export interface PlatformPermissions {
   "invoke:platform-anchor"?: boolean;
   /** Invoke tenant operations on the shared PlatformDeFi engine. */
   "invoke:platform-defi"?: boolean;
+  /** Invoke tenant operations on the shared PlatformVesting engine. */
+  "invoke:platform-vesting"?: boolean;
+  /** Invoke tenant operations on the shared PlatformEscrow engine. */
+  "invoke:platform-escrow"?: boolean;
   /** Invoke tenant deployment operations on MiniAppFactory. */
   "invoke:platform-factory"?: boolean;
   /** Access to payment processing */
@@ -513,6 +536,9 @@ export interface MiniAppManifest {
 
   /** Contract binding configuration */
   contract?: ContractBinding;
+
+  /** Composable shared platform contract bindings by module. */
+  platformBindings?: MiniAppPlatformBindings;
 
   /** Platform permission declarations */
   permissions?: PlatformPermissions;

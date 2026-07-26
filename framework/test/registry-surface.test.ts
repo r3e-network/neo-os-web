@@ -84,6 +84,7 @@ describe("registry config validation", () => {
       () => app.registry.appAccountOf(),
       () => app.registry.appIdOfAccount(ACCOUNT_HASH),
       () => app.registry.getAbstractAccount(),
+      () => app.registry.getPredictedAbstractAccount(),
       () => app.registry.appIdOfAbstractAccount(AA_CORE_HASH, AA_ACCOUNT_ID),
       () => app.registry.engineOf(),
       () => app.registry.isPaused(),
@@ -259,6 +260,25 @@ describe("app.registry directory reads", () => {
         { type: "Hash160", value: AA_CORE_HASH },
         { type: "Hash160", value: AA_ACCOUNT_ID },
       ],
+      { scriptHash: REGISTRY_HASH },
+    );
+  });
+
+  it("reads a deterministic shared AA identity before materialization", async () => {
+    const { app, chain } = makeApp();
+    chain.read.mockResolvedValueOnce([
+      chainHex(AA_CORE_HASH),
+      chainHex(AA_ACCOUNT_ID),
+      false,
+    ]);
+
+    await expect(app.registry.getPredictedAbstractAccount()).resolves.toEqual({
+      ...deriveVirtualAAAccount(AA_CORE_HASH, AA_ACCOUNT_ID),
+      materialized: false,
+    });
+    expect(chain.read).toHaveBeenCalledWith(
+      "getPredictedAbstractAccount",
+      [{ type: "String", value: "registry-test" }],
       { scriptHash: REGISTRY_HASH },
     );
   });

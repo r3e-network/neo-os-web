@@ -127,9 +127,32 @@ export function useStateBindings(state: StateRecord) {
       return value == null ? fallback : Number(value);
     };
 
-    /** Read a raw value with a typed cast */
-    const val = <T,>(key: string, fallback: T | null = null): T | null =>
-      readStateValue(state, key, fallback) as T | null;
+    /**
+     * Read a raw value with a typed cast.
+     *
+     * Two contracts in one accessor, chosen by whether the caller names a
+     * fallback:
+     *
+     * - `val<T>(key)` (or an explicit `null` fallback) returns the RAW value,
+     *   `T | null`. Callers reach for this to see the true state — including
+     *   "not read yet" — and decide for themselves what to render.
+     * - `val<T>(key, fallback)` returns `T`. A caller who has already said what
+     *   "nothing known" reads as should not be handed a nullish value back, and
+     *   should not have to say it twice. This mirrors `str` and `num` above: the
+     *   nullish guard is what separates a fallback from a lie, because
+     *   `readStateValue` applies its own fallback to a missing key only, so an
+     *   observable holding `undefined` used to return raw `undefined` to a
+     *   caller who had named a default.
+     *
+     * A settled falsy value (`0`, `""`, `false`) is an answer, not an absence,
+     * so only nullish reaches the fallback.
+     */
+    function val<T>(key: string, fallback: T): T;
+    function val<T>(key: string, fallback?: null): T | null;
+    function val<T>(key: string, fallback?: T | null): T | null {
+      const raw = readStateValue(state, key, fallback ?? null);
+      return (raw == null && fallback != null ? fallback : raw) as T | null;
+    }
 
     return { str, bool, num, val };
   }, [state]);

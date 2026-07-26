@@ -5,7 +5,11 @@
  * - P1-7 `platform.params` / `platform.network` / `platform.explorer`.
  */
 import { describe, expect, it, vi } from "vitest";
-import { createGameRules, DEFAULT_SETTLEMENT_GRACE_MS } from "../game-rules";
+import {
+  createDifficultyRuleSelector,
+  createGameRules,
+  DEFAULT_SETTLEMENT_GRACE_MS,
+} from "../game-rules";
 import { createMiniAppFramework } from "../index";
 import type { MiniAppFrameworkContext } from "../index";
 import { createObservable } from "../reactive";
@@ -35,6 +39,16 @@ function makeApp(appId: string, launch: Record<string, unknown> = {}) {
 }
 
 describe("P1-2 game.rules factory", () => {
+  it("selects standard difficulty rules with safe and strict modes", () => {
+    const rules = [{ difficulty: 0, label: "easy" }, { difficulty: 1, label: "hard" }] as const;
+    const fallback = createDifficultyRuleSelector(rules);
+    const strict = createDifficultyRuleSelector(rules, { strict: true });
+
+    expect(fallback(1)).toEqual({ difficulty: 1, label: "hard" });
+    expect(fallback(2)).toEqual({ difficulty: 0, label: "easy" });
+    expect(() => strict(2)).toThrow("unknown difficulty 2");
+  });
+
   const rules = createGameRules({
     difficulties: {
       easy: { stakeFixed8: 2_000_000n, label: "Easy" },

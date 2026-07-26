@@ -234,7 +234,7 @@ export function renderWithSetup(
     useEvents: () => events,
   }));
 
-  vi.mock("@/composables/useI18n", () => ({
+  vi.mock("@shared/composables/useI18n", () => ({
     useI18n: () => i18n,
   }));
 
@@ -458,7 +458,7 @@ export function setupMocks() {
   }));
 
   // Setup i18n mock
-  vi.mock("@/composables/useI18n", () => ({
+  vi.mock("@shared/composables/useI18n", () => ({
     useI18n: () => mockI18n(),
   }));
 }

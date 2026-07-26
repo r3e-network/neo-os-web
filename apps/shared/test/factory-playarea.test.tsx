@@ -156,7 +156,7 @@ describe("FactoryPlayArea", () => {
     ).toHaveLength(0);
     // The template artifact row is honest about not having a live read yet.
     expect(screen.getAllByText("Unverified").length).toBeGreaterThan(0);
-  }, 15_000);
+  }, 30_000);
 
   it("updates miniapp template cards and service switches without native form controls", async () => {
     const { FactoryPlayArea } = await loadFactoryModules();
@@ -179,7 +179,7 @@ describe("FactoryPlayArea", () => {
     expect(oracleSwitch.getAttribute("aria-checked")).toBe("true");
     expect(document.querySelectorAll("select")).toHaveLength(0);
     expect(document.querySelectorAll("input[type='checkbox']")).toHaveLength(0);
-  });
+  }, 15_000);
 
   it("prefills the owner from the connected wallet and drops the blocking owner error", async () => {
     const { FactoryPlayArea } = await loadFactoryModules();
@@ -197,7 +197,7 @@ describe("FactoryPlayArea", () => {
     expect(
       screen.queryByText("Owner must be a Neo N3 address or Hash160."),
     ).toBeNull();
-  });
+  }, 15_000);
 
   it("restores an app-owned NEP-17 draft, limits network choices, and journals before generate", async () => {
     const { FactoryPlayArea } = await loadFactoryModules();

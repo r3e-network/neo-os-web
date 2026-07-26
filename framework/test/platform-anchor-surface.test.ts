@@ -64,7 +64,7 @@ describe("app.platformAnchor", () => {
       { type: "Hash160", value: ACCOUNT },
       { type: "Hash160", value: ANCHOR_HASH },
       { type: "Integer", value: "3" },
-      { type: "String", value: `stake:${APP_ID}` },
+      { type: "String", value: `appstake:${APP_ID}` },
     ], expect.objectContaining({
       scriptHash: NEO_HASH,
       waitForEvent: "AnchorStakeChanged",
@@ -81,13 +81,35 @@ describe("app.platformAnchor", () => {
     expect(chain.invoke.mock.calls.map((call) => call[0])).toEqual([
       "withdraw",
       "claimRewards",
-      "withdrawCredit",
+      "withdrawAppCredit",
       "transferAgentNeo",
     ]);
     expect(chain.invoke.mock.calls[0]?.[1]).toEqual([
       { type: "String", value: APP_ID },
       { type: "Hash160", value: ACCOUNT },
       { type: "Integer", value: "2" },
+    ]);
+  });
+
+  it("uses app-scoped credit reads and preserves the legacy compatibility lane", async () => {
+    const { app, chain } = makeApp();
+    await app.platformAnchor.credit("GAS");
+    await app.platformAnchor.totalNeoCredit();
+    await app.platformAnchor.totalGasCredit();
+    await app.platformAnchor.legacyCredit("GAS");
+    await app.platformAnchor.legacyTotalGasCredit();
+
+    expect(chain.read.mock.calls.map((call) => call[0])).toEqual([
+      "getAppCredit",
+      "getAppTotalNeoCredit",
+      "getAppTotalGasCredit",
+      "getCredit",
+      "getTotalGasCredit",
+    ]);
+    expect(chain.read.mock.calls[0]?.[1]).toEqual([
+      { type: "String", value: APP_ID },
+      { type: "Hash160", value: ACCOUNT },
+      { type: "String", value: "GAS" },
     ]);
   });
 

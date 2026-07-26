@@ -114,7 +114,8 @@ export interface FrameworkRegistryGlobalPause {
 }
 
 export interface FrameworkRegistryAbstractAccount extends VirtualAAAccount {
-  materialized: true;
+  /** False when the address is deterministic but not registered in the AA core yet. */
+  materialized: boolean;
 }
 
 // ─── surface + deps ─────────────────────────────────────────────────────────
@@ -162,6 +163,8 @@ export interface FrameworkRegistrySurface {
   appIdOfAccount(accountHash: string): Promise<string>;
   /** Shared UnifiedSmartWallet account, or null until the registry materializes it. */
   getAbstractAccount(appId?: string): Promise<FrameworkRegistryAbstractAccount | null>;
+  /** Deterministic shared UnifiedSmartWallet account, including pre-materialization rows. */
+  getPredictedAbstractAccount(appId?: string): Promise<FrameworkRegistryAbstractAccount | null>;
   /** Reverse lookup scoped by AA core, because account ids are core-local identities. */
   appIdOfAbstractAccount(coreHash: string, accountId: string): Promise<string>;
   /** Engine id the app is attached to ("" when unattached/unknown). */
@@ -421,17 +424,34 @@ export function createRegistrySurface(deps: RegistrySurfaceDeps): FrameworkRegis
     return decodeText(raw);
   };
 
+  const decodeAbstractAccount = (raw: unknown): FrameworkRegistryAbstractAccount | null => {
+    if (!Array.isArray(raw) || raw.length < 3) return null;
+    const coreHash = decodeHashOrNull(raw[0]);
+    const accountId = decodeHashOrNull(raw[1]);
+    if (!coreHash || !accountId) return null;
+    return {
+      ...deriveVirtualAAAccount(coreHash, accountId),
+      materialized: parseBool(raw[2]),
+    };
+  };
+
   const getAbstractAccount = async (
     appId?: string,
   ): Promise<FrameworkRegistryAbstractAccount | null> => {
     const raw = await read("getAppAbstractAccount", [
       { type: "String", value: resolveAppId(appId) },
     ]);
-    if (!Array.isArray(raw) || raw.length < 3 || !parseBool(raw[2])) return null;
-    const coreHash = decodeHashOrNull(raw[0]);
-    const accountId = decodeHashOrNull(raw[1]);
-    if (!coreHash || !accountId) return null;
-    return { ...deriveVirtualAAAccount(coreHash, accountId), materialized: true };
+    const account = decodeAbstractAccount(raw);
+    return account?.materialized ? account : null;
+  };
+
+  const getPredictedAbstractAccount = async (
+    appId?: string,
+  ): Promise<FrameworkRegistryAbstractAccount | null> => {
+    const raw = await read("getPredictedAbstractAccount", [
+      { type: "String", value: resolveAppId(appId) },
+    ]);
+    return decodeAbstractAccount(raw);
   };
 
   const appIdOfAbstractAccount = async (
@@ -592,6 +612,7 @@ export function createRegistrySurface(deps: RegistrySurfaceDeps): FrameworkRegis
     appAccountOf,
     appIdOfAccount,
     getAbstractAccount,
+    getPredictedAbstractAccount,
     appIdOfAbstractAccount,
     engineOf,
     isPaused,

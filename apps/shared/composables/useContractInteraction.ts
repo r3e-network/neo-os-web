@@ -165,7 +165,7 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     contractAddress,
     ensure: ensureContractAddress,
     ensureSafe,
-  } = useContractAddress(t);
+  } = useContractAddress(t, appId);
   const { payGAS } = usePayments(appId);
   const { list: listEvents } = useEvents();
 

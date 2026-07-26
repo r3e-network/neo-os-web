@@ -904,7 +904,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     };
   };
 
-  const getContractAddress = async (): Promise<string> => {
+  const getContractAddress = async (appId?: string): Promise<string> => {
     const manifest = await loadCurrentMiniAppManifest();
     const network = getNetwork();
 
@@ -933,6 +933,14 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       );
     }
 
+    // A typed custom binding is the primary contract declaration. Resolve it
+    // before legacy manifest registries, while keeping template bindings on
+    // their factory-managed path.
+    if (binding?.mode !== "template") {
+      const primaryHash = String(binding?.hash ?? "").trim();
+      if (primaryHash) return primaryHash;
+    }
+
     const configured =
       manifest?.contracts?.[`neo-n3-${network}`] ||
       manifest?.contracts?.[network] ||
@@ -949,11 +957,12 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     if (registryHash) return registryHash;
 
     const fallbackAppId =
-      typeof window !== "undefined"
+      String(appId ?? "").trim() ||
+      (typeof window !== "undefined"
         ? new URLSearchParams(window.location.search).get("app_id") ||
           new URLSearchParams(window.location.search).get("appId") ||
           ""
-        : "";
+        : "");
     const fallback = fallbackAppId
       ? getMiniAppContractHash(fallbackAppId, network)
       : "";

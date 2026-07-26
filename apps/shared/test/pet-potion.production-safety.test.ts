@@ -81,7 +81,10 @@ describe("pet-potion production trust boundary", () => {
       .toEqual({ happiness: 22, hunger: 30, energy: 90 });
 
     const guest = source("src/logic/guest-engine.ts");
-    expect(guest).toContain("return { happiness: 20, hunger: 40, energy: 60 }");
+    const rules = source("src/logic/pet-engine.ts");
+    expect(rules).toContain("const START: PetStats = { happiness: 20, hunger: 40, energy: 60 }");
+    expect(rules).toContain("export function stepPet");
+    expect(guest).toContain("import { newPet, stepPet");
     expect(guest).toContain("recipeReady(ingredientCounts.get())");
     expect(guest).toContain("!potionBrewed.get() || petHappiness.get() < target");
     expect(guest).toContain("if (won) await submitScore(achieved)");

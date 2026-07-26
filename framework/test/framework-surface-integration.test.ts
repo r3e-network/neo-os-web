@@ -20,6 +20,8 @@ import type {
   FrameworkLifecycleSurface,
   FrameworkPermissionsSurface,
   FrameworkPlatformGameSurface,
+  FrameworkPlatformEscrowSurface,
+  FrameworkPlatformVestingSurface,
   FrameworkRegistrySurface,
   FrameworkResourcesSurface,
   FrameworkShareSurface,
@@ -153,10 +155,12 @@ describe("Wave-1 surface reachability", () => {
     const aa: FrameworkAaSurface = app.aa;
     const registry: FrameworkRegistrySurface = app.registry;
     const platformGame: FrameworkPlatformGameSurface = app.platformGame;
+    const platformVesting: FrameworkPlatformVestingSurface = app.platformVesting;
+    const platformEscrow: FrameworkPlatformEscrowSurface = app.platformEscrow;
 
     for (const surface of [
       events, bus, wallet, lifecycle, clipboard, share, permissions, resources, aa, registry,
-      platformGame,
+      platformGame, platformVesting, platformEscrow,
     ]) {
       expect(surface).toBeTruthy();
     }
@@ -166,6 +170,7 @@ describe("Wave-1 surface reachability", () => {
     expect(app.wallet).toBe(app.wallet);
     expect(app.registry).toBe(app.registry);
     expect(app.platformGame).toBe(app.platformGame);
+    expect(app.platformEscrow).toBe(app.platformEscrow);
     // Unconfigured by default: reads throw typed capability errors, the
     // config-free advisory derivation keeps working.
     expect(app.registry.available).toBe(false);

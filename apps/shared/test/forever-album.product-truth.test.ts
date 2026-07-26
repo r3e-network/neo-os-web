@@ -85,7 +85,9 @@ describe("Forever Album product truth", () => {
     // App side: album persistence rides the bridge protocol inside the
     // opaque sandbox, with acknowledged (not fire-and-forget) writes.
     const albumStore = read("apps/forever-album/src/utils/album-store.ts");
-    expect(albumStore).toContain("neo-miniapp-storage:request");
+    const sharedStorageClient = read("apps/shared/utils/embedded-storage-client.ts");
+    expect(sharedStorageClient).toContain("neo-miniapp-storage:request");
+    expect(albumStore).toContain("createEmbeddedStorageClient");
     expect(albumStore).toContain('"miniapp-forever-album"');
     const logic = read("apps/forever-album/src/composables/useForeverAlbum.ts");
     expect(logic).toContain("resolveAlbumStore");

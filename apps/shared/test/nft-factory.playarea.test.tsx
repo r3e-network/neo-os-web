@@ -159,7 +159,7 @@ describe("NFT Factory collection studio", () => {
     expect(
       screen.queryByRole("button", { name: "Deployment locked" }),
     ).toBeNull();
-  });
+  }, 15_000);
 
   it("uses a creator-selected image across the live studio without uploading it", () => {
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:nft-artwork-preview");

@@ -20,7 +20,10 @@ type EnsureSafeOptions = {
  *  - `ensure()` — returns the address string or throws (for use inside try/catch flows)
  *  - `ensureSafe()` — returns boolean, stores address in `contractAddress` observable (guard-style)
  */
-export function useContractAddress(t: (key: string) => string) {
+export function useContractAddress(
+  t: (key: string) => string,
+  appId?: string,
+) {
   const wallet = useWallet() as WalletSDK;
   const { chainType, getContractAddress } = wallet;
   const contractAddress: Observable<string | null> = createObservable<string | null>(null);
@@ -33,7 +36,7 @@ export function useContractAddress(t: (key: string) => string) {
     if (resolvePromise) {
       return resolvePromise;
     }
-    const addr = await getContractAddress();
+    const addr = await getContractAddress(appId);
     if (mounted && !mounted.current) return addr;
     contractAddress.set(addr);
     return addr;

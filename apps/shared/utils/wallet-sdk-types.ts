@@ -1,5 +1,8 @@
 import type { RefCompatObservable } from "../react/context";
-import type { ContractBinding } from "../types/miniapp-manifest";
+import type {
+  ContractBinding,
+  MiniAppPlatformBindings,
+} from "../types/miniapp-manifest";
 
 import type { NeoDapiProvider as BaseNeoDapiProvider } from "./nep21-provider";
 
@@ -32,7 +35,7 @@ export interface WalletSDK {
     to: string,
     from?: string,
   ) => Promise<InvokeResult>;
-  getContractAddress: () => Promise<string>;
+  getContractAddress: (appId?: string) => Promise<string>;
   /** Sign a message with the connected wallet */
   signMessage?: (message: string) => Promise<{
     publicKey?: string;
@@ -139,8 +142,10 @@ export type MiniAppManifest = {
    * Contract binding (Platform Contract Library v2): `mode: "shared"` makes
    * getContractAddress resolve the network's shared platform engine hash
    * keyed by `moduleId` instead of a per-app hash.
-   */
+  */
   contract?: ContractBinding;
+  /** Composable platform bindings consumed by the shared React runtime. */
+  platformBindings?: MiniAppPlatformBindings;
 };
 
 declare global {

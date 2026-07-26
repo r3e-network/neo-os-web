@@ -34,6 +34,14 @@ import type {
   FrameworkPlatformFactorySurface,
 } from "./platform-factory-surface";
 import type {
+  FrameworkPlatformVestingConfig,
+  FrameworkPlatformVestingSurface,
+} from "./platform-vesting-surface";
+import type {
+  FrameworkPlatformEscrowConfig,
+  FrameworkPlatformEscrowSurface,
+} from "./platform-escrow-surface";
+import type {
   FrameworkBusChannel,
   FrameworkBusSurface,
   FrameworkEventsSurface,
@@ -172,6 +180,7 @@ export interface FrameworkWaitForStateOptions {
 export interface MiniAppFrameworkChain {
   address: Observable<string | null>;
   contractAddress?: Observable<string | null>;
+  resolveContractAddress?(): Promise<string>;
   ensureWallet(): Promise<string>;
   detectNetwork?(): Promise<string>;
   read(operation: string, args?: FrameworkContractArg[], options?: unknown): Promise<unknown>;
@@ -353,6 +362,10 @@ export interface MiniAppFrameworkOptions {
   platformAnchor?: FrameworkPlatformAnchorConfig;
   /** PlatformDeFi shared engine config; unconfigured surfaces fail closed. */
   platformDeFi?: FrameworkPlatformDeFiConfig;
+  /** PlatformVesting shared engine config; unconfigured surfaces fail closed. */
+  platformVesting?: FrameworkPlatformVestingConfig;
+  /** PlatformEscrow shared engine config; unconfigured surfaces fail closed. */
+  platformEscrow?: FrameworkPlatformEscrowConfig;
   /** MiniAppFactory network hash map; unconfigured surfaces fail closed. */
   platformFactory?: FrameworkPlatformFactoryConfig;
   /**
@@ -839,6 +852,7 @@ export interface FrameworkChainSurface {
    * NOT whether a wallet is connected (S7). Read-only derived observable.
    */
   readonly contractReady: Observable<boolean>;
+  resolveContractAddress(): Promise<string>;
   ensureWallet(): Promise<string>;
   /** Current network label (e.g. "testnet"/"mainnet") if the host exposes it. */
   detectNetwork(): Promise<string>;
@@ -1227,7 +1241,7 @@ export interface FrameworkGameSurface {
  * Structural note: the lazily-constructed surfaces (`events`, `bus`,
  * `wallet`, `lifecycle`, `clipboard`, `share`, `permissions`, `resources`,
  * `aa`, `credits`, `registry`, `platformGame`, `platformSocial`,
- * `platformAnchor`, `platformDeFi`, `platformFactory`) are getters at runtime —
+   * `platformAnchor`, `platformDeFi`, `platformVesting`, `platformEscrow`, `platformFactory`) are getters at runtime —
  * constructed on first access and cached, so hosts that never touch one pay
  * nothing.
  */
@@ -1289,8 +1303,9 @@ export interface MiniAppFramework {
   readonly registry: FrameworkRegistrySurface;
   /**
    * app.platformAccount — the app's registered directory row, shared
-   * UnifiedSmartWallet identity, and optional isolated treasury shim without
-   * exposing registry storage/ABI details to application code.
+   * UnifiedSmartWallet identity (materialized or deterministic predicted), and
+   * optional isolated treasury shim without exposing registry storage/ABI
+   * details to application code.
    */
   readonly platformAccount: FrameworkPlatformAccountSurface;
   /**
@@ -1308,6 +1323,10 @@ export interface MiniAppFramework {
   readonly platformAnchor: FrameworkPlatformAnchorSurface;
   /** Shared lending, flash-loan and capsule primitives with guarded writes. */
   readonly platformDeFi: FrameworkPlatformDeFiSurface;
+  /** Shared GAS/NEO vesting streams with appId auto-threading and guarded writes. */
+  readonly platformVesting: FrameworkPlatformVestingSurface;
+  /** Shared native-asset milestone escrow with appId auto-threading and guarded writes. */
+  readonly platformEscrow: FrameworkPlatformEscrowSurface;
   /** Governed template registry and deployment primitives with guarded writes. */
   readonly platformFactory: FrameworkPlatformFactorySurface;
   /** app.oracle — envelope builders + dispatch + S13 dataFeed/seal client. */

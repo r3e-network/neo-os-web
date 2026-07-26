@@ -25,6 +25,7 @@ const phaserSceneApps = [
   ["fruit-funnel", "SuikaScene"],
   ["game-2048", "Game2048Scene"],
   ["gas-lucky-pool", "GasLuckyPoolScene"],
+  ["gomoku", "GomokuScene"],
   ["jump-rush", "JumpRushScene"],
   ["last-survivor", "LastSurvivorScene"],
   ["merge-kingdom", "MergeKingdomScene"],

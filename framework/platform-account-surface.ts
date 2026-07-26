@@ -14,6 +14,7 @@ export interface FrameworkPlatformAccountSnapshot {
   engineHash: string | null;
   active: boolean;
   sharedIdentity: FrameworkRegistryAbstractAccount | null;
+  predictedIdentity: FrameworkRegistryAbstractAccount | null;
   treasuryAccountHash: string | null;
 }
 
@@ -21,6 +22,7 @@ export interface FrameworkPlatformAccountSurface {
   readonly available: boolean;
   get(appId?: string): Promise<FrameworkPlatformAccountSnapshot | null>;
   getSharedIdentity(appId?: string): Promise<FrameworkRegistryAbstractAccount | null>;
+  getPredictedSharedIdentity(appId?: string): Promise<FrameworkRegistryAbstractAccount | null>;
   materializeSharedIdentity(
     appId?: string,
     options?: FrameworkRegistryInvokeOptions,
@@ -42,6 +44,7 @@ function snapshot(
   appId: string,
   app: FrameworkRegistryApp,
   sharedIdentity: FrameworkRegistryAbstractAccount | null,
+  predictedIdentity: FrameworkRegistryAbstractAccount | null,
 ): FrameworkPlatformAccountSnapshot {
   return {
     appId,
@@ -51,6 +54,7 @@ function snapshot(
     engineHash: app.engineHash,
     active: app.active,
     sharedIdentity,
+    predictedIdentity,
     treasuryAccountHash: app.accountHash,
   };
 }
@@ -68,11 +72,18 @@ export function createPlatformAccountSurface(
       const app = await deps.registry.getApp(resolvedAppId);
       if (!app) return null;
       const sharedIdentity = await deps.registry.getAbstractAccount(resolvedAppId);
-      return snapshot(resolvedAppId, app, sharedIdentity);
+      const predictedIdentity = sharedIdentity
+        ? null
+        : await deps.registry.getPredictedAbstractAccount(resolvedAppId);
+      return snapshot(resolvedAppId, app, sharedIdentity, predictedIdentity);
     },
 
     getSharedIdentity(appId) {
       return deps.registry.getAbstractAccount(resolveAppId(deps.appId, appId));
+    },
+
+    getPredictedSharedIdentity(appId) {
+      return deps.registry.getPredictedAbstractAccount(resolveAppId(deps.appId, appId));
     },
 
     materializeSharedIdentity(appId, options) {

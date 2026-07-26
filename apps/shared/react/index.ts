@@ -92,7 +92,10 @@ export { useNowMs } from "./hooks/useNowMs";
 export type { UseNowMsOptions } from "./hooks/useNowMs";
 
 // Re-export manifest types for convenience
-export type { MiniAppManifest } from "../types/miniapp-manifest";
+export type {
+  MiniAppManifest,
+  MiniAppPlatformBindings,
+} from "../types/miniapp-manifest";
 export { manifestToTemplateConfig } from "../utils/manifestToTemplateConfig";
 export {
   getLaunchParam,

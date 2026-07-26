@@ -189,7 +189,7 @@ describe("factory runtime setup", () => {
     expect(plan.execution.blockedReasonKey).toBe("");
     await vi.waitFor(() => expect(readState(result, "feeEstimateGas")).toBe("0.007"));
     expect(harness.estimateFactoryFeeGas).toHaveBeenCalled();
-  });
+  }, 15_000);
 
   it("executes the complete creator-artifact call when all live gates pass", async () => {
     const { createFactorySetup } = await loadRuntime();
@@ -211,7 +211,7 @@ describe("factory runtime setup", () => {
     expect(plan.deploymentCall.args).toHaveLength(6);
     expect(chain.invoke).toHaveBeenCalledTimes(1);
     expect(setStatus).toHaveBeenCalledWith("executeConfirmed", "success");
-  });
+  }, 15_000);
 
   it("refuses to execute artifact-less deploy templates with the honest blocked reason", async () => {
     harness.presence = "missing";

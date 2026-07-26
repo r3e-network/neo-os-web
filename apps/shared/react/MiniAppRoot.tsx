@@ -127,6 +127,8 @@ interface MiniAppRootProps {
   platformSocial?: MiniAppFrameworkOptions["platformSocial"];
   platformAnchor?: MiniAppFrameworkOptions["platformAnchor"];
   platformDeFi?: MiniAppFrameworkOptions["platformDeFi"];
+  platformVesting?: MiniAppFrameworkOptions["platformVesting"];
+  platformEscrow?: MiniAppFrameworkOptions["platformEscrow"];
   platformFactory?: MiniAppFrameworkOptions["platformFactory"];
 }
 
@@ -320,6 +322,8 @@ export function MiniAppRoot({
   platformSocial,
   platformAnchor,
   platformDeFi,
+  platformVesting,
+  platformEscrow,
   platformFactory,
 }: MiniAppRootProps) {
   // --------------------------------------------------------------------------
@@ -455,7 +459,7 @@ export function MiniAppRoot({
       setError,
       launchContext: frameworkLaunchContext,
       registerAction,
-    }, { appId, storagePrefix, oracle, credits, registry, platformGame, platformSocial, platformAnchor, platformDeFi, platformFactory });
+    }, { appId, storagePrefix, oracle, credits, registry, platformGame, platformSocial, platformAnchor, platformDeFi, platformVesting, platformEscrow, platformFactory });
     if (launchGameMode !== null) {
       frameworkRef.current.mode.set(launchGameMode);
     }
@@ -563,6 +567,9 @@ export function MiniAppRoot({
       // Run the miniapp's setup function
       if (setupFn) {
         try {
+          try {
+            await framework.chain.resolveContractAddress();
+          } catch {}
           const setupCtx: MiniAppSetupContext = {
             services,
             os: services.os,

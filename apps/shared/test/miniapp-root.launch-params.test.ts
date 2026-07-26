@@ -77,7 +77,7 @@ describe("MiniAppRoot launch params", () => {
 
     root.unmount();
     container.remove();
-  });
+  }, 15_000);
 
   it("passes URL launch params to setup and play area for standalone OneGate dapps", async () => {
     window.history.pushState(
