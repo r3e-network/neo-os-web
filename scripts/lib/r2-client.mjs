@@ -11,6 +11,8 @@
  */
 import crypto from "node:crypto";
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const AWS_ALGORITHM = "AWS4-HMAC-SHA256";
 const AWS_REGION = "auto";
 const AWS_SERVICE = "s3";
@@ -102,19 +104,41 @@ export function createR2Client({ accountId, apiToken, apiTokenId, bucket }) {
     );
     const signature = crypto.createHmac("sha256", signingKey).update(stringToSign, "utf8").digest("hex");
 
-    const response = await fetch(`https://${host}${canonicalUri}`, {
-      method: "PUT",
-      headers: {
-        ...headers,
-        Authorization: `${AWS_ALGORITHM} Credential=${apiTokenId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
-      },
-      body,
-    });
+    // A full publish is ~2000 objects over tens of minutes, so a transient
+    // connection reset is expected rather than exceptional. Retry those; a 4xx
+    // is a real rejection and fails immediately. The signature is bound to
+    // amzDate, so it stays valid across these retries.
+    const request = () =>
+      fetch(`https://${host}${canonicalUri}`, {
+        method: "PUT",
+        headers: {
+          ...headers,
+          Authorization: `${AWS_ALGORITHM} Credential=${apiTokenId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+        },
+        body,
+      });
 
-    if (!response.ok) {
-      const detail = (await response.text()).slice(0, 300);
-      throw new Error(`R2 PUT ${key} failed: HTTP ${response.status} ${detail}`);
+    const maxAttempts = 4;
+    let response;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        response = await request();
+      } catch (error) {
+        if (attempt === maxAttempts) {
+          throw new Error(`R2 PUT ${key} failed after ${maxAttempts} attempts: ${error.message}`);
+        }
+        await sleep(250 * 2 ** (attempt - 1));
+        continue;
+      }
+      if (response.ok) break;
+      // 5xx and 429 are worth another attempt; anything else is a decision.
+      if (attempt === maxAttempts || (response.status < 500 && response.status !== 429)) {
+        const detail = (await response.text()).slice(0, 300);
+        throw new Error(`R2 PUT ${key} failed: HTTP ${response.status} ${detail}`);
+      }
+      await sleep(250 * 2 ** (attempt - 1));
     }
+
     return { key, bytes: body.length, contentType, cacheControl };
   }
 
