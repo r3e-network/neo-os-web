@@ -4,8 +4,8 @@ import { BadgeCheck, LockKeyhole, Radio } from "lucide-react";
 import {
   getExternalIntegrationConfig,
   resolveNeoNetwork,
-} from "../../../../apps/shared/constants/rpc";
-import { encryptJsonWithOraclePublicKey } from "../../../../apps/shared/utils/morpheus-confidential-envelope";
+} from "@shared/constants/rpc";
+import { encryptJsonWithOraclePublicKey } from "@shared/utils/morpheus-confidential-envelope";
 import { readSensitiveFrontendOperationValue } from "../../lib/miniapp-detail-helpers";
 import {
   ActionBoard,

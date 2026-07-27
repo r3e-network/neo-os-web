@@ -5,8 +5,15 @@ module.exports = {
   moduleFileExtensions: ["ts", "tsx", "js", "jsx"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
-    "^@shared/(.*)$": "<rootDir>/../../apps/shared/$1",
-    "^@framework/(.*)$": "<rootDir>/../../framework/$1",
+    // React must resolve to one copy. next.config.js already aliases it for the
+    // build; jest needs the same, or a component rendered from the SDK package
+    // gets a second React and every hook fails on a null dispatcher.
+    "^react$": "<rootDir>/../../node_modules/react",
+    "^react-dom$": "<rootDir>/../../node_modules/react-dom",
+    "^react/jsx-runtime$": "<rootDir>/../../node_modules/react/jsx-runtime.js",
+    "^react/jsx-dev-runtime$": "<rootDir>/../../node_modules/react/jsx-dev-runtime.js",
+    "^@shared/(.*)$": "<rootDir>/../../node_modules/@r3e-network/neo-miniapp-shared/$1",
+    "^@framework/(.*)$": "<rootDir>/../../node_modules/@r3e-network/neo-miniapp-framework/$1",
     "\\.(avif|gif|jpg|jpeg|png|svg|webp)$": "<rootDir>/__mocks__/fileMock.js",
   },
   collectCoverageFrom: [

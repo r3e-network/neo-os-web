@@ -11,7 +11,7 @@
 import type { MiniAppInfo } from "@/components/types";
 import { invokeRead, type Network, type StackItem } from "./rpc-client";
 import { resolveSharedModeRuntime } from "./shared-mode";
-import { getMiniAppContractHash } from "../../../../apps/shared/constants/rpc";
+import { getMiniAppContractHash } from "@shared/constants/rpc";
 import { logger } from "@/lib/logger";
 
 /**

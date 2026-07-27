@@ -37,7 +37,7 @@ import { resolveInvokeRecipe } from "../lib/miniapp-invoke/recipes";
 import {
   BLOCKCHAIN_CONSTANTS,
   EXTERNAL_INTEGRATIONS,
-} from "../../../apps/shared/constants";
+} from "@shared/constants";
 
 export type MiniAppInvokeFeedback = {
   type: "success" | "error";

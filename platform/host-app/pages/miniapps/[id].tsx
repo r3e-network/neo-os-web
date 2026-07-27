@@ -81,7 +81,7 @@ import { parseMiniAppLaunchContext } from "../../lib/miniapp-launch-params";
 import {
   buildOneGateDirectMiniAppUrl,
   buildOneGateLaunchUrl,
-} from "../../../../apps/shared/utils/onegate-launch";
+} from "@shared/utils/onegate-launch";
 import { getApplicationLog } from "../../lib/chain/rpc-client";
 
 const DORA_TX_BASE = "https://dora.coz.io/transaction/neo3";

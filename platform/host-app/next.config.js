@@ -127,7 +127,9 @@ const nextConfig = {
     ],
     unoptimized: process.env.NODE_ENV === "development",
   },
-  transpilePackages: ["../shared"],
+  // The SDK packages ship TypeScript source, so Next has to compile them
+  // alongside app code rather than treat them as prebuilt deps.
+  transpilePackages: ["../shared", "@r3e-network/neo-miniapp-shared", "@r3e-network/neo-miniapp-framework"],
   compiler: {
     removeConsole:
       process.env.NODE_ENV === "production"
@@ -162,10 +164,9 @@ const nextConfig = {
     return config;
   },
   outputFileTracingIncludes: {
-    "/api/**/*": [
-      "./public/miniapp-definitions/**/*",
-      "../../apps/on-chain-tarot/public/cards/**/*",
-    ],
+    // The tarot cards used to be traced out of apps/on-chain-tarot; they ship in
+    // that app's published bundle now, and the API route redirects there.
+    "/api/**/*": ["./public/miniapp-definitions/**/*"],
   },
   turbopack: {
     root: path.resolve(__dirname, "../.."),

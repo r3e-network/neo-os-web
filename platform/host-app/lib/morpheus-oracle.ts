@@ -1,4 +1,4 @@
-import { getExternalIntegrationConfig, resolveNeoNetwork, type NeoNetwork } from "../../../apps/shared/constants/rpc";
+import { getExternalIntegrationConfig, resolveNeoNetwork, type NeoNetwork } from "@shared/constants/rpc";
 
 export interface OraclePublicKeyResponse {
   network: NeoNetwork;
