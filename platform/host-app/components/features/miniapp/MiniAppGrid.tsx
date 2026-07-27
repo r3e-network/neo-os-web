@@ -2,7 +2,7 @@
 
 import type { MiniAppInfo } from "@/components/types";
 import { MiniAppCard } from "./MiniAppCard";
-import { EmptyStateArt } from "../../../../../apps/shared/components-react/illustrations";
+import { EmptyStateArt } from "@shared/components-react/illustrations";
 
 interface MiniAppGridProps {
   apps: MiniAppInfo[];

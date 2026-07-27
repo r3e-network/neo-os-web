@@ -5,7 +5,7 @@ import { getWalletAdapter } from "../../lib/wallet/store";
 import {
   BLOCKCHAIN_CONSTANTS,
   EXTERNAL_INTEGRATIONS,
-} from "../../../../apps/shared/constants";
+} from "@shared/constants";
 
 jest.mock("../../lib/wallet/store", () => ({
   getWalletAdapter: jest.fn(),

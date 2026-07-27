@@ -1,7 +1,7 @@
 describe("external integration registry", () => {
   it("derives Morpheus runtime defaults from the generated public registry", () => {
-    const { MORPHEUS_PUBLIC_REGISTRY } = require("../../../../apps/shared/constants/generated-morpheus-registry");
-    const { getExternalIntegrationConfig } = require("../../../../apps/shared/constants/rpc");
+    const { MORPHEUS_PUBLIC_REGISTRY } = require("@shared/constants/generated-morpheus-registry");
+    const { getExternalIntegrationConfig } = require("@shared/constants/rpc");
 
     const mainnet = getExternalIntegrationConfig("mainnet");
     const testnet = getExternalIntegrationConfig("testnet");

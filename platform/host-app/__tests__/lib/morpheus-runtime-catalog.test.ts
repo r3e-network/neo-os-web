@@ -2,10 +2,10 @@ describe("morpheus runtime catalog", () => {
   it("exposes Morpheus workflow topology through the external integration registry", () => {
     const {
       MORPHEUS_PUBLIC_RUNTIME_CATALOG,
-    } = require("../../../../apps/shared/constants/generated-morpheus-runtime-catalog");
+    } = require("@shared/constants/generated-morpheus-runtime-catalog");
     const {
       EXTERNAL_INTEGRATIONS,
-    } = require("../../../../apps/shared/constants/rpc");
+    } = require("@shared/constants/rpc");
     type RuntimeWorkflow = { id: string; execution?: unknown };
     const workflows =
       MORPHEUS_PUBLIC_RUNTIME_CATALOG.workflows as RuntimeWorkflow[];
