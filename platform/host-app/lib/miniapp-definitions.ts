@@ -1,4 +1,4 @@
-import { existsSync, statSync, promises as fs } from "fs";
+import { existsSync, readFileSync, statSync, promises as fs } from "fs";
 import path from "path";
 import yaml from "js-yaml";
 import type { MiniAppInfo } from "@/components/types";
@@ -465,30 +465,70 @@ function getDefinitionsDir(): string {
   return path.join(process.cwd(), "public", "miniapp-definitions");
 }
 
-function getBundledAppsDir(): string {
-  const fromEnv = asString(process.env.MINIAPP_APPS_DIR);
-  if (fromEnv) return fromEnv;
-  return path.resolve(process.cwd(), "..", "..", "apps");
+/**
+ * The manifests come from a committed snapshot rather than a sibling apps/
+ * directory, which belongs to the app repos now. scripts/refresh-manifest-snapshot.mjs
+ * rebuilds it from those repos and CI checks it for drift, so this stays a plain
+ * synchronous read with no network and no dependency on a checkout layout.
+ *
+ * MINIAPP_APPS_DIR still overrides it with a live apps/ tree, which is what an
+ * app author wants while iterating locally.
+ */
+function getManifestSnapshotPath(): string {
+  return path.join(process.cwd(), "public", "miniapp-manifests.json");
 }
 
-function getMiniAppManifestPath(slug: string): string {
-  const appsDir = getBundledAppsDir();
-  return path.resolve(appsDir, slug, "neo-manifest.json");
+let manifestSnapshot: Record<string, Dict> | null = null;
+
+function loadManifestSnapshot(): Record<string, Dict> {
+  if (manifestSnapshot) return manifestSnapshot;
+  try {
+    const parsed = JSON.parse(readFileSync(getManifestSnapshotPath(), "utf-8"));
+    const manifests = asObject(parsed?.manifests);
+    manifestSnapshot = manifests as Record<string, Dict>;
+  } catch (_e: unknown) {
+    console.warn(
+      "[miniapp-definitions] failed to read the manifest snapshot:",
+      _e instanceof Error ? _e.message : String(_e),
+    );
+    manifestSnapshot = {};
+  }
+  return manifestSnapshot;
+}
+
+/** Where a manifest was actually read from - diagnostics only. */
+function getManifestSourcePath(slug: string): string {
+  const overrideDir = getOverrideAppsDir();
+  return overrideDir
+    ? path.resolve(overrideDir, slug, "neo-manifest.json")
+    : `${getManifestSnapshotPath()}#${slug}`;
+}
+
+function getOverrideAppsDir(): string {
+  return asString(process.env.MINIAPP_APPS_DIR);
 }
 
 async function loadBundledManifest(slug: string): Promise<Dict | null> {
-  const manifestPath = getMiniAppManifestPath(slug);
-  try {
-    const content = await fs.readFile(manifestPath, "utf-8");
-    const parsed = JSON.parse(content);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Dict) : null;
-  } catch (_e: unknown) {
-    if (_e && typeof _e === "object" && "code" in _e && (_e as { code?: string }).code === "ENOENT") {
+  const overrideDir = getOverrideAppsDir();
+  if (overrideDir) {
+    try {
+      const content = await fs.readFile(
+        path.resolve(overrideDir, slug, "neo-manifest.json"),
+        "utf-8",
+      );
+      const parsed = JSON.parse(content);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Dict) : null;
+    } catch (_e: unknown) {
+      if (_e && typeof _e === "object" && "code" in _e && (_e as { code?: string }).code === "ENOENT") {
+        return null;
+      }
+      console.warn("[miniapp-definitions] failed to read manifest for", slug, ":", _e instanceof Error ? _e.message : String(_e));
       return null;
     }
-    console.warn("[miniapp-definitions] failed to read manifest for", slug, ":", _e instanceof Error ? _e.message : String(_e));
-    return null;
   }
+
+  const entry = loadManifestSnapshot()[slug];
+  return entry && typeof entry === "object" && !Array.isArray(entry) ? entry : null;
 }
 
 function stripInteractiveSpecSurfaces(value: unknown): unknown {
@@ -590,24 +630,30 @@ function mergeBundledManifest(raw: unknown, bundledManifest: Dict | null): Dict 
 }
 
 async function listBundledManifestSlugs(): Promise<string[]> {
-  const appsDir = getBundledAppsDir();
-  try {
-    const entries = await fs.readdir(appsDir, { withFileTypes: true });
-    const slugs: string[] = [];
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const slug = entry.name.trim();
-      if (!slug || slug === "shared") continue;
-      if (isArchivedMiniAppSlug(slug)) continue;
-      const manifestPath = path.join(appsDir, slug, "neo-manifest.json");
-      if (!existsSync(manifestPath) || !statSync(manifestPath).isFile()) continue;
-      slugs.push(slug);
+  const overrideDir = getOverrideAppsDir();
+  if (overrideDir) {
+    try {
+      const entries = await fs.readdir(overrideDir, { withFileTypes: true });
+      const slugs: string[] = [];
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const slug = entry.name.trim();
+        if (!slug || slug === "shared") continue;
+        if (isArchivedMiniAppSlug(slug)) continue;
+        const manifestPath = path.join(overrideDir, slug, "neo-manifest.json");
+        if (!existsSync(manifestPath) || !statSync(manifestPath).isFile()) continue;
+        slugs.push(slug);
+      }
+      return slugs.sort();
+    } catch (_e: unknown) {
+      console.warn("[miniapp-definitions] failed to scan apps directory:", _e instanceof Error ? _e.message : String(_e));
+      return [];
     }
-    return slugs.sort();
-  } catch (_e: unknown) {
-    console.warn("[miniapp-definitions] failed to scan apps directory:", _e instanceof Error ? _e.message : String(_e));
-    return [];
   }
+
+  return Object.keys(loadManifestSnapshot())
+    .filter((slug) => slug && slug !== "shared" && !isArchivedMiniAppSlug(slug))
+    .sort();
 }
 
 function buildManifestOnlyDefinition(slug: string, bundledManifest: Dict): Dict {
@@ -662,7 +708,7 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
         definitions.push({
           fileName: `${slug}/neo-manifest.json`,
           slug,
-          fullPath: getMiniAppManifestPath(slug),
+          fullPath: getManifestSourcePath(slug),
           payload: normalizeRawDefinition(buildManifestOnlyDefinition(slug, bundledManifest), slug),
         });
       } catch (error) {
@@ -670,7 +716,7 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
         errors.push({
           fileName: `${slug}/neo-manifest.json`,
           slug,
-          fullPath: getMiniAppManifestPath(slug),
+          fullPath: getManifestSourcePath(slug),
           error: message,
         });
       }

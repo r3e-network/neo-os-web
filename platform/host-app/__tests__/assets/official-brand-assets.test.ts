@@ -38,13 +38,19 @@ const describeWhenStaged =
     ? describe
     : describe.skip;
 
+/** The shared runtime is an installed package now, not a sibling directory. */
+function readSharedAsset(relPath: string): string {
+  const pkgJson = require.resolve("@r3e-network/neo-miniapp-shared/package.json");
+  return fs.readFileSync(path.join(path.dirname(pkgJson), relPath), "utf8");
+}
+
 describe("shared official token assets", () => {
   it("keeps host NEO/GAS brand icons identical to the shared official token assets", () => {
     expect(readHostAsset("brand/neo-icon.svg").trim()).toBe(
-      readRepoAsset("apps/shared/assets/tokens/neo-icon.svg").trim(),
+      readSharedAsset("assets/tokens/neo-icon.svg").trim(),
     );
     expect(readHostAsset("brand/gas-icon.svg").trim()).toBe(
-      readRepoAsset("apps/shared/assets/tokens/gas-icon.svg").trim(),
+      readSharedAsset("assets/tokens/gas-icon.svg").trim(),
     );
   });
 });
