@@ -73,7 +73,7 @@ fi
 verify_runtime_catalog_contract() {
   local runtime_catalog_file="$1"
   local checked_catalog="$MORPHEUS_DIR/apps/web/public/morpheus-runtime-catalog.json"
-  local platform_catalog="$REPO_ROOT/apps/shared/constants/generated-morpheus-runtime-catalog.ts"
+  local platform_catalog="$REPO_ROOT/node_modules/@r3e-network/neo-miniapp-shared/constants/generated-morpheus-runtime-catalog.ts"
   local aa_catalog="$AA_DIR/frontend/src/config/generatedMorpheusRuntimeCatalog.js"
 
   echo ""

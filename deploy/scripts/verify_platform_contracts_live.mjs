@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { readAppManifest } from "./lib/app-manifests.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..");
@@ -46,16 +47,15 @@ export function loadPlatformTargets() {
   const registryReport = readJson(registryReportPath);
   const gameReport = readJson(gameReportPath);
   const anchorReport = readJson(anchorReportPath);
-  const factoryManifests = [
-    "apps/asset-factory/neo-manifest.json",
-    "apps/miniapp-factory/neo-manifest.json",
-    "apps/nft-factory/neo-manifest.json",
-  ];
+  // The consumer apps live in neo-miniapps; the committed snapshot is this
+  // repo's copy of their manifests and refresh-manifest-snapshot.mjs --check
+  // fails when it drifts.
+  const factorySlugs = ["asset-factory", "miniapp-factory", "nft-factory"];
   const factoryHashes = new Set(
-    factoryManifests.map((manifestPath) =>
+    factorySlugs.map((slug) =>
       requiredHash(
-        readJson(manifestPath).contracts?.["neo-n3-testnet"],
-        `${manifestPath} testnet contract`,
+        readAppManifest(slug).contracts?.["neo-n3-testnet"],
+        `${slug} testnet contract`,
       ),
     ),
   );
@@ -96,7 +96,9 @@ export function loadPlatformTargets() {
       name: "MiniAppFactory",
       kind: "contract",
       hash: [...factoryHashes][0],
-      evidence: factoryManifests,
+      // The snapshot is the evidence file now; the slugs say which entries.
+      evidence: ["platform/host-app/public/miniapp-manifests.json"],
+      evidenceApps: factorySlugs,
       local: localArtifact("MiniAppFactory"),
     },
     {

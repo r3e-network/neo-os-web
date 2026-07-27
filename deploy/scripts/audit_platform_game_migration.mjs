@@ -108,17 +108,16 @@ function frameworkAdapterEvidence() {
   const facade = read("node_modules/@r3e-network/neo-miniapp-framework/game-facade.ts");
   const adapter = read("node_modules/@r3e-network/neo-miniapp-framework/gamefi/platform-game-reward-adapter.ts");
   const definition = read("node_modules/@r3e-network/neo-miniapp-shared/react/defineMiniApp.tsx");
-  const regression = read("node_modules/@r3e-network/neo-miniapp-framework/test/platform-game-reward-adapter.test.ts");
   return {
     implemented:
       facade.includes("createPlatformGameRewardChain") &&
       adapter.includes("Shared PlatformGame entries must be prepaid") &&
       adapter.includes("event: undefined") &&
       definition.includes("platformGameConfigFromManifest"),
-    regression_present:
-      regression.includes("fails closed when prepaid credit is insufficient") &&
-      regression.includes("polls until a settled snapshot") &&
-      regression.includes("recovers the active shared game"),
+    // Whether the SDK carries regression coverage for its own adapter is
+    // asserted in neo-miniapp-sdk (framework/test/reward-adapter-regression-coverage).
+    // Test files are not published, so this repo cannot read them from an
+    // installed package.
   };
 }
 
@@ -285,7 +284,7 @@ export function buildPlatformGameMigrationLedger({ now = () => new Date() } = {}
       attachment_report: attachmentReportPath,
       live_state_report: liveStateReportPath,
       framework_adapter: "node_modules/@r3e-network/neo-miniapp-framework/gamefi/platform-game-reward-adapter.ts",
-      framework_adapter_regression: "node_modules/@r3e-network/neo-miniapp-framework/test/platform-game-reward-adapter.test.ts",
+      framework_adapter_regression: "asserted in neo-miniapp-sdk: framework/test/reward-adapter-regression-coverage.test.ts",
       lifecycle_evidence_directory: lifecycleEvidence.directory,
     },
     framework_adapter: frameworkAdapter,
