@@ -43,15 +43,12 @@
     "bind:contract-domains": "node deploy/scripts/bind_contract_domains.js",
     "bind:contract-domains:execute": "node deploy/scripts/bind_contract_domains.js --execute",
     "audit:miniapps:layout": "node deploy/scripts/verify_miniapp_layout_consistency.js",
-    "audit:platform:unified-layers": "node deploy/scripts/audit_platform_unified_layers.js",
     "audit:platform:engine-base": "node deploy/scripts/audit_platform_engine_base.mjs",
     "check:platform:engine-base": "node deploy/scripts/audit_platform_engine_base.mjs --strict",
     "audit:platform:contracts": "node deploy/scripts/audit_platform_contract_acceptance.mjs",
     "check:platform:contracts": "node deploy/scripts/audit_platform_contract_acceptance.mjs --check",
     "audit:platform:testnet-live": "node deploy/scripts/verify_platform_contracts_live.mjs",
     "audit:platform:upgrade-readiness": "node deploy/scripts/audit_platform_upgrade_readiness.mjs",
-    "audit:platform:game-migration": "node deploy/scripts/audit_platform_game_migration.mjs",
-    "check:platform:game-migration": "node deploy/scripts/audit_platform_game_migration.mjs --check",
     "audit:platform:game-live-state": "node deploy/scripts/audit_platform_game_live_state.mjs",
     "audit:platform:joint-aa": "node deploy/scripts/audit_joint_abstract_account_interface.mjs",
     "check:platform:joint-aa": "node deploy/scripts/audit_joint_abstract_account_interface.mjs --check",
@@ -103,7 +100,8 @@
     "build:miniapp-dapps": "node scripts/build-miniapp-dapps.mjs",
     "export:miniapp-dapps": "npm run -s verify:miniapp-dapps && npm run -s build:miniapp-dapps && npm run -s stage:miniapps:dist",
     "assets:miniapps:optimize": "node scripts/optimize-miniapp-assets.mjs",
-    "stage:miniapps:dist": "node scripts/stage-miniapp-dists.mjs"
+    "stage:miniapps:dist": "node scripts/stage-miniapp-dists.mjs",
+    "audit:platform:game-surface": "node deploy/scripts/audit_platform_game_surface.mjs"
   },
   "devDependencies": {
     "@cityofzion/neon-js": "^5.9.0",

@@ -21,7 +21,7 @@ const fs = require("fs");
 const path = require("path");
 const { getNetworkConfig } = require("./neo_network.js");
 
-const DEFAULT_APPS_DIR = path.resolve(__dirname, "..", "..", "..", "apps");
+const { readAppManifest } = require("./app-manifests.cjs");
 const DEFAULT_REGISTRY_PATH = path.resolve(__dirname, "..", "..", "config", "contract-hashes.json");
 const CONTRACT_HASH_PATTERN = /^0x[0-9a-f]{40}$/;
 
@@ -60,7 +60,7 @@ function resolveOverride(name, env) {
  * @returns {string} normalized lowercase 0x-prefixed contract hash
  */
 function getManifestContractHash(appSlug, options = {}) {
-  const { network = "testnet", env = process.env, appsDir = DEFAULT_APPS_DIR } = options;
+  const { network = "testnet", env = process.env } = options;
   const slug = String(appSlug || "").trim();
   if (!slug || /[\\/]/.test(slug)) {
     throw new Error(`invalid app slug "${appSlug}"`);
@@ -69,21 +69,16 @@ function getManifestContractHash(appSlug, options = {}) {
   const override = resolveOverride(slug, env);
   if (override) return override;
 
-  const manifestPath = path.join(appsDir, slug, "neo-manifest.json");
-  let manifest;
-  try {
-    manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`cannot read app manifest ${manifestPath}: ${message}`);
-  }
+  // The manifest comes from the committed snapshot: the apps live in their own
+  // repos and this one keeps a checked copy of what they publish.
+  const manifest = readAppManifest(slug);
 
   const networkKey = getNetworkConfig(network).key;
   const hash = manifest?.contracts?.[networkKey];
   if (!hash) {
-    throw new Error(`apps/${slug}/neo-manifest.json has no contracts["${networkKey}"] entry`);
+    throw new Error(`${slug} has no contracts["${networkKey}"] entry`);
   }
-  return normalizeContractHash(hash, `apps/${slug}/neo-manifest.json contracts["${networkKey}"]`);
+  return normalizeContractHash(hash, `${slug} contracts["${networkKey}"]`);
 }
 
 /**

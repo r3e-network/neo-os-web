@@ -40,7 +40,7 @@ test("resolved hash equals the app manifest for all validator targets (testnet +
       assert.equal(
         resolved,
         String(manifest.contracts[key]).toLowerCase(),
-        `${slug} ${network} hash must come from apps/${slug}/neo-manifest.json`
+        `${slug} ${network} hash must come from the manifest snapshot`
       );
     }
   }
@@ -126,7 +126,7 @@ test("override values are validated and normalized", () => {
 test("unknown slug / missing network entry / bad slug fail loudly", () => {
   assert.throws(
     () => getManifestContractHash("no-such-app", { env: {} }),
-    /cannot read app manifest .*no-such-app/
+    /no manifest for "no-such-app" in the snapshot/
   );
   assert.throws(() => getManifestContractHash("../etc", { env: {} }), /invalid app slug/);
   assert.throws(() => getManifestContractHash("", { env: {} }), /invalid app slug/);
