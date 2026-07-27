@@ -77,14 +77,16 @@ describeWhenStaged("official brand assets", () => {
     const stagedSlugs = ["council-governance", "gov-merc"];
     const catalogOnlySlugs = ["candidate-vote", "secret-vote", "voting"];
 
+    // The app-source side of this parity check - that apps/<slug>/public/logo.svg
+    // is itself the official mark - lives in neo-miniapps, which holds those
+    // files. What the platform can still prove is that everything it serves,
+    // staged or catalogue, is that mark.
     for (const slug of stagedSlugs) {
-      const appLogo = readRepoAsset(`apps/${slug}/public/logo.svg`);
       const stagedLogo = readHostAsset(`miniapps/${slug}/logo.svg`);
       const catalogLogo = readHostAsset(`miniapp-assets/${slug}/logo.svg`);
 
       expect(stagedLogo).toBe(officialNeoIcon);
       expect(catalogLogo).toBe(officialNeoIcon);
-      expect(appLogo).toBe(officialNeoIcon);
       expect(stagedLogo).toContain("#00e599");
       expect(stagedLogo).toContain("#00af92");
     }
