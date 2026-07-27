@@ -683,8 +683,8 @@ describe("release audit script", () => {
   it("rejects stale motion acceptance documentation", () => {
     const overrides = baselineOverrides();
     overrides["REFERENCE-VIDEO-AUDIT.md"] =
-      overrides["REFERENCE-VIDEO-AUDIT.md"].replace("入槽与分组动画采用 692ms 可读节奏", "入槽动画建议 220–380ms");
-    expectAuditFailure(overrides, "入槽与分组动画采用 692ms 可读节奏");
+      overrides["REFERENCE-VIDEO-AUDIT.md"].replace("入槽与分组动画采用 750ms 可读节奏", "入槽动画建议 220–380ms");
+    expectAuditFailure(overrides, "入槽与分组动画采用 750ms 可读节奏");
   });
 
   it("rejects weakened rapid-pick input guardrails", () => {
@@ -731,8 +731,11 @@ describe("release audit script", () => {
 
   it("rejects removal of the authored-top cookware rest guard", () => {
     const overrides = baselineOverrides();
+    // replaceAll, not replace: the token appears twice in pile-dynamics, so
+    // rewriting only the first left the guard in place - the audit had nothing
+    // to reject, and the mutation proved nothing while reporting a failure.
     overrides["src/scenes/pile-dynamics.ts"] =
-      overrides["src/scenes/pile-dynamics.ts"].replace(
+      overrides["src/scenes/pile-dynamics.ts"].replaceAll(
         "settleReadableUpright",
         "settleUnreadableUnderside",
       );
@@ -743,17 +746,17 @@ describe("release audit script", () => {
     const overrides = baselineOverrides();
     overrides["design-qa.md"] =
       overrides["design-qa.md"].replace(
-        "普通入槽/归组采用 692ms 可读节奏",
+        "普通入槽/归组采用 750ms 可读节奏",
         "普通入槽约 534ms",
       );
-    expectAuditFailure(overrides, "普通入槽/归组采用 692ms 可读节奏");
+    expectAuditFailure(overrides, "普通入槽/归组采用 750ms 可读节奏");
   });
 
   it("rejects shortened tray entry motion tokens", () => {
     const overrides = baselineOverrides();
     overrides["src/PlayArea.scss"] =
-      overrides["src/PlayArea.scss"].replace("--goose-tray-entry-ms: 692ms", "--goose-tray-entry-ms: 360ms");
-    expectAuditFailure(overrides, "--goose-tray-entry-ms: 692ms");
+      overrides["src/PlayArea.scss"].replace("--goose-tray-entry-ms: 750ms", "--goose-tray-entry-ms: 360ms");
+    expectAuditFailure(overrides, "--goose-tray-entry-ms: 750ms");
   });
 
   it("rejects removal of the production size-spectrum and portrait-composition gates", () => {

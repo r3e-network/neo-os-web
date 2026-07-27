@@ -11,6 +11,9 @@ export const SCENE_MOTION = Object.freeze({
   popBurstMs: 560,
   failRunMs: 900,
   winBobMs: 2_400,
+  /** Confetti burst on win: 40 colorful quads rain for 2s. */
+  winConfettiMs: 2_000,
+  winConfettiCount: 40,
   hintPulseMs: 2_000,
   cameraShakeAmplitude: 0.1,
   panRollAmplitude: 0.105,
@@ -21,7 +24,8 @@ export const SCENE_MOTION = Object.freeze({
   panDampingPower: 1.7,
   pickPressScale: 1.15,
   trayFlightArcY: 0.78,
-  trayFlightSpinStep: 0.014,
+  /** Increased from 0.014 for a satisfying 1/4 tumble during tray flight. */
+  trayFlightSpinStep: 0.055,
   trayFlightEndScale: 0.46,
   qaTelemetryMs: 1_000,
 });

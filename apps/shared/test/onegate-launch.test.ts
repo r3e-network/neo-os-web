@@ -74,7 +74,9 @@ describe("OneGate launch urls", () => {
     );
 
     expect(url.origin).toBe("https://neomini.app");
-    expect(url.pathname).toBe("/miniapps/gas-lucky-pool/index.html");
+    // The host's chrome-free launch route, not a bundle path: bundles moved to
+    // the CDN and OneGate now opens through the platform.
+    expect(url.pathname).toBe("/play/gas-lucky-pool");
     expect(url.searchParams.get("source")).toBe("onegate");
     expect(url.searchParams.get("appId")).toBe("miniapp-gas-lucky-pool");
     expect(url.searchParams.get("operation")).toBe("claimPool");

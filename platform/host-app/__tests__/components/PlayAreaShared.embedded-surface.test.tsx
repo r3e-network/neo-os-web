@@ -21,12 +21,16 @@ jest.mock("@/lib/wallet/store", () => ({
   getWalletAdapter: () => null,
 }));
 
+// autoLoad short-circuits the deferred-bundle poster: every test in this file is
+// about what happens once the bundle has been requested. The poster itself is
+// covered by the deferred-bundle describe block at the end.
 const SURFACE_PROPS = {
   title: "Live MiniApp workspace",
   subtitle: "Embedded surface",
   url: "/miniapps/demo/index.html?network=testnet&source=embed",
   frameTitle: "Demo dApp",
   testId: "native-dapp-frame-miniapp-demo",
+  autoLoad: true,
 } as const;
 
 describe("EmbeddedDappSurface load-failure recovery", () => {

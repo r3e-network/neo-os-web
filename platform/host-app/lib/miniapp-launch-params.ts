@@ -4,11 +4,11 @@ export {
   getLaunchParam,
   parseMiniAppLaunchContext,
   readMiniAppLaunchContext,
-} from "../../../apps/shared/utils/launch-params";
+} from "@shared/utils/launch-params";
 export type {
   MiniAppLaunchContext,
   MiniAppLaunchNetwork,
-} from "../../../apps/shared/utils/launch-params";
+} from "@shared/utils/launch-params";
 
 function parseSelectOptions(
   options: OperationParam["options"],

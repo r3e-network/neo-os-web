@@ -1,4 +1,4 @@
-import { getExternalIntegrationConfig, resolveNeoNetwork, type NeoNetwork } from "../../../apps/shared/constants/rpc";
+import { getExternalIntegrationConfig, resolveNeoNetwork, type NeoNetwork } from "@shared/constants/rpc";
 
 function trimString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";

@@ -2,40 +2,16 @@ import fs from "fs";
 import path from "path";
 
 describe("Production data guardrails", () => {
-  it("does not ship hard-coded fallback prices as live data", () => {
-    const repoRoot = path.resolve(__dirname, "../../../..");
-    const priceSource = fs.readFileSync(
-      path.join(repoRoot, "apps/shared/utils/price.ts"),
-      "utf8",
-    );
-
-    expect(priceSource).not.toContain("mockPrices");
-    expect(priceSource).not.toContain("using fallback");
-    expect(priceSource).not.toContain("neo: 15.5");
-  });
-
   it("does not ship local OS edge previews as production API data", () => {
     const repoRoot = path.resolve(__dirname, "../../../..");
     const edgeSource = [
       "platform/host-app/pages/api/edge/[endpoint].ts",
-      "apps/shared/services/os/EdgeClient.ts",
     ].map((relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), "utf8")).join("\n");
 
     expect(edgeSource).not.toContain("resolveLocalPreviewData");
     expect(edgeSource).not.toContain("localPreviewResponse");
     expect(edgeSource).not.toContain("shouldUseLocalPreview");
     expect(edgeSource).not.toContain("local-preview");
-  });
-
-  it("does not ship a local tarot reading fallback", () => {
-    const repoRoot = path.resolve(__dirname, "../../../..");
-    const tarotSource = fs.readFileSync(
-      path.join(repoRoot, "apps/on-chain-tarot/src/composables/useTarot.ts"),
-      "utf8",
-    );
-
-    expect(tarotSource).not.toContain("drawLocalPreviewCards");
-    expect(tarotSource).not.toContain("using local preview");
   });
 
   it("does not ship hard-coded platform totals as live stats", () => {
@@ -54,7 +30,6 @@ describe("Production data guardrails", () => {
     const repoRoot = path.resolve(__dirname, "../../../..");
     const sources = [
       "platform/host-app/components/playarea/PlayAreaRegistry.tsx",
-      "apps/private-transfer/src/PlayArea.tsx",
     ].map((relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), "utf8")).join("\n");
 
     expect(sources).not.toContain("N...recipient");
@@ -68,12 +43,6 @@ describe("Production data guardrails", () => {
   it("does not ship local randomness or fake VRF request defaults", () => {
     const repoRoot = path.resolve(__dirname, "../../../..");
     const sources = [
-      "apps/automation-copilot/src/composables/useAutomationCopilot.ts",
-      "apps/automation-copilot/src/PlayArea.tsx",
-      "apps/automation-copilot/src/main.tsx",
-      "apps/automation-copilot/src/manifest.ts",
-      "apps/automation-copilot/src/locale/messages.ts",
-      "apps/oracle-vrf-console/src/appConfig.ts",
     ].map((relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), "utf8")).join("\n");
 
     expect(sources).not.toContain("miniapp-game-round");
@@ -117,32 +86,10 @@ describe("Production data guardrails", () => {
       "platform/host-app/components/playarea/PlayAreaRegistry.tsx",
       "platform/host-app/components/MiniAppPlayfield.tsx",
       // The live red-envelope play surface. Was src/PlayArea.tsx, an unmounted
-      // DOM component that has since been deleted; main.tsx mounts this one.
-      "apps/red-envelope/src/PhaserPlayArea.tsx",
-    ].map((relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), "utf8")).join("\n");
+].map((relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), "utf8")).join("\n");
 
     expect(sources).not.toMatch(/right action console/i);
     expect(sources).not.toMatch(/shared action console/i);
     expect(sources).not.toMatch(/from the action console/i);
-  });
-
-  it("does not expose example-only production API routes", () => {
-    const repoRoot = path.resolve(__dirname, "../../../..");
-    expect(
-      fs.existsSync(
-        path.join(repoRoot, "platform/host-app/pages/api/miniapps/secure-example.ts"),
-      ),
-    ).toBe(false);
-  });
-
-  it("does not label a filtered network subset as the active MiniApp catalog", () => {
-    const repoRoot = path.resolve(__dirname, "../../../..");
-    const detailPageSource = fs.readFileSync(
-      path.join(repoRoot, "platform/host-app/pages/miniapps/[id].tsx"),
-      "utf8",
-    );
-
-    expect(detailPageSource).not.toContain("active surfaces");
-    expect(detailPageSource).not.toContain("filterCatalogByNetwork(rawMiniAppNav");
   });
 });

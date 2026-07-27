@@ -52,7 +52,7 @@ test("NeoPay Stream Studio renders a product-owned shared-runtime payment workst
   assert.match(shellManifest, /stats: \[\]/);
   assert.match(shellManifest, /sidebar: \{ items: \[\] \}/);
   assert.match(shellManifest, /operations: \[\]/);
-  assert.equal(neoManifest.version, "1.1.0");
+  assert.equal(neoManifest.version, "1.1.1");
   assert.equal(neoManifest.name, "NeoPay Stream Studio");
   assert.equal(neoManifest.urls.icon.endsWith(".webp"), true);
   assert.equal(neoManifest.urls.banner.endsWith(".webp"), true);
