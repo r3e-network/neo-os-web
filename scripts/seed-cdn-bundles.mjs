@@ -143,6 +143,7 @@ async function main() {
     ["miniapps", []],
   ]);
   const skipped = [];
+  const unpublished = [];
   let objects = 0;
   let bytesTotal = 0;
 
@@ -166,16 +167,27 @@ async function main() {
     const files = await walk(distDir);
     let bytes = 0;
     if (!catalogOnly) {
-      for (const rel of files) {
-        const body = await fs.readFile(path.join(distDir, rel));
-        bytes += body.length;
-        await client.put(`${prefix}/${rel}`, body, IMMUTABLE_CACHE);
+      // An app is the unit worth resuming. A single exhausted object used to
+      // throw, discarding the objects already uploaded for this app and
+      // abandoning every app after it - a publish died at 26 of 78 that way.
+      // The upload is idempotent (versioned, immutable keys), so a failed app is
+      // recorded and retried at the end rather than killing the run.
+      try {
+        for (const rel of files) {
+          const body = await fs.readFile(path.join(distDir, rel));
+          bytes += body.length;
+          await client.put(`${prefix}/${rel}`, body, IMMUTABLE_CACHE);
+          objects += 1;
+        }
+        const manifestBody = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+        await client.put(`${prefix}/neo-manifest.json`, manifestBody, IMMUTABLE_CACHE);
         objects += 1;
+        bytes += manifestBody.length;
+      } catch (error) {
+        unpublished.push({ slug, kind, reason: error.message });
+        process.stdout.write(`[seed] ${kind}/${slug} FAILED - ${error.message}\n`);
+        continue;
       }
-      const manifestBody = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-      await client.put(`${prefix}/neo-manifest.json`, manifestBody, IMMUTABLE_CACHE);
-      objects += 1;
-      bytes += manifestBody.length;
     }
     bytesTotal += bytes;
 
@@ -276,11 +288,21 @@ async function main() {
         megabytes: Number((bytesTotal / 1024 / 1024).toFixed(1)),
         catalogs: catalogsWritten,
         skipped,
+        unpublished,
       },
       null,
       2,
     ),
   );
+
+  // A partial publish must never read as a success: the catalogue would
+  // advertise a version that is not on the CDN, and every launch of that app
+  // would 404.
+  if (unpublished.length > 0) {
+    console.error(`\n${unpublished.length} app(s) did not publish:`);
+    for (const entry of unpublished) console.error(`  ${entry.kind}/${entry.slug}: ${entry.reason}`);
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {
