@@ -76,7 +76,7 @@ const SERVER_BACKED_FLOWS = new Map([
   [
     "miniapp-gas-lucky-pool",
     {
-      script: "apps/shared/test/gas-lucky-pool.logic.test.ts",
+      script: "node_modules/@r3e-network/neo-miniapp-shared/test/gas-lucky-pool.logic.test.ts",
       target: "onegate-vault-claim",
       coveredBy: [
         "platform/host-app/__tests__/api/onegate-vault.claim.test.ts",

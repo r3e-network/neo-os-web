@@ -57,9 +57,9 @@ export function buildPlatformVestingFrameworkReport({ now = () => new Date() } =
   const deployment = (live.contracts ?? []).find((contract) => contract.name === "PlatformVesting") ?? null;
   const evaluation = evaluatePlatformVestingFramework({
     manifest: JSON.parse(read("contracts/build/PlatformVesting.manifest.json")),
-    surfaceSource: read("framework/platform-vesting-surface.ts"),
-    typesSource: read("framework/types.ts"),
-    indexSource: read("framework/index.ts"),
+    surfaceSource: read("node_modules/@r3e-network/neo-miniapp-framework/platform-vesting-surface.ts"),
+    typesSource: read("node_modules/@r3e-network/neo-miniapp-framework/types.ts"),
+    indexSource: read("node_modules/@r3e-network/neo-miniapp-framework/index.ts"),
   });
   return {
     generated_at_utc: now().toISOString(),

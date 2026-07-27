@@ -18,8 +18,8 @@ const HOST_METADATA_ICON_FILES = [
   "platform/host-app/pages/api/miniapps/submit.ts",
   "platform/host-app/pages/api/miniapps/admin/status.ts",
   "platform/host-app/pages/developer.tsx",
-  "apps/shared/types/miniapp-manifest.ts",
-  "apps/shared/types/template-config.ts",
+  "node_modules/@r3e-network/neo-miniapp-shared/types/miniapp-manifest.ts",
+  "node_modules/@r3e-network/neo-miniapp-shared/types/template-config.ts",
 ];
 const ARCHIVED_APP_SLUGS = new Set([
   "flamingo",

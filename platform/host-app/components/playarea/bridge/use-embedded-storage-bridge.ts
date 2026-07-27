@@ -1,10 +1,11 @@
+import { STORAGE_BRIDGE } from "@shared/protocol/host-bridges";
 import React, { useEffect } from "react";
 
 // Exported so apps/shared/test/embedded-bridge-protocol-parity.test.ts can
 // assert the app-side copies of these wire constants never drift.
-export const STORAGE_REQUEST = "neo-miniapp-storage:request";
-export const STORAGE_RESPONSE = "neo-miniapp-storage:response";
-export const STORAGE_PROTOCOL_VERSION = 1;
+export const STORAGE_REQUEST = STORAGE_BRIDGE.REQUEST;
+export const STORAGE_RESPONSE = STORAGE_BRIDGE.RESPONSE;
+export const STORAGE_PROTOCOL_VERSION = STORAGE_BRIDGE.PROTOCOL_VERSION;
 const MAX_KEY_LENGTH = 160;
 
 export interface EmbeddedStorageAppConfig {

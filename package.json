@@ -2,8 +2,6 @@
   "private": true,
   "packageManager": "npm@10.9.4",
   "workspaces": [
-    "apps/zhuada-e",
-    "framework",
     "platform/*"
   ],
   "scripts": {

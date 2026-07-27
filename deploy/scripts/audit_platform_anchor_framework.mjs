@@ -88,10 +88,10 @@ export function buildPlatformAnchorFrameworkReport({ now = () => new Date() } = 
   const deployment = (live.contracts ?? []).find((contract) => contract.name === "PlatformAnchor") ?? null;
   const evaluation = evaluatePlatformAnchorFramework({
     manifest: JSON.parse(read("contracts/build/PlatformAnchor.manifest.json")),
-    surfaceSource: read("framework/platform-anchor-surface.ts"),
-    typesSource: read("framework/types.ts"),
-    indexSource: read("framework/index.ts"),
-    defineMiniAppSource: read("apps/shared/react/defineMiniApp.tsx"),
+    surfaceSource: read("node_modules/@r3e-network/neo-miniapp-framework/platform-anchor-surface.ts"),
+    typesSource: read("node_modules/@r3e-network/neo-miniapp-framework/types.ts"),
+    indexSource: read("node_modules/@r3e-network/neo-miniapp-framework/index.ts"),
+    defineMiniAppSource: read("node_modules/@r3e-network/neo-miniapp-shared/react/defineMiniApp.tsx"),
     trustRuntimeSource: read("apps/trustanchor/src/anchor-runtime.ts"),
     trustMainSource: read("apps/trustanchor/src/main.tsx"),
     profitRuntimeSource: read("apps/profitanchor/src/anchor-runtime.ts"),

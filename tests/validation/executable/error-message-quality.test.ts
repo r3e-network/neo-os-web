@@ -26,8 +26,8 @@ import {
   isMiniAppError,
   formatErrorMessage,
   errorMessage,
-} from '../../../framework/utils/errors';
-import { baseMessages } from '../../../apps/shared/locale/base-messages';
+} from '@r3e-network/neo-miniapp-framework/utils/errors';
+import { baseMessages } from '@r3e-network/neo-miniapp-shared/locale/base-messages';
 
 /**
  * Every concrete error class, with the i18n key it is expected to resolve.

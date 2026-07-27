@@ -105,10 +105,10 @@ function runtimeAdapterOf(source) {
 }
 
 function frameworkAdapterEvidence() {
-  const facade = read("framework/game-facade.ts");
-  const adapter = read("framework/gamefi/platform-game-reward-adapter.ts");
-  const definition = read("apps/shared/react/defineMiniApp.tsx");
-  const regression = read("framework/test/platform-game-reward-adapter.test.ts");
+  const facade = read("node_modules/@r3e-network/neo-miniapp-framework/game-facade.ts");
+  const adapter = read("node_modules/@r3e-network/neo-miniapp-framework/gamefi/platform-game-reward-adapter.ts");
+  const definition = read("node_modules/@r3e-network/neo-miniapp-shared/react/defineMiniApp.tsx");
+  const regression = read("node_modules/@r3e-network/neo-miniapp-framework/test/platform-game-reward-adapter.test.ts");
   return {
     implemented:
       facade.includes("createPlatformGameRewardChain") &&
@@ -284,8 +284,8 @@ export function buildPlatformGameMigrationLedger({ now = () => new Date() } = {}
       absorption_manifest: absorptionManifestPath,
       attachment_report: attachmentReportPath,
       live_state_report: liveStateReportPath,
-      framework_adapter: "framework/gamefi/platform-game-reward-adapter.ts",
-      framework_adapter_regression: "framework/test/platform-game-reward-adapter.test.ts",
+      framework_adapter: "node_modules/@r3e-network/neo-miniapp-framework/gamefi/platform-game-reward-adapter.ts",
+      framework_adapter_regression: "node_modules/@r3e-network/neo-miniapp-framework/test/platform-game-reward-adapter.test.ts",
       lifecycle_evidence_directory: lifecycleEvidence.directory,
     },
     framework_adapter: frameworkAdapter,

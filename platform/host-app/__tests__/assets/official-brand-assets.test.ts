@@ -38,9 +38,10 @@ const describeWhenStaged =
     ? describe
     : describe.skip;
 
-/** Token artwork from the shared runtime, which still lives in this repo. */
+/** Token artwork from the shared runtime, which is an installed package now. */
 function readSharedAsset(relPath: string): string {
-  return readRepoAsset(path.join("apps/shared", relPath));
+  const pkgJson = require.resolve("@r3e-network/neo-miniapp-shared/package.json");
+  return fs.readFileSync(path.join(path.dirname(pkgJson), relPath), "utf8");
 }
 
 describe("shared official token assets", () => {

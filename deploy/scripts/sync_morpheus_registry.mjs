@@ -22,7 +22,7 @@ const oracleRoot = process.env.MORPHEUS_ORACLE_ROOT
 const CANONICAL_ENVELOPE_RELATIVE_PATH = 'packages/shared/src/confidential-envelope.js';
 const CANONICAL_ENVELOPE_SHA256 =
   '508329d6f14974733d8f1ca5fb7d3ac6e9b1dc21820e3f12131098de4bb3e129';
-const LOCAL_ENVELOPE_RELATIVE_PATH = 'framework/utils/morpheus-confidential-envelope.ts';
+const LOCAL_ENVELOPE_RELATIVE_PATH = 'node_modules/@r3e-network/neo-miniapp-framework/utils/morpheus-confidential-envelope.ts';
 
 async function loadOracleModule(moduleName, exportName) {
   const modulePath = path.join(oracleRoot, 'scripts', moduleName);
@@ -144,7 +144,7 @@ async function main() {
   const signers = loadPublicSignerRegistry();
 
   writeGeneratedTs(
-    path.join(repoRoot, 'apps/shared/constants/generated-morpheus-registry.ts'),
+    path.join(repoRoot, 'node_modules/@r3e-network/neo-miniapp-shared/constants/generated-morpheus-registry.ts'),
     'MORPHEUS_PUBLIC_REGISTRY',
     'MorpheusPublicRegistry',
     registry,
@@ -152,7 +152,7 @@ async function main() {
   );
 
   writeGeneratedTs(
-    path.join(repoRoot, 'apps/shared/constants/generated-morpheus-runtime-catalog.ts'),
+    path.join(repoRoot, 'node_modules/@r3e-network/neo-miniapp-shared/constants/generated-morpheus-runtime-catalog.ts'),
     'MORPHEUS_PUBLIC_RUNTIME_CATALOG',
     'MorpheusPublicRuntimeCatalog',
     catalog,
@@ -160,7 +160,7 @@ async function main() {
   );
 
   writeGeneratedTs(
-    path.join(repoRoot, 'apps/shared/constants/generated-morpheus-signer-registry.ts'),
+    path.join(repoRoot, 'node_modules/@r3e-network/neo-miniapp-shared/constants/generated-morpheus-signer-registry.ts'),
     'MORPHEUS_PUBLIC_SIGNER_REGISTRY',
     'MorpheusPublicSignerRegistry',
     signers,

@@ -43,7 +43,9 @@
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^3.4.0",
     "webpack": "^5.105.4",
-    "zustand": "^5.0.9"
+    "zustand": "^5.0.9",
+    "@r3e-network/neo-miniapp-framework": "https://github.com/r3e-network/neo-miniapp-sdk/releases/download/v2.2.4/r3e-network-neo-miniapp-framework-2.2.4.tgz",
+    "@r3e-network/neo-miniapp-shared": "https://github.com/r3e-network/neo-miniapp-sdk/releases/download/v2.2.4/r3e-network-neo-miniapp-shared-2.2.4.tgz"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

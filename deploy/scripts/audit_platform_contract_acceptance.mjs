@@ -30,11 +30,10 @@ const contracts = [
     moneyContract: false,
     deploymentEvidenceClass: "consumer-binding",
     deploymentStatus: "consumer bindings exist; no dedicated deployment report retained",
-    deploymentEvidence: [
-      "apps/asset-factory/neo-manifest.json",
-      "apps/miniapp-factory/neo-manifest.json",
-      "apps/nft-factory/neo-manifest.json",
-    ],
+    // The consumer manifests live in neo-miniapps; the committed snapshot is
+    // this repo's copy of them and CI fails when it drifts.
+    deploymentEvidence: ["platform/host-app/public/miniapp-manifests.json"],
+    deploymentEvidenceApps: ["asset-factory", "miniapp-factory", "nft-factory"],
   },
   {
     name: "PlatformAnchor",
@@ -156,7 +155,7 @@ function sha256Hex(value) {
 
 function buildFactoryTemplateLedger() {
   const generatedArtifactsPath =
-    "apps/shared/factory/generated-template-artifacts.ts";
+    "node_modules/@r3e-network/neo-miniapp-shared/factory/generated-template-artifacts.ts";
   const generatedArtifacts = read(generatedArtifactsPath);
   return factoryTemplates.map((template) => {
     const manifestPath = `contracts/build/${template.name}.manifest.json`;

@@ -1,13 +1,13 @@
-export const HOST_WALLET_BRIDGE_REQUEST = "neo-miniapp-wallet-bridge:request";
-export const HOST_WALLET_BRIDGE_RESPONSE = "neo-miniapp-wallet-bridge:response";
-export const HOST_WALLET_BRIDGE_STATE = "neo-miniapp-wallet-bridge:state";
-export const HOST_WALLET_BRIDGE_RESULT =
-  "neo-miniapp-wallet-bridge:result";
+import { WALLET_BRIDGE } from "@shared/protocol/host-bridges";
+export const HOST_WALLET_BRIDGE_REQUEST = WALLET_BRIDGE.REQUEST;
+export const HOST_WALLET_BRIDGE_RESPONSE = WALLET_BRIDGE.RESPONSE;
+export const HOST_WALLET_BRIDGE_STATE = WALLET_BRIDGE.STATE;
+export const HOST_WALLET_BRIDGE_RESULT = WALLET_BRIDGE.RESULT;
 // Host-side notice lane for rejected/failed sensitive bridge requests. The
 // error is always posted back to the iframe, but if the miniapp swallows it
 // the user who just dismissed the approval prompt would otherwise see no
 // acknowledgment that nothing was submitted.
-export const HOST_WALLET_BRIDGE_ERROR = "neo-miniapp-wallet-bridge:error";
+export const HOST_WALLET_BRIDGE_ERROR = WALLET_BRIDGE.ERROR;
 
 // Versioned protocol contract for the host<->iframe wallet bridge.
 //
@@ -19,7 +19,7 @@ export const HOST_WALLET_BRIDGE_ERROR = "neo-miniapp-wallet-bridge:error";
 // asserts they never drift. Bump PROTOCOL_VERSION on any breaking change to the
 // envelope shape and add the previous version to COMPATIBLE_PROTOCOL_VERSIONS
 // only while it stays wire-compatible.
-export const HOST_WALLET_BRIDGE_PROTOCOL_VERSION = 1;
+export const HOST_WALLET_BRIDGE_PROTOCOL_VERSION = WALLET_BRIDGE.PROTOCOL_VERSION;
 
 // Versions this host accepts on an incoming request envelope. A request whose
 // declared version is absent is treated as the baseline (current) version for
