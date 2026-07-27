@@ -2,146 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Ticket,
-  Coins,
   Dice5,
-  CreditCard,
-  Spade,
   TrendingUp,
-  CandlestickChart,
-  Bot,
-  Castle,
   Puzzle,
-  HelpCircle,
-  Piano,
-  Map,
-  Pickaxe,
-  Mic,
-  Zap,
-  Brain,
-  Grid3X3,
-  Shield,
-  CircleDot,
-  ShieldCheck,
-  Pill,
-  Moon,
-  Gavel,
-  Target,
-  Repeat,
   Heart,
-  Gift,
-  Radio,
-  HandCoins,
-  Crosshair,
-  HeartCrack,
-  FolderHeart,
-  MapPin,
-  MessageCircle,
   Palette,
-  Sparkles,
-  Dna,
-  Cat,
-  Snowflake,
-  Eye,
-  Clock,
-  ScrollText,
-  Flower2,
-  Skull,
-  Bug,
   Vote,
-  Rocket,
   BarChart3,
-  Flame,
-  Timer,
-  Drama,
-  Swords,
-  LineChart,
   ClipboardList,
-  Lock,
-  Award,
-  type LucideIcon,
 } from "lucide-react";
 import {
   buildMiniAppLogoSources,
 } from "@/lib/miniapp-media";
 
 // Map app_id to professional Lucide icons
-const APP_ICONS: Record<string, LucideIcon> = {
-  // Gaming
-  "miniapp-fogplay": Coins,
-  "miniapp-dailycheckin": Award,
-  "miniapp-last-survivor": Timer,
-  "miniapp-gasbox": Sparkles,
-  "miniapp-scratchcard": CreditCard,
-  "miniapp-secretpoker": Spade,
-  "miniapp-neocrash": TrendingUp,
-  "miniapp-candlewars": CandlestickChart,
-  "miniapp-algobattle": Bot,
-  "miniapp-fogchess": Castle,
-  "miniapp-fogpuzzle": Puzzle,
-  "miniapp-cryptoriddle": HelpCircle,
-  "miniapp-worldpiano": Piano,
-  "miniapp-millionpiecemap": Map,
-  "miniapp-puzzlemining": Pickaxe,
-  "miniapp-screamtoearn": Mic,
-  "miniapp-megamillions": Ticket,
-  "miniapp-throneofgas": Castle,
-
-  // DeFi
-  "miniapp-flashloan": Zap,
-  "miniapp-aitrader": Brain,
-  "miniapp-gridbot": Grid3X3,
-  "miniapp-bridgeguardian": Shield,
-  "miniapp-gascircle": CircleDot,
-  "miniapp-ilguard": ShieldCheck,
-  "miniapp-compoundcapsule": Pill,
-  "miniapp-darkpool": Moon,
-  "miniapp-dutchauction": Gavel,
-  "miniapp-nolosslottery": Target,
-  "miniapp-quantumswap": Repeat,
-  "miniapp-self-loan": Repeat,
-  "miniapp-profitanchor": TrendingUp,
-  "miniapp-trustanchor": ShieldCheck,
-  "miniapp-priceticker": LineChart,
-  "miniapp-neo-pay": LineChart,
-
-  // Social
-  "miniapp-aisoulmate": Heart,
-  "miniapp-redenvelope": Gift,
-  "miniapp-darkradio": Radio,
-  "miniapp-devtipping": HandCoins,
-  "miniapp-bountyhunter": Crosshair,
-  "miniapp-breakupcontract": HeartCrack,
-  "miniapp-exfiles": FolderHeart,
-  "miniapp-geospotlight": MapPin,
-  "miniapp-whisperchain": MessageCircle,
-
-  // NFT
-  "miniapp-canvas": Palette,
-  "miniapp-nftevolve": Sparkles,
-  "miniapp-nftchimera": Dna,
-  "miniapp-schrodingernft": Cat,
-  "miniapp-meltingasset": Snowflake,
-  "miniapp-onchaintarot": Eye,
-  "miniapp-timecapsule": Clock,
-  "miniapp-heritagetrust": ScrollText,
-  "miniapp-gardenofneo": Flower2,
-  "miniapp-graveyard": Skull,
-  "miniapp-parasite": Bug,
-  "miniapp-paytoview": Eye,
-  "miniapp-deadswitch": Skull,
-
-  // Governance
-  "miniapp-govbooster": Rocket,
-  "miniapp-burnleague": Flame,
-  "miniapp-masqueradedao": Drama,
-  "miniapp-govmerc": Swords,
-
-  // Utility
-  "miniapp-guardianpolicy": ClipboardList,
-  "miniapp-unbreakablevault": Lock,
-  "miniapp-zkbadge": Award,
-};
+// No per-app icon table. An app declares its own artwork in its manifest and
+// the platform renders whatever that resolves to; when it resolves to nothing,
+// the fallback is by category, which is part of the manifest protocol. A table
+// keyed by app id would mean the platform has to learn about every app that
+// ships, which is exactly what the manifest exists to avoid.
 
 // Category fallback icons
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -195,7 +74,7 @@ export function MiniAppLogo({
   className = "",
   alt,
 }: MiniAppLogoProps) {
-  const Icon = APP_ICONS[appId] || CATEGORY_ICONS[category] || Puzzle;
+  const Icon = CATEGORY_ICONS[category] || Puzzle;
   const accent = CATEGORY_ACCENTS[category] || CATEGORY_ACCENTS.utility;
 
   const sizeClasses = {
