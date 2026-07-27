@@ -4,7 +4,10 @@ try {
   withSentryConfig = require("@sentry/nextjs").withSentryConfig;
 } catch {}
 
-const ONEGATE_VAULT_STANDALONE_ENTRY = "/miniapps/gas-lucky-pool/index.html";
+// The vault's OneGate surface is /play now: nothing was ever committed under
+// public/miniapps, so the old path served a bundle only after a local staging
+// run. The no-store rule follows it, so OneGate never pins a retired entry.
+const ONEGATE_VAULT_STANDALONE_ENTRY = "/play/gas-lucky-pool";
 // MiniApp and MiniGame bundles are served from the CDN now (their sources live
 // in r3e-network/neo-miniapps and r3e-network/neo-minigames). The host frames
 // that origin, so it has to be allowed in frame-src/connect-src/img-src.

@@ -124,20 +124,20 @@ describe("middleware CSP", () => {
   it("routes OneGate Vault legacy dapp URLs to the standalone runtime", () => {
     expect(
       resolveOneGateStandaloneRuntimePath("/miniapps/miniapp-gas-lucky-pool"),
-    ).toBe("/miniapps/gas-lucky-pool/index.html");
+    ).toBe("/play/gas-lucky-pool");
     expect(
       resolveOneGateStandaloneRuntimePath("/miniapps/onegate-vault/"),
-    ).toBe("/miniapps/gas-lucky-pool/index.html");
+    ).toBe("/play/gas-lucky-pool");
     expect(resolveOneGateStandaloneRuntimePath("/miniapps/fogplay")).toBeNull();
   });
 
   it("preserves launch query parameters on OneGate Vault runtime redirects", () => {
     const redirectUrl = buildOneGateStandaloneRuntimeUrl(
       "https://neomini.app/miniapps/miniapp-gas-lucky-pool?network=testnet&claim_key=abc",
-      "/miniapps/gas-lucky-pool/index.html",
+      "/play/gas-lucky-pool",
     );
 
-    expect(redirectUrl.pathname).toBe("/miniapps/gas-lucky-pool/index.html");
+    expect(redirectUrl.pathname).toBe("/play/gas-lucky-pool");
     expect(redirectUrl.searchParams.get("network")).toBe("testnet");
     expect(redirectUrl.searchParams.get("claim_key")).toBe("abc");
     expect(redirectUrl.searchParams.get("source")).toBe("onegate");

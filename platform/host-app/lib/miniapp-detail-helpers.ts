@@ -60,7 +60,10 @@ const MINIAPP_DETAIL_ROUTE_ALIASES: Record<string, string> = {
 export const ONEGATE_VAULT_APP_ID = "miniapp-gas-lucky-pool";
 export const ONEGATE_VAULT_DAPP_ID = "23";
 const ONEGATE_STANDALONE_REDIRECTS: Record<string, string> = {
-  [ONEGATE_VAULT_APP_ID]: "/miniapps/gas-lucky-pool/index.html",
+  // /play, not the old /miniapps/<slug>/index.html: nothing was ever committed
+  // under public/miniapps, so that path only resolved after a local staging run
+  // and 404s in production now that delivery moved to the CDN.
+  [ONEGATE_VAULT_APP_ID]: "/play/gas-lucky-pool",
 };
 
 export const TAB_PANEL_CLASSNAME =
