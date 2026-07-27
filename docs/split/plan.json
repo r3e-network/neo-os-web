@@ -14,7 +14,6 @@
         "apps/shared/test/anchor-admin.model.test.ts",
         "apps/shared/test/anchor-agents.test.ts",
         "apps/shared/test/anchor-hook-fixes.test.ts",
-        "apps/shared/test/anchor-stake-memo.test.ts",
         "apps/shared/test/chain-events.test.ts",
         "apps/shared/test/console-tool-panel.test.tsx",
         "apps/shared/test/contract-interaction.deposit-settle.test.ts",
@@ -703,7 +702,7 @@
           "name": "Asset Factory",
           "category": "tools",
           "kind": "miniapps",
-          "version": "1.2.0",
+          "version": "1.2.1",
           "dir": "apps/asset-factory",
           "tests": [
             "apps/shared/test/asset-factory.production.test.ts",
@@ -870,8 +869,7 @@
           "tests": [
             "apps/shared/test/forever-album.album-store.test.ts",
             "apps/shared/test/forever-album.logic.test.ts",
-            "apps/shared/test/forever-album.playarea.test.tsx",
-            "apps/shared/test/forever-album.product-truth.test.ts"
+            "apps/shared/test/forever-album.playarea.test.tsx"
           ],
           "contracts": [],
           "contractTests": []
@@ -969,7 +967,7 @@
           "name": "MiniApp Factory",
           "category": "tools",
           "kind": "miniapps",
-          "version": "1.1.0",
+          "version": "1.1.1",
           "dir": "apps/miniapp-factory",
           "tests": [
             "apps/shared/test/miniapp-factory.artifacts.test.ts",
@@ -1076,7 +1074,7 @@
           "name": "NeoPay Stream Studio",
           "category": "finance",
           "kind": "miniapps",
-          "version": "1.1.0",
+          "version": "1.1.1",
           "dir": "apps/neo-pay-shared-example",
           "tests": [
             "apps/shared/test/neo-pay-shared-example.integration.test.tsx",
@@ -1613,6 +1611,11 @@
       ],
       "keeps_shared_tests": [
         {
+          "test": "apps/shared/test/anchor-stake-memo.test.ts",
+          "reason": "asserts on platform source",
+          "app_refs": []
+        },
+        {
           "test": "apps/shared/test/embedded-bridge-protocol-parity.test.ts",
           "reason": "asserts on platform source",
           "app_refs": [
@@ -1620,6 +1623,11 @@
             "forever-album",
             "zhuada-e"
           ]
+        },
+        {
+          "test": "apps/shared/test/forever-album.product-truth.test.ts",
+          "reason": "asserts on platform source",
+          "app_refs": []
         },
         {
           "test": "apps/shared/test/i18n-key-parity.a1-worst.test.ts",
@@ -1646,14 +1654,14 @@
     "apps_total": 78,
     "minigames": 25,
     "miniapps": 53,
-    "sdk_shared_tests": 79,
+    "sdk_shared_tests": 78,
     "cross_app_conformance_tests": 4,
-    "app_tests": 306,
+    "app_tests": 305,
     "app_contracts": 33,
     "app_contract_tests": 33,
     "platform_contracts": 14,
     "platform_contract_tests": 51,
-    "shared_tests_staying_in_platform": 4
+    "shared_tests_staying_in_platform": 6
   },
   "warnings": {
     "contracts_without_matching_app": [],
