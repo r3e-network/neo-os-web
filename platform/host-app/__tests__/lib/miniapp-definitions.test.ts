@@ -185,15 +185,9 @@ describe("miniapp-definitions loader", () => {
     expect(app?.operations ?? []).toEqual([]);
     expect(app?.detail_template?.operation_panel?.operations ?? []).toEqual([]);
 
-    const embeddedFlow = fs.readFileSync(
-      path.resolve(
-        process.cwd(),
-        "../../apps/memorial-shrine/src/composables/useMemorialShrine.ts",
-      ),
-      "utf-8",
-    );
-    expect(embeddedFlow).toContain('"createMemorial"');
-    expect(embeddedFlow).toContain('"payTribute"');
+    // The other half of this guard - that the embedded app still carries the
+    // createMemorial/payTribute flows - lives in neo-miniapps, which holds that
+    // source.
   });
 
   it("keeps human GAS amount operations scaled to fixed8 units", async () => {
@@ -805,14 +799,6 @@ describe("miniapp-definitions loader", () => {
     expect(app?.manifest?.runtime).toBeUndefined();
   });
 
-  it("does not expose LastSurvivor lifecycle settlement as a standalone DApp action", () => {
-    const standaloneEntry = fs.readFileSync(
-      path.resolve(process.cwd(), "../../apps/last-survivor/src/main.tsx"),
-      "utf-8",
-    );
-
-    expect(standaloneEntry).not.toContain('registerAction("claimPrize"');
-  });
 
   it("preserves platform runtime metadata from top-level definitions", async () => {
     const definitionsDir = path.join(tempRoot, "defs-runtime");
