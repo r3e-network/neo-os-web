@@ -177,7 +177,12 @@ function setSecurityHeaders(
 }
 
 const ONEGATE_VAULT_APP_ID = "miniapp-gas-lucky-pool";
-const ONEGATE_VAULT_RUNTIME_PATH = "/miniapps/gas-lucky-pool/index.html";
+// The vault's OneGate entry used to redirect to /miniapps/gas-lucky-pool/index.html,
+// a bundle this host served from its own public directory. Nothing is committed
+// there - it only ever existed after a local staging run - so once delivery moved
+// to the CDN that redirect pointed at a 404 in production. /play is the surface
+// built for this: chrome-free, and it frames the app's published bundle.
+const ONEGATE_VAULT_RUNTIME_PATH = "/play/gas-lucky-pool";
 const ONEGATE_VAULT_STANDALONE_ENTRY_PATHS = new Set([
   "/miniapps/miniapp-gas-lucky-pool",
   "/miniapps/miniapp-gas-lucky-pool/",
@@ -190,6 +195,10 @@ const ONEGATE_VAULT_STANDALONE_ENTRY_PATHS = new Set([
 function isOneGateVaultHtmlPath(pathname: string): boolean {
   return (
     ONEGATE_VAULT_STANDALONE_ENTRY_PATHS.has(pathname) ||
+    // Scoped to this one app, not /play as a whole: the relaxation this gates
+    // is the vault's native wallet eval, and no other app may inherit it.
+    pathname === ONEGATE_VAULT_RUNTIME_PATH ||
+    // Cached clients still ask for the retired platform-served path.
     pathname === "/miniapps/gas-lucky-pool/index.html"
   );
 }
