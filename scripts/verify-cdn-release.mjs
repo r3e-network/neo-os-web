@@ -41,24 +41,40 @@ function fail(scope, detail) {
  */
 async function probe(url) {
   checks += 1;
-  try {
-    const response = await fetch(url, {
-      headers: {
-        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140 Safari/537.36",
-        origin: "null",
-      },
-    });
-    return {
-      ok: response.ok,
-      status: response.status,
-      cacheControl: response.headers.get("cache-control") || "",
-      cors: response.headers.get("access-control-allow-origin") || "",
-      contentType: response.headers.get("content-type") || "",
-      body: response,
-    };
-  } catch (error) {
-    return { ok: false, status: 0, cacheControl: "", cors: "", contentType: "", error: String(error) };
+  // ~1000 probes per run, so a transient connection reset is expected. Without
+  // a retry the gate reports an asset as missing when it is actually there,
+  // which is worse than no gate: it teaches you to ignore its failures.
+  const maxAttempts = 4;
+  let lastError = "";
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140 Safari/537.36",
+          origin: "null",
+        },
+      });
+      // A 5xx is worth another look; a 404 is an answer.
+      if (!response.ok && response.status >= 500 && attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 300 * 2 ** (attempt - 1)));
+        continue;
+      }
+      return {
+        ok: response.ok,
+        status: response.status,
+        cacheControl: response.headers.get("cache-control") || "",
+        cors: response.headers.get("access-control-allow-origin") || "",
+        contentType: response.headers.get("content-type") || "",
+        body: response,
+      };
+    } catch (error) {
+      lastError = String(error);
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 300 * 2 ** (attempt - 1)));
+      }
+    }
   }
+  return { ok: false, status: 0, cacheControl: "", cors: "", contentType: "", error: lastError };
 }
 
 async function mapLimit(items, limit, worker) {
