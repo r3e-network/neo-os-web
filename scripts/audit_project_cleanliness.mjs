@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { eachAppManifest } from "../deploy/scripts/lib/app-manifests.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const findings = [];
@@ -38,14 +39,10 @@ function git(args) {
   }).trim();
 }
 
-function listManifestFiles() {
-  const appsDir = path.join(ROOT, "apps");
-  return fs
-    .readdirSync(appsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(appsDir, entry.name, "neo-manifest.json"))
-    .filter((file) => fs.existsSync(file))
-    .sort();
+function listManifests() {
+  // The manifests come from the committed snapshot - the apps have their own
+  // repos, and this audit only needs what they declare, not their source.
+  return eachAppManifest().map(([, manifest]) => manifest);
 }
 
 function auditGitIgnore() {
@@ -135,10 +132,9 @@ function auditLocalGeneratedResidue() {
 }
 
 function auditMiniappCatalogDocs() {
-  const manifests = listManifestFiles();
+  const manifests = listManifests();
   const categories = new Map();
-  for (const manifestFile of manifests) {
-    const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
+  for (const manifest of manifests) {
     const category = String(manifest.category || "uncategorized");
     categories.set(category, (categories.get(category) || 0) + 1);
   }
@@ -167,7 +163,7 @@ function auditServiceSurfaceDocs() {
     .filter((entry) => entry.isDirectory() && entry.name.startsWith("os-")).length;
 
   const proxyFiles = fs
-    .readdirSync(path.join(ROOT, "apps/shared/services/os"), { withFileTypes: true })
+    .readdirSync(path.join(ROOT, "node_modules/@r3e-network/neo-miniapp-shared/services/os"), { withFileTypes: true })
     .filter((entry) => entry.isFile())
     .map((entry) => entry.name)
     .filter(
@@ -241,12 +237,11 @@ function auditContractFileSize() {
 }
 
 function auditLargeFrontendFiles() {
-  const sourceRoots = ["apps", "platform/host-app", "platform/admin-console", "platform/sdk"];
+  // App source lives in the app repos and is audited there; this walks what
+  // this repo actually owns.
+  const sourceRoots = ["platform/host-app", "platform/admin-console", "platform/sdk"];
   const skippedSegments = new Set(["node_modules", "dist", "build", ".next", "coverage"]);
-  const skippedFiles = [
-    "apps/shared/shims/",
-    "apps/on-chain-tarot/public/cards/",
-  ];
+  const skippedFiles = [];
   const stack = sourceRoots
     .map((dir) => path.join(ROOT, dir))
     .filter((dir) => fs.existsSync(dir));
@@ -278,7 +273,7 @@ function auditLargeFrontendFiles() {
 
 function auditExpectedDirectories() {
   for (const dir of [
-    "apps/shared/services/os",
+    "node_modules/@r3e-network/neo-miniapp-shared/services/os",
     "contracts/platform/PlatformAnchor",
     "contracts/platform/PlatformDeFi",
     "contracts/platform/PlatformGame",
@@ -305,7 +300,7 @@ auditExpectedDirectories();
 
 const summary = {
   ok: findings.length === 0,
-  miniapps: listManifestFiles().length,
+  miniapps: listManifests().length,
   osBinderFunctions: fs
     .readdirSync(path.join(ROOT, "platform/edge/functions"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name.startsWith("os-")).length,
