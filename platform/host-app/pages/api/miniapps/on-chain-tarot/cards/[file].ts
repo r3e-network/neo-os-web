@@ -17,9 +17,13 @@ const TAROT_SLUG = "on-chain-tarot";
 /**
  * Only reachable when the host serves bundles itself (offline development, the
  * E2E suite). Otherwise the cards live inside the published bundle.
+ *
+ * This is the locally staged bundle, not a sibling apps/ checkout: the app
+ * sources live in neo-minigames, and staging is what puts a bundle under
+ * public/miniapps for the host to serve.
  */
 function getCardsDir(): string {
-  return path.resolve(process.cwd(), "..", "..", "apps", TAROT_SLUG, "public", "cards");
+  return path.join(process.cwd(), "public", "miniapps", TAROT_SLUG, "cards");
 }
 
 function getContentType(fileName: string): string {

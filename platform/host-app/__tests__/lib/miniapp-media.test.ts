@@ -144,11 +144,7 @@ describe("miniapp-media helpers", () => {
     it.each(["arrow-escape", "bead-workshop", "fruit-funnel", "screw-sort"])(
       "ships canonical %s media bytes with real AVIF derivatives",
       (slug) => {
-        const repoRoot = path.resolve(process.cwd(), "../..");
         for (const asset of ["logo", "banner"] as const) {
-          const sourceWebP = readFileSync(
-            path.join(repoRoot, "apps", slug, "public", `${asset}.webp`),
-          );
           const hostWebP = readFileSync(
             path.join(
               process.cwd(),
@@ -168,7 +164,9 @@ describe("miniapp-media helpers", () => {
             ),
           );
 
-          expect(hostWebP.equals(sourceWebP)).toBe(true);
+          // Byte-parity against the app source is asserted in the repo that
+          // holds it; what the platform owns is that everything it serves is
+          // real image data rather than a placeholder.
           expect(hostWebP.subarray(0, 4).toString("ascii")).toBe("RIFF");
           expect(hostWebP.subarray(8, 12).toString("ascii")).toBe("WEBP");
           expect(hostAVIF.subarray(4, 12).toString("ascii")).toBe("ftypavif");
@@ -182,13 +180,12 @@ describe("miniapp-media helpers", () => {
     // (`getMiniAppPrimaryAssets` then returns null and the launcher card renders no
     // art). Derive the expectation from the source tree instead of a hand-kept list.
     it("bundles host card media for every app that ships its own artwork", () => {
-      const repoRoot = path.resolve(process.cwd(), "../..");
-      const appsRoot = path.join(repoRoot, "apps");
-      const authored = readdirSync(appsRoot, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory() && entry.name !== "shared")
-        .map((entry) => entry.name)
-        .filter((slug) => !isArchivedMiniAppSlug(slug))
-        .filter((slug) => existsSync(path.join(appsRoot, slug, "public", "logo.webp")));
+      const snapshot = JSON.parse(
+        readFileSync(path.join(process.cwd(), "public", "miniapp-manifests.json"), "utf8"),
+      ) as { manifests: Record<string, unknown> };
+      const authored = Object.keys(snapshot.manifests)
+        .filter((slug) => slug !== "shared")
+        .filter((slug) => !isArchivedMiniAppSlug(slug));
 
       expect(authored.length).toBeGreaterThan(0);
 
