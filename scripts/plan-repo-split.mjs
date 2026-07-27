@@ -155,7 +155,10 @@ function scanReferences(filePath) {
     if (segment === "..") continue;
     slugs.add(segment);
   }
-  for (const match of source.matchAll(/["'`](?:\.\.\/)+platform\//g)) {
+  // Both the relative form and a repo-root-relative one: a test may read
+  // "platform/host-app/..." through a helper that already anchors the root, and
+  // matching only "../platform/" let one such test slip into an app repo.
+  for (const match of source.matchAll(/["'`](?:\.\.\/)*platform\/(?:host-app|admin-console|sdk|shared|edge)\//g)) {
     void match;
     platform = true;
   }

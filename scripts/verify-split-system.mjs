@@ -158,6 +158,80 @@ function checkSdkPackage() {
   );
 }
 
+/**
+ * The gate for deleting apps/ and framework/ from this repo: every tracked file
+ * under them must already exist in one of the new repos. A file that is in none
+ * of them would be lost silently by the delete, which is the one failure mode
+ * with no way back.
+ *
+ * The path mapping has to keep sub-paths, not just basenames - shared service
+ * tests live under shared/test/services, and collapsing that made an earlier
+ * version of this check report ten files as lost when they were fine.
+ */
+function checkMigrated() {
+  const targets = {
+    sdk: REPOS.sdk,
+    minigames: REPOS.minigames,
+    miniapps: REPOS.miniapps,
+  };
+
+  const candidates = (file) => {
+    if (file.startsWith("apps/shared/test/")) {
+      const sub = file.slice("apps/shared/test/".length);
+      return [
+        ["sdk", `shared/test/${sub}`],
+        ["minigames", `apps/tests/unit/${sub}`],
+        ["minigames", `apps/tests/conformance/${sub}`],
+        ["miniapps", `apps/tests/unit/${sub}`],
+        ["miniapps", `apps/tests/conformance/${sub}`],
+      ];
+    }
+    if (file.startsWith("apps/shared/test-utils/")) {
+      const sub = file.slice("apps/shared/test-utils/".length);
+      return [
+        ["sdk", `shared/test-utils/${sub}`],
+        ["minigames", `apps/tests/test-utils/${sub}`],
+        ["miniapps", `apps/tests/test-utils/${sub}`],
+      ];
+    }
+    if (file.startsWith("apps/shared/")) return [["sdk", file.replace("apps/shared/", "shared/")]];
+    if (file.startsWith("framework/")) return [["sdk", file]];
+    if (file.startsWith("apps/")) return [["minigames", file], ["miniapps", file]];
+    return [];
+  };
+
+  const lost = [];
+  let checked = 0;
+  for (const root of ["framework", "apps"]) {
+    const tracked = execFileSync("git", ["ls-files", root], {
+      cwd: REPOS.platform,
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+    })
+      .split("\n")
+      .filter(Boolean);
+    for (const file of tracked) {
+      checked += 1;
+      const found = candidates(file).some(([repo, rel]) => fs.existsSync(path.join(targets[repo], rel)));
+      if (!found) lost.push(file);
+    }
+  }
+
+  // The cross-boundary parity tests are knowingly still here; they assert across
+  // the platform/app seam and cannot travel with either side untouched.
+  const expected = new Set(
+    (plan().repos["neo-miniapps-platform"].keeps_shared_tests || []).map((entry) => entry.test),
+  );
+  const unexpected = lost.filter((file) => !expected.has(file));
+
+  record(
+    "migrated",
+    unexpected.length === 0,
+    `${checked - lost.length}/${checked} platform files present in a new repo, ${lost.length} retained (${unexpected.length} unaccounted)`,
+    unexpected.length ? { unaccounted: unexpected.slice(0, 15) } : {},
+  );
+}
+
 function checkImports() {
   for (const name of ["sdk", "minigames", "miniapps"]) {
     const dir = REPOS[name];
@@ -182,8 +256,15 @@ function checkImports() {
   }
 }
 
+let cachedPlan = null;
+function plan() {
+  if (!cachedPlan) {
+    cachedPlan = JSON.parse(fs.readFileSync(path.join(repoRoot, "docs/split/plan.json"), "utf8"));
+  }
+  return cachedPlan;
+}
+
 function checkContracts() {
-  const plan = JSON.parse(fs.readFileSync(path.join(repoRoot, "docs/split/plan.json"), "utf8"));
   for (const [repoName, planKey] of [["minigames", "neo-minigames"], ["miniapps", "neo-miniapps"]]) {
     const dir = REPOS[repoName];
     if (!fs.existsSync(dir)) continue;
@@ -194,7 +275,7 @@ function checkContracts() {
     );
     const missing = [];
     let expected = 0;
-    for (const app of plan.repos[planKey].apps) {
+    for (const app of plan().repos[planKey].apps) {
       for (const contract of app.contracts) {
         const project = contract.split("/").pop();
         for (const ext of [".nef", ".manifest.json"]) {
@@ -226,7 +307,6 @@ function checkContracts() {
 }
 
 async function checkCatalog() {
-  const plan = JSON.parse(fs.readFileSync(path.join(repoRoot, "docs/split/plan.json"), "utf8"));
   for (const [kind, repoName, planKey] of [
     ["minigames", "minigames", "neo-minigames"],
     ["miniapps", "miniapps", "neo-miniapps"],
@@ -248,7 +328,7 @@ async function checkCatalog() {
 
     const bySlug = new Map(catalog.apps.map((app) => [app.slug, app]));
     const problems = [];
-    for (const app of plan.repos[planKey].apps) {
+    for (const app of plan().repos[planKey].apps) {
       const manifestPath = path.join(dir, "apps", app.slug, "neo-manifest.json");
       if (!fs.existsSync(manifestPath)) {
         problems.push(`${app.slug}: manifest missing from the repo`);
@@ -274,14 +354,14 @@ async function checkCatalog() {
       }
     }
     for (const slug of bySlug.keys()) {
-      if (!plan.repos[planKey].apps.some((app) => app.slug === slug)) {
+      if (!plan().repos[planKey].apps.some((app) => app.slug === slug)) {
         problems.push(`${slug}: published but not in the repo`);
       }
     }
     record(
       `catalog/${kind}`,
       problems.length === 0,
-      `${catalog.apps.length} published, ${plan.repos[planKey].apps.length} in repo, ${problems.length} mismatches`,
+      `${catalog.apps.length} published, ${plan().repos[planKey].apps.length} in repo, ${problems.length} mismatches`,
       problems.length ? { problems: problems.slice(0, 12) } : {},
     );
   }
@@ -304,6 +384,7 @@ function checkCdn() {
 
 async function main() {
   if (selected("repos")) checkRepos();
+  if (selected("migrated")) checkMigrated();
   if (selected("sdk-package")) checkSdkPackage();
   if (selected("imports")) checkImports();
   if (selected("contracts")) checkContracts();
