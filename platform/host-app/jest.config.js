@@ -19,8 +19,8 @@ module.exports = {
     "^react-dom$": "<rootDir>/../../node_modules/react-dom",
     "^react/jsx-runtime$": "<rootDir>/../../node_modules/react/jsx-runtime.js",
     "^react/jsx-dev-runtime$": "<rootDir>/../../node_modules/react/jsx-dev-runtime.js",
-    "^@shared/(.*)$": "<rootDir>/../../node_modules/@r3e-network/neo-miniapp-shared/$1",
-    "^@framework/(.*)$": "<rootDir>/../../node_modules/@r3e-network/neo-miniapp-framework/$1",
+    "^@shared/(.*)$": "<rootDir>/../../apps/shared/$1",
+    "^@framework/(.*)$": "<rootDir>/../../framework/$1",
     "\\.(avif|gif|jpg|jpeg|png|svg|webp)$": "<rootDir>/__mocks__/fileMock.js",
   },
   collectCoverageFrom: [

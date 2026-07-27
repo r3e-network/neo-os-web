@@ -20,8 +20,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@shared/*": ["../../node_modules/@r3e-network/neo-miniapp-shared/*"],
-      "@framework/*": ["../../node_modules/@r3e-network/neo-miniapp-framework/*"]
+      "@shared/*": ["../../apps/shared/*"],
+      "@framework/*": ["../../framework/*"]
     }
   },
   "include": [
