@@ -21,8 +21,8 @@ describe("motion quality guardrails", () => {
     expect(TRAY_MOTION_TIMINGS.highlightMs).toBeGreaterThanOrEqual(240);
     expect(TRAY_MOTION_TIMINGS.clearMs).toBeGreaterThanOrEqual(420);
     expect(TRAY_MOTION_TIMINGS.compactMs).toBeGreaterThanOrEqual(460);
-    expect(TRAY_ENTRY_MOTION_MS).toBe(692);
-    expect(TRAY_MATCH_MOTION_MS).toBe(1812);
+    expect(TRAY_ENTRY_MOTION_MS).toBe(750);
+    expect(TRAY_MATCH_MOTION_MS).toBe(1870);
   });
 
   it("keeps tray movement compositor-friendly and naturally eased", () => {
@@ -31,7 +31,7 @@ describe("motion quality guardrails", () => {
     expect(playAreaScss).toContain("--goose-motion-quick: cubic-bezier(0.2, 0.82, 0.24, 1)");
     expect(playAreaScss).toContain("--goose-motion-loop: cubic-bezier(0.45, 0, 0.55, 1)");
     expect(playAreaScss).toContain("--goose-motion-celebrate: cubic-bezier(0.2, 0.9, 0.2, 1.25)");
-    expect(playAreaScss).toContain("--goose-tray-entry-ms: 692ms");
+    expect(playAreaScss).toContain("--goose-tray-entry-ms: 750ms");
     expect(playAreaScss).toContain("--goose-tray-grouping-ms: 620ms");
     expect(playAreaScss).toContain("--goose-tray-highlight-ms: 240ms");
     expect(playAreaScss).toContain("--goose-tray-clear-ms: 420ms");
@@ -40,7 +40,7 @@ describe("motion quality guardrails", () => {
     expect(playAreaScss).toContain("will-change: transform, opacity, filter");
     expect(playAreaScss).toContain("transform: translate3d(var(--goose-tray-x), 0, 0)");
     expect(playAreaScss).toContain("transform var(--goose-tray-grouping-ms) var(--goose-motion-natural)");
-    expect(playAreaScss).toContain("transform var(--goose-tray-compact-ms) var(--goose-motion-natural)");
+    expect(playAreaScss).toContain("transform var(--goose-tray-compact-ms) var(--goose-motion-spring)");
     expect(playAreaScss).toContain("animation: goose-tray-match-hold var(--goose-tray-highlight-ms)");
     expect(trayMatchHoldBlock).not.toMatch(/translateX\(/);
     expect(trayMatchHoldBlock).toContain("translate3d(var(--goose-tray-x), 0, 0)");
@@ -110,6 +110,6 @@ describe("motion quality guardrails", () => {
     expect(zhuaDaSceneSource).not.toContain("const dur = 550");
     expect(zhuaDaSceneSource).not.toContain("const dur = 1600");
     expect(playAreaScss).toContain("transform var(--goose-tray-grouping-ms) var(--goose-motion-natural)");
-    expect(playAreaScss).toContain("transition: transform var(--goose-tray-compact-ms) var(--goose-motion-natural)");
+    expect(playAreaScss).toContain("transition: transform var(--goose-tray-compact-ms) var(--goose-motion-spring)");
   });
 });

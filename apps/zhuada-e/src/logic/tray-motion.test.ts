@@ -69,13 +69,13 @@ describe("tray motion choreography", () => {
   });
 
   it("publishes deliberate timings instead of an instant clear", () => {
-    expect(TRAY_MOTION_TIMINGS.approachMs).toBe(72);
+    expect(TRAY_MOTION_TIMINGS.approachMs).toBe(130);
     expect(TRAY_MOTION_TIMINGS.groupingMs).toBe(620);
     expect(TRAY_MOTION_TIMINGS.highlightMs).toBe(240);
     expect(TRAY_MOTION_TIMINGS.clearMs).toBe(420);
     expect(TRAY_MOTION_TIMINGS.compactMs).toBe(460);
-    expect(TRAY_ENTRY_MOTION_MS).toBe(692);
-    expect(TRAY_MATCH_MOTION_MS).toBe(1812);
+    expect(TRAY_ENTRY_MOTION_MS).toBe(750);
+    expect(TRAY_MATCH_MOTION_MS).toBe(1870);
     expect(trayMotionPhaseDuration("idle")).toBeNull();
   });
 

@@ -145,8 +145,8 @@
   opacity: 0;
   transform: scale(0.96);
   transition:
-    opacity 320ms ease-out,
-    transform 320ms ease-out;
+    opacity 320ms var(--goose-motion-soft),
+    transform 320ms var(--goose-motion-soft);
   pointer-events: none;
 }
 
@@ -498,7 +498,7 @@
 
 // Milestone power-up refund flash — golden glow when a power-up is earned mid-level.
 .goose-powerbar__btn[data-refund-flash="true"] {
-  animation: goose-refund-flash 600ms ease-out both;
+  animation: goose-refund-flash 600ms var(--goose-motion-soft) both;
 }
 
 @keyframes goose-refund-flash {
@@ -629,7 +629,7 @@
 }
 
 .goose-tray-row[data-tray-warning="1"] .goose-tray__slot:nth-child(n+5) {
-  animation: goose-slot-caution-pulse 1.2s ease-in-out infinite;
+  animation: goose-slot-caution-pulse 1.2s var(--goose-motion-loop) infinite;
 }
 
 .goose-tray-row[data-tray-warning="2"] .goose-tray {
@@ -640,7 +640,7 @@
 }
 
 .goose-tray-row[data-tray-warning="2"] .goose-tray__slot:nth-child(n+5) {
-  animation: goose-slot-danger-pulse 0.8s ease-in-out infinite;
+  animation: goose-slot-danger-pulse 0.8s var(--goose-motion-loop) infinite;
 }
 
 @keyframes goose-slot-caution-pulse {
@@ -1366,7 +1366,7 @@
 
 // HUD score "pop" — one-shot feedback when the score value changes.
 .goose-hud-score[data-pop="true"] {
-  animation: goose-score-pop 280ms ease-out both;
+  animation: goose-score-pop 280ms var(--goose-motion-soft) both;
 }
 
 @keyframes goose-score-pop {
