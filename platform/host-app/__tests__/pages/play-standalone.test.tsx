@@ -1,8 +1,9 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 import PlayPage, { getServerSideProps } from "../../pages/play/[id]";
+import { StandaloneMiniAppFrame } from "@/components/playarea/StandaloneMiniAppFrame";
 import { clearMiniAppCdnCatalogCache } from "@/lib/miniapp-cdn";
 
 jest.mock("@/lib/wallet/store", () => ({
@@ -181,5 +182,103 @@ describe("/play/[id] standalone surface", () => {
     } as never);
 
     expect(result).toEqual({ notFound: true });
+  });
+});
+
+describe("standalone frame load states", () => {
+  const app = {
+    appId: "miniapp-game-2048",
+    name: "2048 Rush",
+    url: "https://meshmini.app/minigames/game-2048/2.0.0/index.html",
+    network: "testnet" as const,
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
+  it("holds the loader and stays silent before the bundle is slow", () => {
+    render(<StandaloneMiniAppFrame {...app} />);
+
+    expect(screen.getByTestId("standalone-miniapp-frame")).toHaveClass("opacity-0");
+    expect(screen.queryByTestId("standalone-miniapp-frame-error")).not.toBeInTheDocument();
+
+    // Just short of the timeout: a slow bundle must not be called a failure.
+    act(() => {
+      jest.advanceTimersByTime(19_000);
+    });
+    expect(screen.queryByTestId("standalone-miniapp-frame-error")).not.toBeInTheDocument();
+  });
+
+  it("offers a retry once the bundle has not responded in time", () => {
+    render(<StandaloneMiniAppFrame {...app} />);
+
+    act(() => {
+      jest.advanceTimersByTime(20_000);
+    });
+
+    const failure = screen.getByTestId("standalone-miniapp-frame-error");
+    expect(failure).toBeInTheDocument();
+    // Announced, not just drawn - this replaces the whole surface.
+    expect(failure).toHaveAttribute("role", "status");
+    expect(failure).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("re-requests the bundle when retry is pressed", () => {
+    render(<StandaloneMiniAppFrame {...app} />);
+
+    act(() => {
+      jest.advanceTimersByTime(20_000);
+    });
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    // The failure clears and the loader comes back for the new attempt.
+    expect(screen.queryByTestId("standalone-miniapp-frame-error")).not.toBeInTheDocument();
+    expect(screen.getByTestId("standalone-miniapp-frame")).toHaveClass("opacity-0");
+  });
+
+  it("reveals the app and drops the loader once the bundle reports load", () => {
+    render(<StandaloneMiniAppFrame {...app} />);
+
+    fireEvent.load(screen.getByTestId("standalone-miniapp-frame"));
+    act(() => {
+      jest.advanceTimersByTime(400);
+    });
+
+    expect(screen.getByTestId("standalone-miniapp-frame")).toHaveClass("opacity-100");
+    expect(screen.queryByTestId("standalone-miniapp-frame-error")).not.toBeInTheDocument();
+  });
+
+  it("clears the failure when a slow bundle finally arrives", () => {
+    // The sequence the !loaded guard exists for: the bundle misses the timeout,
+    // the failure replaces the surface, and then the bundle loads anyway. It
+    // must hand the surface back rather than leaving the retry card over a
+    // working app.
+    render(<StandaloneMiniAppFrame {...app} />);
+
+    act(() => {
+      jest.advanceTimersByTime(20_000);
+    });
+    expect(screen.getByTestId("standalone-miniapp-frame-error")).toBeInTheDocument();
+
+    fireEvent.load(screen.getByTestId("standalone-miniapp-frame"));
+
+    expect(screen.queryByTestId("standalone-miniapp-frame-error")).not.toBeInTheDocument();
+  });
+
+  it("does not call a loaded bundle timed out", () => {
+    render(<StandaloneMiniAppFrame {...app} />);
+
+    fireEvent.load(screen.getByTestId("standalone-miniapp-frame"));
+    act(() => {
+      jest.advanceTimersByTime(60_000);
+    });
+
+    expect(screen.queryByTestId("standalone-miniapp-frame-error")).not.toBeInTheDocument();
   });
 });
