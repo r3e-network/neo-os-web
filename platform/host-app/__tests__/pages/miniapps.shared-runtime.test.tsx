@@ -119,7 +119,7 @@ describe("MiniAppDetailPage shared runtime", () => {
     expect(result).toEqual({
       redirect: {
         destination:
-          "/miniapps/gas-lucky-pool/index.html?key=ogv_user_42&pool=pool-001&network=testnet",
+          "/play/gas-lucky-pool?key=ogv_user_42&pool=pool-001&network=testnet",
         permanent: false,
       },
     });

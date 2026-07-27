@@ -118,7 +118,7 @@ export function createR2Client({ accountId, apiToken, apiTokenId, bucket }) {
         body,
       });
 
-    const maxAttempts = 4;
+    const maxAttempts = 8;
     let response;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
@@ -127,7 +127,7 @@ export function createR2Client({ accountId, apiToken, apiTokenId, bucket }) {
         if (attempt === maxAttempts) {
           throw new Error(`R2 PUT ${key} failed after ${maxAttempts} attempts: ${error.message}`);
         }
-        await sleep(250 * 2 ** (attempt - 1));
+        await sleep(Math.min(250 * 2 ** (attempt - 1), 15_000));
         continue;
       }
       if (response.ok) break;
@@ -136,7 +136,7 @@ export function createR2Client({ accountId, apiToken, apiTokenId, bucket }) {
         const detail = (await response.text()).slice(0, 300);
         throw new Error(`R2 PUT ${key} failed: HTTP ${response.status} ${detail}`);
       }
-      await sleep(250 * 2 ** (attempt - 1));
+      await sleep(Math.min(250 * 2 ** (attempt - 1), 15_000));
     }
 
     return { key, bytes: body.length, contentType, cacheControl };
