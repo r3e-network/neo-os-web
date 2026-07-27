@@ -87,7 +87,7 @@
     "test:deploy-scripts": "node --test deploy/scripts/lib/*.test.mjs",
     "test:shared-aa-governance": "go test -tags=scripts ./deploy/scripts/configure_shared_aa_testnet.go ./deploy/scripts/configure_shared_aa_testnet_test.go -count=1",
     "build:contracts": "bash contracts/build.sh",
-    "test:contracts": "DOTNET_ROOT=\"${DOTNET_ROOT:-$HOME/.dotnet}\" PATH=\"${DOTNET_ROOT:-$HOME/.dotnet}/tools:$PATH\" dotnet test contracts/__tests__",
+    "test:contracts": "bash -c 'source deploy/scripts/lib/dotnet_tools.sh && ensure_dotnet_root && dotnet test contracts/__tests__'",
     "test:contracts:full": "BUILD_LEGACY_CLONES=1 npm run -s build:contracts && npm run -s test:contracts",
     "backfill:miniapp-versions": "node deploy/scripts/backfill-miniapp-versions.js",
     "verify:publish-audit-chain": "node deploy/scripts/verify-publish-audit-chain.js",

@@ -116,7 +116,7 @@ dotnet build contracts/os-game/
 BUILD_LEGACY_CLONES=1 ./contracts/build.sh
 ```
 
-The build script also sources `scripts/dotnet_env.sh` so the `nccs` apphost
+The build script also sources `deploy/scripts/lib/dotnet_tools.sh` so the `nccs` apphost
 can find Homebrew or user-local .NET installations without a manual
 `DOTNET_ROOT` export.
 

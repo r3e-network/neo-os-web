@@ -2,7 +2,10 @@
 set -e
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
-source "$script_dir/../scripts/dotnet_env.sh"
+# shellcheck source=deploy/scripts/lib/dotnet_tools.sh
+source "$script_dir/../deploy/scripts/lib/dotnet_tools.sh"
+ensure_dotnet_root
+nccs_bin="$(resolve_dotnet_tool nccs "dotnet tool install -g Neo.Compiler.CSharp")"
 cd "$script_dir"
 mkdir -p build
 
@@ -51,7 +54,7 @@ find . -mindepth 2 -maxdepth 3 -name '*.csproj' \
   fi
   echo "Building $d..."
   dotnet build "$project" -c Release
-  ~/.dotnet/tools/nccs "$project" --optimize=All --output ./build/
+  "$nccs_bin" "$project" --optimize=All --output ./build/
 done
 
 echo "Building PlatformDeFiLegacyCreditFixture..."
@@ -59,7 +62,7 @@ fixture_project="./PlatformDeFiLegacyCreditFixture/PlatformDeFiLegacyCreditFixtu
 fixture_output="$(mktemp -d)"
 trap 'rm -rf "$fixture_output"' EXIT
 dotnet build "$fixture_project" -c Release
-~/.dotnet/tools/nccs "$fixture_project" --optimize=All --output "$fixture_output/"
+"$nccs_bin" "$fixture_project" --optimize=All --output "$fixture_output/"
 cp "$fixture_output/PlatformDeFi.nef" ./build/PlatformDeFiLegacyCreditFixture.nef
 cp "$fixture_output/PlatformDeFi.manifest.json" \
   ./build/PlatformDeFiLegacyCreditFixture.manifest.json
