@@ -6,7 +6,7 @@
  *    (resolved from the shared MINIAPP_CONTRACTS registry)
  * 2. KERNEL-REGISTERED apps — read from Morpheus Oracle kernel state
  */
-import { getMiniAppContractHash as resolveSharedMiniAppContractHash } from "../../../apps/shared/constants/rpc";
+import { getMiniAppContractHash as resolveSharedMiniAppContractHash } from "@shared/constants/rpc";
 
 // Neo3Fura/N3Index is the platform-owned Neo N3 gateway. It provides JSON-RPC
 // pass-through plus indexed read APIs behind the same Cloudflare edge.

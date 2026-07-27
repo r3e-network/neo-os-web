@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getExternalIntegrationConfig, resolveNeoNetwork } from "../../../../../../apps/shared/constants/rpc";
+import { getExternalIntegrationConfig, resolveNeoNetwork } from "@shared/constants/rpc";
 import { apiError } from "@/lib/api-response";
 import { standardLimit } from "@/lib/rate-limit";
 import { resolveMorpheusPublicApiCandidates } from "@/lib/morpheus-endpoints";

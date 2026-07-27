@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRightLeft,
   ChevronDown,
+  PlayCircle,
   Radio,
   RotateCcw,
   ShieldCheck,
 } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n/react";
+import { MiniAppBundleLoader } from "./MiniAppBundleLoader";
 import type { MiniAppInfo, MiniAppLaunchContext } from "@/components/types";
 
 // playArea.* translations with English fallbacks: renders localized copy under
@@ -488,6 +490,17 @@ export function EmbeddedDappSurface({
   // chrome (navbar 64px + sticky detail header ~48px + small footer ~32px
   // + outer padding ~28px ≈ 172px) leaves the rest for the dApp.
   heightClass = "min-h-[580px] h-[calc(100vh-172px)]",
+  // Bundles are fetched from the CDN on demand. Until the visitor opens the
+  // app the surface shows only its artwork and metadata, so browsing a
+  // catalogue of ~80 apps costs nothing beyond a logo per card. Surfaces the
+  // visitor has already chosen to open - the standalone /play route - pass
+  // autoLoad and skip straight to the loader.
+  autoLoad = false,
+  posterName,
+  posterDescription,
+  posterIconUrl,
+  posterBannerUrl,
+  posterVersion,
 }: {
   title: string;
   subtitle: string;
@@ -498,11 +511,18 @@ export function EmbeddedDappSurface({
   appId?: string;
   network?: "mainnet" | "testnet";
   heightClass?: string;
+  autoLoad?: boolean;
+  posterName?: string;
+  posterDescription?: string;
+  posterIconUrl?: string | null;
+  posterBannerUrl?: string | null;
+  posterVersion?: string | null;
 }) {
   void title;
   void subtitle;
   void tone;
   const tp = usePlayAreaT();
+  const [opened, setOpened] = useState(autoLoad);
   const [frameLoaded, setFrameLoaded] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
@@ -554,16 +574,23 @@ export function EmbeddedDappSurface({
   // Load-failure watchdog: if onLoad never fires, swap the branded spinner for
   // a recovery card with Retry and an always-reachable pop-out escape hatch.
   useEffect(() => {
-    if (frameLoaded) return undefined;
+    // Nothing is in flight while the poster is showing, so the watchdog must
+    // not start counting until the bundle is actually requested.
+    if (!opened || frameLoaded) return undefined;
     const timeout = window.setTimeout(
       () => setLoadTimedOut(true),
       EMBEDDED_DAPP_LOAD_TIMEOUT_MS,
     );
     return () => window.clearTimeout(timeout);
-  }, [frameLoaded, url, frameAttempt]);
+  }, [frameLoaded, opened, url, frameAttempt]);
+
+  useEffect(() => {
+    if (autoLoad) setOpened(true);
+  }, [autoLoad]);
 
   const retryFrameLoad = () => setFrameAttempt((attempt) => attempt + 1);
-  const showLoadFailure = showLoading && loadTimedOut && !frameLoaded;
+  const showLoadFailure = opened && showLoading && loadTimedOut && !frameLoaded;
+  const posterTitle = posterName || loadingTitle;
   // Audit fix C-4: every miniapp iframe keeps the opaque-origin sandbox —
   // allow-same-origin combined with allow-scripts would let a compromised
   // bundle reach window.parent and the host's session storage. First-party
@@ -584,9 +611,62 @@ export function EmbeddedDappSurface({
         <ArrowRightLeft className="h-3 w-3" aria-hidden="true" />
         <span className="hidden sm:inline">{tp("newWindow", "New window")}</span>
       </a>
+      {!opened ? (
+        <div
+          className={`relative grid ${heightClass} w-full place-items-center overflow-hidden bg-[#faf9f7] px-6 text-center`}
+          data-testid={`${testId}-poster`}
+        >
+          {posterBannerUrl ? (
+            // Decorative only: the banner is a blurred backdrop behind the
+            // metadata, and every fact it conveys is also present as text.
+            <img
+              src={posterBannerUrl}
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-20 blur-xl"
+            />
+          ) : null}
+          <div className="relative w-full max-w-sm">
+            {posterIconUrl ? (
+              <img
+                src={posterIconUrl}
+                alt=""
+                aria-hidden="true"
+                className="mx-auto h-20 w-20 rounded-2xl bg-white object-cover shadow-md shadow-gray-950/10 ring-1 ring-gray-200"
+              />
+            ) : (
+              <div className="mx-auto grid h-20 w-20 place-items-center rounded-2xl bg-white shadow-md shadow-gray-950/10 ring-1 ring-gray-200">
+                <Radio className="h-7 w-7 text-gray-950" aria-hidden="true" />
+              </div>
+            )}
+            <p className="m-0 mt-5 text-lg font-bold text-gray-900">{posterTitle}</p>
+            {posterDescription ? (
+              <p className="m-0 mt-2 text-sm leading-6 text-gray-600">{posterDescription}</p>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setOpened(true)}
+              className="mt-5 inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-700/15 transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              data-testid={`${testId}-open`}
+            >
+              <PlayCircle className="h-4 w-4" aria-hidden="true" />
+              {tp("openMiniApp", "Open")} {posterTitle}
+            </button>
+            <p className="m-0 mt-3 text-xs leading-5 text-gray-500">
+              {posterVersion
+                ? tp(
+                    "bundleLoadsOnDemandVersioned",
+                    `Version ${posterVersion} loads from the CDN when you open it.`,
+                  )
+                : tp("bundleLoadsOnDemand", "The app bundle loads from the CDN when you open it.")}
+            </p>
+          </div>
+        </div>
+      ) : null}
       {/* Miniapps run inside a sandbox with an opaque origin (audit fix C-4).
           First-party credential needs — the Automation Copilot's signed host
           gateway session — flow through the appId-gated credential bridge. */}
+      {opened ? (
       <iframe
         key={`${url}#${frameAttempt}`}
         ref={iframeRef}
@@ -611,6 +691,7 @@ export function EmbeddedDappSurface({
            apps. */
         sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
       />
+      ) : null}
       {showLoadFailure ? (
         <div
           className="absolute inset-0 grid place-items-center bg-[#faf9f7] px-6 text-center"
@@ -652,31 +733,13 @@ export function EmbeddedDappSurface({
             </div>
           </div>
         </div>
-      ) : showLoading ? (
-        <div
-          className="absolute inset-0 grid place-items-center bg-[#faf9f7] px-6 text-center"
-          data-testid={`${testId}-loading`}
-          aria-live="polite"
-        >
-          <div className="w-full max-w-sm">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-white shadow-md shadow-gray-950/10 ring-1 ring-gray-200">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-gray-950 text-white shadow-inner">
-                <Radio className="h-5 w-5" aria-hidden="true" />
-              </div>
-            </div>
-            <p className="m-0 mt-5 text-base font-semibold text-gray-900">
-              Loading {loadingTitle}
-            </p>
-            <div
-              className="mx-auto mt-4 grid h-2 max-w-44 grid-cols-3 gap-1.5"
-              aria-hidden="true"
-            >
-              <span className="rounded-full bg-emerald-400" />
-              <span className="rounded-full bg-sky-400" />
-              <span className="rounded-full bg-orange-300" />
-            </div>
-          </div>
-        </div>
+      ) : opened && showLoading ? (
+        <MiniAppBundleLoader
+          name={loadingTitle}
+          iconUrl={posterIconUrl}
+          version={posterVersion}
+          testId={`${testId}-loading`}
+        />
       ) : null}
     </section>
   );

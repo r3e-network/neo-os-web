@@ -2,8 +2,11 @@ import fs from "fs";
 import path from "path";
 import { coerceMiniAppInfo } from "@/lib/miniapp";
 
-const repoRoot = path.resolve(__dirname, "../../../..");
-const appsRoot = path.join(repoRoot, "apps");
+// The manifests live in the app repos now; public/miniapp-manifests.json is the
+// committed snapshot of them, kept current by scripts/refresh-manifest-snapshot.mjs.
+const snapshot = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "../../public/miniapp-manifests.json"), "utf8"),
+) as { manifests: Record<string, Record<string, unknown>> };
 
 const MORPHEUS_CONFIDENTIAL_APPS = [
   "oracle-compute-lab",
@@ -14,8 +17,9 @@ const MORPHEUS_CONFIDENTIAL_APPS = [
 ];
 
 function readManifest(slug: string) {
-  const manifestPath = path.join(appsRoot, slug, "neo-manifest.json");
-  return JSON.parse(fs.readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+  const manifest = snapshot.manifests[slug];
+  if (!manifest) throw new Error(`no manifest for ${slug} in the snapshot`);
+  return manifest;
 }
 
 describe("Morpheus confidential MiniApps", () => {

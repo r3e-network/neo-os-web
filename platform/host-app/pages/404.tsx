@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import { ErrorArt } from "../../../apps/shared/components-react/illustrations";
+import { ErrorArt } from "@shared/components-react/illustrations";
 
 export default function Custom404() {
   return (

@@ -226,7 +226,7 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "scripts/run-tests.mjs", "src/scenes/pick-lock.test.ts");
   includes(read, "scripts/run-tests.mjs", "src/scenes/pick-raycast.test.ts");
   includes(read, "src/logic/motion-quality.test.ts", "Math.pow(1 - e, SCENE_MOTION.panDampingPower)");
-  includes(read, "src/PlayArea.scss", "--goose-tray-entry-ms: 692ms");
+  includes(read, "src/PlayArea.scss", "--goose-tray-entry-ms: 750ms");
   includes(read, "src/PlayArea.scss", "--goose-tray-grouping-ms: 620ms");
   includes(read, "src/PlayArea.scss", "--goose-tray-highlight-ms: 240ms");
   includes(read, "src/PlayArea.scss", "--goose-tray-clear-ms: 420ms");
@@ -547,14 +547,14 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   notIncludes(read, "PRODUCTION-READINESS.md", "staged/source manifest version parity");
   notIncludes(read, "PRODUCTION-READINESS.md", "74b817781e56aaa3350cefd1a13ee5341e25e642568f4a08a91afe6a84d7e7d1");
   notIncludes(read, "PRODUCTION-READINESS.md", "22052940ef19f3c1d37c9f02ee7f2dca25c376b3a4ba78016983e1f424c94e0f");
-  includes(read, "REFERENCE-VIDEO-AUDIT.md", "入槽与分组动画采用 692ms 可读节奏");
-  includes(read, "REFERENCE-VIDEO-AUDIT.md", "三消完整编舞约 1812ms");
+  includes(read, "REFERENCE-VIDEO-AUDIT.md", "入槽与分组动画采用 750ms 可读节奏");
+  includes(read, "REFERENCE-VIDEO-AUDIT.md", "三消完整编舞约 1870ms");
   includes(read, "REFERENCE-VIDEO-AUDIT.md", "前台 60s 漂移 ≤250ms，隐藏页不扣后台时间");
   includes(read, "REFERENCE-VIDEO-AUDIT.md", "不可用不扣次数、可用时扣次数并触发 nonce/状态变化");
   includes(read, "REFERENCE-VIDEO-AUDIT.md", "显式授权按钮、Android 无事件 blocked 降级、后台/暂停忽略传感器、卸载清理监听器");
   includes(read, "REFERENCE-VIDEO-AUDIT.md", "36 次密集落地只保留一次落地声");
-  includes(read, "design-qa.md", "普通入槽/归组采用 692ms 可读节奏");
-  includes(read, "design-qa.md", "总视觉编舞约 1812ms");
+  includes(read, "design-qa.md", "普通入槽/归组采用 750ms 可读节奏");
+  includes(read, "design-qa.md", "总视觉编舞约 1870ms");
   includes(read, "design-qa.md", "420ms 镜头微震、820ms 颠锅回弹");
   notIncludes(read, "design-qa.md", "普通入槽约 534ms");
   notIncludes(read, "design-qa.md", "总视觉段约 1.29s");

@@ -1,7 +1,7 @@
 import {
   BLOCKCHAIN_CONSTANTS,
   EXTERNAL_INTEGRATIONS,
-} from "../../../../apps/shared/constants";
+} from "@shared/constants";
 import {
   buildInvokeArgs,
   parseScaledDecimal,

@@ -1,4 +1,4 @@
-import { MINIAPP_CONTRACTS } from "../../../../apps/shared/constants/rpc";
+import { MINIAPP_CONTRACTS } from "@shared/constants/rpc";
 
 describe("host chain contract queries", () => {
   beforeEach(() => {

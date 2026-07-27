@@ -1,6 +1,6 @@
 import { createHash, ECDH } from "node:crypto";
 import type { NextApiRequest } from "next";
-import { getExternalIntegrationConfig, resolveNeoNetwork, type NeoNetwork } from "../../../apps/shared/constants/rpc";
+import { getExternalIntegrationConfig, resolveNeoNetwork, type NeoNetwork } from "@shared/constants/rpc";
 import {
   resolveMorpheusRuntimeCandidates,
   resolveMorpheusRuntimeToken,

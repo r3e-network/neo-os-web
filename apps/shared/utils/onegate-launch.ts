@@ -90,8 +90,13 @@ export function buildOneGateDirectMiniAppUrl(
   const normalizedSlug = SAFE_MINIAPP_SLUG.test(safeSlug) ? safeSlug : "";
   const normalizedAppId = safeString(appId);
   const origin = normalizeMiniAppOrigin(options.origin);
+  // The platform's chrome-free launch route, not a bundle path. Bundles are
+  // served from the CDN now, and routing OneGate through the host keeps the
+  // wallet/storage/credential bridges, the sandbox policy, and the loading
+  // state under the platform's control while the visitor still sees only the
+  // app itself.
   const url = new URL(
-    `/miniapps/${normalizedSlug || normalizedAppId || "miniapp"}/index.html`,
+    `/play/${normalizedSlug || normalizedAppId || "miniapp"}`,
     origin,
   );
   url.searchParams.set("source", "onegate");

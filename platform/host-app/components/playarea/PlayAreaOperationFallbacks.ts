@@ -3,7 +3,7 @@ import {
   EXTERNAL_INTEGRATIONS,
   MINIAPP_CONTRACTS,
   resolveNeoNetwork,
-} from "../../../../apps/shared/constants/rpc";
+} from "@shared/constants/rpc";
 
 import { PROFILED_PLAYAREAS, type ProfileField } from "./PlayAreaProfiles";
 

@@ -2,6 +2,8 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
+import { openEmbeddedBundles } from "../test-utils/embedded-bundle";
+
 import { GenericPlayArea } from "../../components/playarea/PlayAreaFallbacks";
 import { LastSurvivorPlayArea } from "../../components/playarea/PlayAreaCoreFlows";
 import type { MiniAppInfo } from "../../components/types";
@@ -44,6 +46,7 @@ const baseProps = {
 describe("GenericPlayArea focus mode", () => {
   it("keeps the live iframe as the only top-level surface and folds the wiring rows away", () => {
     render(<GenericPlayArea app={baseApp} {...baseProps} />);
+    openEmbeddedBundles();
 
     expect(
       screen.getByTestId("generic-dapp-frame-miniapp-demo"),
@@ -70,6 +73,7 @@ describe("LastSurvivorPlayArea rollover banner", () => {
         statsMap={{ Status: "Next Round Pending", Countdown: "Rollover Ready" }}
       />,
     );
+    openEmbeddedBundles();
 
     const banner = screen.getByTestId("last-survivor-rollover-banner");
     expect(banner).toHaveTextContent("Next round is ready to start");
@@ -88,6 +92,7 @@ describe("LastSurvivorPlayArea rollover banner", () => {
         statsMap={{ Status: "Next Round Pending", Countdown: "Rollover Ready" }}
       />,
     );
+    openEmbeddedBundles();
 
     const banner = screen.getByTestId("last-survivor-rollover-banner");
     expect(banner).toHaveTextContent(

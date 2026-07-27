@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code, Cpu, FileCode } from "lucide-react";
-import { EmptyStateArt } from "../../../../../apps/shared/components-react/illustrations";
+import { EmptyStateArt } from "@shared/components-react/illustrations";
 import type {
   ExplorerBlockData,
   ExplorerContractCall,

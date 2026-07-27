@@ -9,7 +9,7 @@ import {
   Megaphone,
   Trophy,
 } from "lucide-react";
-import { EmptyStateArt } from "../../../apps/shared/components-react/illustrations";
+import { EmptyStateArt } from "@shared/components-react/illustrations";
 
 const DORA_TX_BASE = "https://dora.coz.io/transaction/neo3";
 

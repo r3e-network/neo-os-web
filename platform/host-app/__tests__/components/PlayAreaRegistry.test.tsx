@@ -9,6 +9,8 @@ import {
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
+import { openEmbeddedBundles } from "../test-utils/embedded-bundle";
+
 import {
   PlayAreaRegistry,
   getNativePlayAreaKind,
@@ -52,16 +54,15 @@ function normalizeMiniAppCategory(
 }
 
 function loadActiveMiniAppManifests() {
-  const repoRoot = path.resolve(__dirname, "../../../..");
-  const appsRoot = path.join(repoRoot, "apps");
+  // The manifests live in the app repos now; public/miniapp-manifests.json is the
+  // committed snapshot of them, kept current by scripts/refresh-manifest-snapshot.mjs.
+  const snapshot = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "../../public/miniapp-manifests.json"), "utf8"),
+  ) as { manifests: Record<string, Record<string, unknown>> };
 
-  return fs
-    .readdirSync(appsRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(appsRoot, entry.name, "neo-manifest.json"))
-    .filter((manifestPath) => fs.existsSync(manifestPath))
-    .map((manifestPath) => {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
+  return Object.entries(snapshot.manifests)
+    .map(([, raw]) => {
+      const manifest = raw as {
         app_id?: string;
         id?: string;
         name?: string;
@@ -85,13 +86,12 @@ function loadActiveMiniAppManifests() {
 }
 
 function loadBundledManifest(slug: string): Record<string, unknown> {
-  const repoRoot = path.resolve(__dirname, "../../../..");
-  return JSON.parse(
-    fs.readFileSync(
-      path.join(repoRoot, "apps", slug, "neo-manifest.json"),
-      "utf8",
-    ),
-  ) as Record<string, unknown>;
+  const snapshot = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "../../public/miniapp-manifests.json"), "utf8"),
+  ) as { manifests: Record<string, Record<string, unknown>> };
+  const manifest = snapshot.manifests[slug];
+  if (!manifest) throw new Error(`no manifest for ${slug} in the snapshot`);
+  return manifest;
 }
 
 const ACTIVE_MINIAPP_MANIFESTS = loadActiveMiniAppManifests();
@@ -115,7 +115,7 @@ function renderPlayarea(
   app: Partial<MiniAppInfo>,
   launchContext?: React.ComponentProps<typeof PlayAreaRegistry>["launchContext"],
 ) {
-  return render(
+  const result = render(
     <PlayAreaRegistry
       app={{ ...baseApp, ...app }}
       stats={[
@@ -163,6 +163,9 @@ function renderPlayarea(
       onRefresh={jest.fn()}
     />,
   );
+  // Bundles are deferred behind the poster; these tests assert on the frame.
+  openEmbeddedBundles();
+  return result;
 }
 
 describe("PlayAreaRegistry", () => {
@@ -487,6 +490,7 @@ describe("PlayAreaRegistry", () => {
         onRefresh={jest.fn()}
       />,
     );
+    openEmbeddedBundles();
 
     expect(
       screen.getByRole("heading", { name: "Oracle VRF workbench" }),
@@ -838,6 +842,7 @@ describe("PlayAreaRegistry", () => {
         onRefresh={jest.fn()}
       />,
     );
+    openEmbeddedBundles();
 
     expect(screen.getByText("Next round is ready to start")).toBeVisible();
     // The LastSurvivor native play area now embeds the actual dApp iframe,
@@ -1155,6 +1160,7 @@ describe("PlayAreaRegistry", () => {
         onRefresh={jest.fn()}
       />,
     );
+    openEmbeddedBundles();
 
     expect(
       screen.getByTestId("native-playarea-miniapp-gas-lucky-pool"),
@@ -1784,6 +1790,7 @@ describe("PlayAreaRegistry", () => {
         onRefresh={jest.fn()}
       />,
     );
+    openEmbeddedBundles();
 
     const frame = screen.getByTestId("neo-x-bridge-dapp-frame");
     expect(frame).toHaveAttribute(

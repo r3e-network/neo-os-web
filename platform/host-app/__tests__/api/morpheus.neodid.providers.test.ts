@@ -103,7 +103,7 @@ describe("/api/morpheus/neodid/providers", () => {
     const payload = JSON.parse(res._getData());
     expect(payload.source).toBe("canonical-network-metadata");
     expect(payload.network).toBe("testnet");
-    const { MORPHEUS_PUBLIC_REGISTRY } = require("../../../../apps/shared/constants/generated-morpheus-registry");
+    const { MORPHEUS_PUBLIC_REGISTRY } = require("@shared/constants/generated-morpheus-registry");
     const testnetRegistry = MORPHEUS_PUBLIC_REGISTRY.testnet;
     expect(payload.registry.contract).toBe("");
     expect(payload.oracle.contract).toBe(testnetRegistry.contracts.morpheusOracle);

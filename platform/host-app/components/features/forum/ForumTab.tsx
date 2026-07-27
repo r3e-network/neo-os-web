@@ -17,7 +17,7 @@ import {
   useWalletStore,
 } from "@/lib/wallet/store";
 import type { ForumThread } from "./types";
-import { EmptyStateArt } from "../../../../../apps/shared/components-react/illustrations";
+import { EmptyStateArt } from "@shared/components-react/illustrations";
 
 interface ForumTabProps {
   appId: string;
