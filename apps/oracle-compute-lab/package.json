@@ -1,9 +1,0 @@
-{
-  "name": "miniapp-oracle-compute-lab",
-  "version": "2.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build"
-  }
-}

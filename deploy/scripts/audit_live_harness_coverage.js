@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const APPS_DIR = path.join(ROOT, "apps");
+const { eachAppManifest } = require("./lib/app-manifests.cjs");
 const DEFAULT_REPORT_PATH = path.join(
   ROOT,
   "docs",
@@ -76,7 +76,7 @@ const SERVER_BACKED_FLOWS = new Map([
   [
     "miniapp-gas-lucky-pool",
     {
-      script: "apps/shared/test/gas-lucky-pool.logic.test.ts",
+      script: "node_modules/@r3e-network/neo-miniapp-shared/test/gas-lucky-pool.logic.test.ts",
       target: "onegate-vault-claim",
       coveredBy: [
         "platform/host-app/__tests__/api/onegate-vault.claim.test.ts",
@@ -170,15 +170,10 @@ function declaresChainSurface(manifest) {
 }
 
 function readActiveManifests(root = ROOT) {
-  const appsDir = path.join(root, "apps");
-  return fs
-    .readdirSync(appsDir)
-    .filter((slug) => !ARCHIVED_APP_SLUGS.has(slug.toLowerCase()))
-    .filter((slug) => fs.existsSync(path.join(appsDir, slug, "neo-manifest.json")))
-    .map((slug) => {
-      const manifest = readJson(path.join(appsDir, slug, "neo-manifest.json"));
-      return { slug, manifest };
-    })
+  // Snapshot rather than a sibling apps/ walk - see lib/app-manifests.
+  return eachAppManifest()
+    .filter(([slug]) => !ARCHIVED_APP_SLUGS.has(slug.toLowerCase()))
+    .map(([slug, manifest]) => ({ slug, manifest }))
     .filter(({ manifest }) => isActiveManifest(manifest))
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }

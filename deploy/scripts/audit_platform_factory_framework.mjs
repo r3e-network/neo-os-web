@@ -77,10 +77,10 @@ export function buildPlatformFactoryFrameworkReport({ now = () => new Date() } =
   const deployment = (live.contracts ?? []).find((contract) => contract.name === "MiniAppFactory") ?? null;
   const evaluation = evaluatePlatformFactoryFramework({
     manifest: JSON.parse(read("contracts/build/MiniAppFactory.manifest.json")),
-    surfaceSource: read("framework/platform-factory-surface.ts"),
-    typesSource: read("framework/types.ts"),
-    indexSource: read("framework/index.ts"),
-    sharedRuntimeSource: read("apps/shared/factory/runtime.tsx"),
+    surfaceSource: read("node_modules/@r3e-network/neo-miniapp-framework/platform-factory-surface.ts"),
+    typesSource: read("node_modules/@r3e-network/neo-miniapp-framework/types.ts"),
+    indexSource: read("node_modules/@r3e-network/neo-miniapp-framework/index.ts"),
+    sharedRuntimeSource: read("node_modules/@r3e-network/neo-miniapp-shared/factory/runtime.tsx"),
     miniappSetupSource: read("apps/miniapp-factory/src/setup.ts"),
     mainSources: {
       asset: read("apps/asset-factory/src/main.tsx"),

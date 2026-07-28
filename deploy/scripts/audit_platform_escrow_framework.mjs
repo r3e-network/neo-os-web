@@ -58,9 +58,9 @@ export function buildPlatformEscrowFrameworkReport({ now = () => new Date() } = 
   const deployment = (live.contracts ?? []).find((contract) => contract.name === "PlatformEscrow") ?? null;
   const evaluation = evaluatePlatformEscrowFramework({
     manifest: JSON.parse(read("contracts/build/PlatformEscrow.manifest.json")),
-    surfaceSource: read("framework/platform-escrow-surface.ts"),
-    typesSource: read("framework/types.ts"),
-    indexSource: read("framework/index.ts"),
+    surfaceSource: read("node_modules/@r3e-network/neo-miniapp-framework/platform-escrow-surface.ts"),
+    typesSource: read("node_modules/@r3e-network/neo-miniapp-framework/types.ts"),
+    indexSource: read("node_modules/@r3e-network/neo-miniapp-framework/index.ts"),
   });
   return {
     generated_at_utc: now().toISOString(),

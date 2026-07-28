@@ -186,7 +186,7 @@ test("honours the value allowlist so published test vectors do not fail the gate
     // still trips the gate if a real key is added beside it.
     commitFile(
       repo,
-      "apps/shared/test/vector.ts",
+      "node_modules/@r3e-network/neo-miniapp-shared/test/vector.ts",
       'export const expectedWif = "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn";\n',
       "pin conversion vector",
     );

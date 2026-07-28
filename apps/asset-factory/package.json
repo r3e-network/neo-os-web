@@ -1,9 +1,0 @@
-{
-  "name": "miniapp-asset-factory",
-  "version": "1.2.0",
-  "private": true,
-  "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build"
-  }
-}

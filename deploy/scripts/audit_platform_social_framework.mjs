@@ -96,10 +96,10 @@ export function buildPlatformSocialFrameworkReport({ now = () => new Date() } = 
   const deployment = (live.contracts ?? []).find((contract) => contract.name === "PlatformSocial") ?? null;
   const evaluation = evaluatePlatformSocialFramework({
     manifest: JSON.parse(read("contracts/build/PlatformSocial.manifest.json")),
-    surfaceSource: read("framework/platform-social-surface.ts"),
-    typesSource: read("framework/types.ts"),
-    indexSource: read("framework/index.ts"),
-    defineMiniAppSource: read("apps/shared/react/defineMiniApp.tsx"),
+    surfaceSource: read("node_modules/@r3e-network/neo-miniapp-framework/platform-social-surface.ts"),
+    typesSource: read("node_modules/@r3e-network/neo-miniapp-framework/types.ts"),
+    indexSource: read("node_modules/@r3e-network/neo-miniapp-framework/index.ts"),
+    defineMiniAppSource: read("node_modules/@r3e-network/neo-miniapp-shared/react/defineMiniApp.tsx"),
     timestampProofSource: read("apps/timestamp-proof/src/composables/useTimestampProof.ts"),
     consumers: configuredPlatformSocialConsumers(),
   });

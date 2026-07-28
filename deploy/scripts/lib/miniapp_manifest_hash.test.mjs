@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { readAppManifest } from "./app-manifests.mjs";
 import {
   getManifestContractHash,
   getRegistryContractHash,
@@ -30,9 +31,7 @@ const VALIDATOR_SLUGS = [
 
 test("resolved hash equals the app manifest for all validator targets (testnet + mainnet)", () => {
   for (const slug of VALIDATOR_SLUGS) {
-    const manifest = JSON.parse(
-      fs.readFileSync(path.join(repoRoot, "apps", slug, "neo-manifest.json"), "utf8")
-    );
+    const manifest = readAppManifest(slug);
     for (const [network, key] of [
       ["testnet", "neo-n3-testnet"],
       ["mainnet", "neo-n3-mainnet"],
@@ -41,7 +40,7 @@ test("resolved hash equals the app manifest for all validator targets (testnet +
       assert.equal(
         resolved,
         String(manifest.contracts[key]).toLowerCase(),
-        `${slug} ${network} hash must come from apps/${slug}/neo-manifest.json`
+        `${slug} ${network} hash must come from the manifest snapshot`
       );
     }
   }
@@ -53,9 +52,7 @@ test("on-chain-tarot stays out of the validator list while its manifest is contr
   // contracts, so manifest resolution must fail loudly rather than fall back
   // to a hardcoded hash. If contracts are re-declared, this fails and tarot
   // must be re-added to VALIDATOR_SLUGS above.
-  const manifest = JSON.parse(
-    fs.readFileSync(path.join(repoRoot, "apps", "on-chain-tarot", "neo-manifest.json"), "utf8")
-  );
+  const manifest = readAppManifest("on-chain-tarot");
   assert.equal(
     manifest.contracts,
     undefined,
@@ -70,9 +67,7 @@ test("on-chain-tarot stays out of the validator list while its manifest is contr
 test("selected-miniapps targets resolve from their sources of truth", () => {
   // Apps with a manifest resolve from apps/<slug>/neo-manifest.json …
   for (const slug of ["flashloan", "graveyard"]) {
-    const manifest = JSON.parse(
-      fs.readFileSync(path.join(repoRoot, "apps", slug, "neo-manifest.json"), "utf8")
-    );
+    const manifest = readAppManifest(slug);
     assert.equal(
       getManifestContractHash(slug, { network: "testnet", env: {} }),
       String(manifest.contracts["neo-n3-testnet"]).toLowerCase()
@@ -131,7 +126,7 @@ test("override values are validated and normalized", () => {
 test("unknown slug / missing network entry / bad slug fail loudly", () => {
   assert.throws(
     () => getManifestContractHash("no-such-app", { env: {} }),
-    /cannot read app manifest .*no-such-app/
+    /no manifest for "no-such-app" in the snapshot/
   );
   assert.throws(() => getManifestContractHash("../etc", { env: {} }), /invalid app slug/);
   assert.throws(() => getManifestContractHash("", { env: {} }), /invalid app slug/);

@@ -223,3 +223,6 @@ docs/reports/**/*.png
 # tooling caches
 .workbuddy/
 .turbo/
+
+# knowledge graph output
+graphify-out/

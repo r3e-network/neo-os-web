@@ -2,8 +2,6 @@
   "private": true,
   "packageManager": "npm@10.9.4",
   "workspaces": [
-    "apps/zhuada-e",
-    "framework",
     "platform/*"
   ],
   "scripts": {
@@ -45,15 +43,12 @@
     "bind:contract-domains": "node deploy/scripts/bind_contract_domains.js",
     "bind:contract-domains:execute": "node deploy/scripts/bind_contract_domains.js --execute",
     "audit:miniapps:layout": "node deploy/scripts/verify_miniapp_layout_consistency.js",
-    "audit:platform:unified-layers": "node deploy/scripts/audit_platform_unified_layers.js",
     "audit:platform:engine-base": "node deploy/scripts/audit_platform_engine_base.mjs",
     "check:platform:engine-base": "node deploy/scripts/audit_platform_engine_base.mjs --strict",
     "audit:platform:contracts": "node deploy/scripts/audit_platform_contract_acceptance.mjs",
     "check:platform:contracts": "node deploy/scripts/audit_platform_contract_acceptance.mjs --check",
     "audit:platform:testnet-live": "node deploy/scripts/verify_platform_contracts_live.mjs",
     "audit:platform:upgrade-readiness": "node deploy/scripts/audit_platform_upgrade_readiness.mjs",
-    "audit:platform:game-migration": "node deploy/scripts/audit_platform_game_migration.mjs",
-    "check:platform:game-migration": "node deploy/scripts/audit_platform_game_migration.mjs --check",
     "audit:platform:game-live-state": "node deploy/scripts/audit_platform_game_live_state.mjs",
     "audit:platform:joint-aa": "node deploy/scripts/audit_joint_abstract_account_interface.mjs",
     "check:platform:joint-aa": "node deploy/scripts/audit_joint_abstract_account_interface.mjs --check",
@@ -87,7 +82,7 @@
     "test:deploy-scripts": "node --test deploy/scripts/lib/*.test.mjs",
     "test:shared-aa-governance": "go test -tags=scripts ./deploy/scripts/configure_shared_aa_testnet.go ./deploy/scripts/configure_shared_aa_testnet_test.go -count=1",
     "build:contracts": "bash contracts/build.sh",
-    "test:contracts": "DOTNET_ROOT=\"${DOTNET_ROOT:-$HOME/.dotnet}\" PATH=\"${DOTNET_ROOT:-$HOME/.dotnet}/tools:$PATH\" dotnet test contracts/__tests__",
+    "test:contracts": "bash -c 'source deploy/scripts/lib/dotnet_tools.sh && ensure_dotnet_root && dotnet test contracts/__tests__'",
     "test:contracts:full": "BUILD_LEGACY_CLONES=1 npm run -s build:contracts && npm run -s test:contracts",
     "backfill:miniapp-versions": "node deploy/scripts/backfill-miniapp-versions.js",
     "verify:publish-audit-chain": "node deploy/scripts/verify-publish-audit-chain.js",
@@ -105,7 +100,8 @@
     "build:miniapp-dapps": "node scripts/build-miniapp-dapps.mjs",
     "export:miniapp-dapps": "npm run -s verify:miniapp-dapps && npm run -s build:miniapp-dapps && npm run -s stage:miniapps:dist",
     "assets:miniapps:optimize": "node scripts/optimize-miniapp-assets.mjs",
-    "stage:miniapps:dist": "node scripts/stage-miniapp-dists.mjs"
+    "stage:miniapps:dist": "node scripts/stage-miniapp-dists.mjs",
+    "audit:platform:game-surface": "node deploy/scripts/audit_platform_game_surface.mjs"
   },
   "devDependencies": {
     "@cityofzion/neon-js": "^5.9.0",

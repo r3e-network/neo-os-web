@@ -377,7 +377,7 @@ export function buildCrossRepoDuplicationReport({
         .sort(),
       ctx_os_text_reference_count: countMatches(appCodeRoot, appCodeFiles, /\bctx\.os\./g),
       ctx_os_runtime_reference_count: ctxOsRuntimeReferenceCount,
-      boundary: "framework/ is canonical app-facing API, apps/shared/services remains the live ctx.os compatibility runtime, and platform/sdk remains the iframe wallet-bridge protocol boundary.",
+      boundary: "node_modules/@r3e-network/neo-miniapp-framework/ is canonical app-facing API, apps/shared/services remains the live ctx.os compatibility runtime, and platform/sdk remains the iframe wallet-bridge protocol boundary.",
     },
   };
   return {

@@ -1,8 +1,9 @@
+import { CREDENTIAL_BRIDGE } from "@shared/protocol/host-bridges";
 import React, { useEffect } from "react";
 
-export const CREDENTIAL_BRIDGE_REQUEST = "neo-miniapp-credential:request";
-export const CREDENTIAL_BRIDGE_RESPONSE = "neo-miniapp-credential:response";
-export const CREDENTIAL_BRIDGE_PROTOCOL_VERSION = 1;
+export const CREDENTIAL_BRIDGE_REQUEST = CREDENTIAL_BRIDGE.REQUEST;
+export const CREDENTIAL_BRIDGE_RESPONSE = CREDENTIAL_BRIDGE.RESPONSE;
+export const CREDENTIAL_BRIDGE_PROTOCOL_VERSION = CREDENTIAL_BRIDGE.PROTOCOL_VERSION;
 // The single first-party app allowed to receive the host gateway credential
 // (audit fix C-4 follow-up). Automation Copilot lost its app-scoped
 // allow-same-origin sandbox grant — the storage read it used for the signed-in
@@ -10,7 +11,7 @@ export const CREDENTIAL_BRIDGE_PROTOCOL_VERSION = 1;
 // this canonical app id over the postMessage bridge. This is intentionally NOT
 // a generic token faucet: extending it to another app requires adding an
 // explicit entry here plus a scope the host recognizes.
-export const CREDENTIAL_BRIDGE_SUPPORTED_APP_ID = "miniapp-automation-copilot";
+export const CREDENTIAL_BRIDGE_SUPPORTED_APP_ID = CREDENTIAL_BRIDGE.SUPPORTED_APP_ID;
 // The only credential scope the bridge serves. The scope names what the
 // credential is for (the /api/edge automation gateway), so a future request
 // for any other capability fails closed instead of receiving the session JWT.

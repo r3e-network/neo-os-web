@@ -35,7 +35,7 @@ test(
   { skip: !fs.existsSync(oracleRoot) },
   async () => {
     const generatedRegistry = parseGeneratedJsonExport(
-      path.join(repoRoot, 'apps/shared/constants/generated-morpheus-registry.ts'),
+      path.join(repoRoot, 'node_modules/@r3e-network/neo-miniapp-shared/constants/generated-morpheus-registry.ts'),
       'MORPHEUS_PUBLIC_REGISTRY'
     );
     const canonicalRegistry = await loadCanonicalModule(
@@ -52,7 +52,7 @@ test(
   { skip: !fs.existsSync(oracleRoot) },
   async () => {
     const generatedCatalog = parseGeneratedJsonExport(
-      path.join(repoRoot, 'apps/shared/constants/generated-morpheus-runtime-catalog.ts'),
+      path.join(repoRoot, 'node_modules/@r3e-network/neo-miniapp-shared/constants/generated-morpheus-runtime-catalog.ts'),
       'MORPHEUS_PUBLIC_RUNTIME_CATALOG'
     );
     const canonicalCatalog = await loadCanonicalModule(
@@ -69,7 +69,7 @@ test(
   { skip: !fs.existsSync(oracleRoot) },
   () => {
     const generated = parseGeneratedJsonExport(
-      path.join(repoRoot, 'apps/shared/constants/generated-morpheus-signer-registry.ts'),
+      path.join(repoRoot, 'node_modules/@r3e-network/neo-miniapp-shared/constants/generated-morpheus-signer-registry.ts'),
       'MORPHEUS_PUBLIC_SIGNER_REGISTRY'
     );
     const source = JSON.parse(

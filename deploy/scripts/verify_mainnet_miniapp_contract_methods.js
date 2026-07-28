@@ -33,7 +33,8 @@ const { MAINNET_MAGIC } = require("./lib/neo_network");
 const { buildCoverageRows } = require("./audit_live_harness_coverage");
 
 const ROOT = path.resolve(__dirname, "../..");
-const APPS_DIR = path.join(ROOT, "apps");
+const { eachAppManifest } = require("./lib/app-manifests.cjs");
+const SNAPSHOT_RELATIVE_PATH = "platform/host-app/public/miniapp-manifests.json";
 const DEFS_DIR = path.join(ROOT, "platform", "host-app", "public", "miniapp-definitions");
 const OUTPUT_PATH = process.env.MAINNET_MINIAPP_CONTRACT_METHOD_REPORT_PATH
   || path.join(ROOT, "docs", "reports", "mainnet-miniapp-contract-methods-latest.json");
@@ -236,16 +237,16 @@ async function rpcOn(rpcUrl, method, params = [], options = {}) {
 
 function loadApps() {
   const rows = [];
-  for (const entry of fs.readdirSync(APPS_DIR, { withFileTypes: true })) {
-    if (!entry.isDirectory() || entry.name === "shared") continue;
-    const filePath = path.join(APPS_DIR, entry.name, "neo-manifest.json");
-    if (!fs.existsSync(filePath)) continue;
-    const manifest = readJson(filePath);
+  // The manifests come from the committed snapshot: the apps live in
+  // neo-minigames and neo-miniapps now, and refresh-manifest-snapshot.mjs
+  // --check keeps this repo's copy from drifting.
+  for (const [slug, manifest] of eachAppManifest()) {
+    const filePath = SNAPSHOT_RELATIVE_PATH;
     rows.push({
-      slug: entry.name,
-      appId: String(manifest.id || `miniapp-${entry.name}`),
-      name: String(manifest.name || entry.name),
-      manifestPath: path.relative(ROOT, filePath),
+      slug,
+      appId: String(manifest.id || `miniapp-${slug}`),
+      name: String(manifest.name || slug),
+      manifestPath: filePath,
       manifest,
       mainnetHash: normalizeHash(manifest.contracts?.[MAINNET_KEY]),
     });

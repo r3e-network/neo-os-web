@@ -102,10 +102,10 @@ export function buildPlatformRegistryFrameworkReport({ now = () => new Date() } 
   const deployment = (live.contracts ?? []).find((contract) => contract.name === "PlatformRegistry") ?? null;
   const evaluation = evaluatePlatformRegistryFramework({
     manifest: JSON.parse(read("contracts/build/PlatformRegistry.manifest.json")),
-    surfaceSource: read("framework/registry-surface.ts"),
-    typesSource: read("framework/types.ts"),
-    indexSource: read("framework/index.ts"),
-    miniAppRootSource: read("apps/shared/react/MiniAppRoot.tsx"),
+    surfaceSource: read("node_modules/@r3e-network/neo-miniapp-framework/registry-surface.ts"),
+    typesSource: read("node_modules/@r3e-network/neo-miniapp-framework/types.ts"),
+    indexSource: read("node_modules/@r3e-network/neo-miniapp-framework/index.ts"),
+    miniAppRootSource: read("node_modules/@r3e-network/neo-miniapp-shared/react/MiniAppRoot.tsx"),
     consumers: configuredRegistryConsumers(),
   });
   const missingOnChain = deployment?.abi?.missing_on_chain ?? [];

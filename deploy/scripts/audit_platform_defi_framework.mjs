@@ -105,10 +105,10 @@ export function buildPlatformDeFiFrameworkReport({ now = () => new Date() } = {}
   const deployment = (live.contracts ?? []).find((contract) => contract.name === "PlatformDeFi") ?? null;
   const evaluation = evaluatePlatformDeFiFramework({
     manifest: JSON.parse(read("contracts/build/PlatformDeFi.manifest.json")),
-    surfaceSource: read("framework/platform-defi-surface.ts"),
-    typesSource: read("framework/types.ts"),
-    indexSource: read("framework/index.ts"),
-    defineMiniAppSource: read("apps/shared/react/defineMiniApp.tsx"),
+    surfaceSource: read("node_modules/@r3e-network/neo-miniapp-framework/platform-defi-surface.ts"),
+    typesSource: read("node_modules/@r3e-network/neo-miniapp-framework/types.ts"),
+    indexSource: read("node_modules/@r3e-network/neo-miniapp-framework/index.ts"),
+    defineMiniAppSource: read("node_modules/@r3e-network/neo-miniapp-shared/react/defineMiniApp.tsx"),
     bindings: sharedDeFiBindings(),
   });
   return {
