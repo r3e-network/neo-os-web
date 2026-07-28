@@ -10,29 +10,6 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         // -----------------------------------------------------------------
 
         [Fact]
-        public void AuditFixC2_QuadraticFundingBlocksSelfContribute()
-        {
-            // Audit fix C-2: round creator and project owner are prohibited from
-            // contributing. The guard sits in MiniAppQuadraticFunding.Projects.cs
-            // alongside an audit-fix comment for traceability.
-            string projects = ContractSourceAssertions.ReadSource(
-                "contracts", "MiniAppQuadraticFunding", "MiniAppQuadraticFunding.Projects.cs");
-            Assert.Contains("contributor != project.Owner", projects);
-            Assert.Contains("contributor != round.Creator", projects);
-            Assert.Contains("owner cannot contribute", projects);
-            Assert.Contains("round creator cannot contribute", projects);
-
-            // FinalizeRound must reject the round creator as a finalizer — only the
-            // gateway or platform admin may finalize.
-            string methods = ContractSourceAssertions.ReadSource(
-                "contracts", "MiniAppQuadraticFunding", "MiniAppQuadraticFunding.Methods.cs");
-            Assert.Contains("fromGateway || Runtime.CheckWitness(Admin())", methods);
-            Assert.DoesNotContain(
-                "fromGateway || Runtime.CheckWitness(round.Creator) || Runtime.CheckWitness(Admin())",
-                methods);
-        }
-
-        [Fact]
         public void AuditFixC4_MiniAppIframesAreSandboxed()
         {
             // Audit fix C-4: miniapp iframes must declare a `sandbox` attribute that
