@@ -89,11 +89,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void EscapeTimelock_MirrorsFrameworkAaEscapeConstant()
         {
-            // framework/utils/aa-account.ts:18 pins 30 days (seconds); the
-            // contract carries the same window in milliseconds.
-            string framework = ContractSourceAssertions.ReadSource("framework", "utils", "aa-account.ts");
-            Assert.Contains("AA_REGISTRATION_ESCAPE_TIMELOCK_SECONDS = 30 * 24 * 60 * 60", framework);
-
+            // The SDK pins the same 30-day window in seconds, in
+            // framework/utils/aa-account.ts. That half is asserted in
+            // neo-miniapp-sdk now; this repo owns the contract side.
             const long expectedMs = 30L * 24 * 60 * 60 * 1000;
             Assert.Equal(2_592_000_000L, expectedMs);
             Assert.Contains("ESCAPE_TIMELOCK_MS = 2_592_000_000", SpendSource());
