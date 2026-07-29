@@ -11,7 +11,7 @@ usage() {
   cat <<'EOF'
 Usage: deploy/scripts/run_local_validation_gates.sh [--host-only|--admin-only]
 
-Runs local validation gates for neo-miniapps-platform:
+Runs local validation gates for neo-os-web:
 - host app test + build
 - admin console test + build
 EOF

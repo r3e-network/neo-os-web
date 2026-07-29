@@ -108,7 +108,7 @@ export function buildLifecycleEvidence({
   generatedAt = () => new Date(),
 } = {}) {
   return {
-    schema: "neo-miniapps-platform/platform-game-lifecycle-evidence/v1",
+    schema: "neo-os-web/platform-game-lifecycle-evidence/v1",
     generated_at_utc: generatedAt().toISOString(),
     network,
     app_id: clean(appId),

@@ -2,7 +2,7 @@
 
 Date: 2026-07-18
 Status: Approved by user (2026-07-18), amended by the shared-AA architecture decision (2026-07-23)
-Scope: `neo-miniapps-platform` (this repo), `neo-morpheus-oracle`, `neo-abstract-account` (sibling checkouts under `/Users/jinghuiliao/git/r3e/`)
+Scope: `neo-os-web` (this repo), `neo-morpheus-oracle`, `neo-abstract-account` (sibling checkouts under `/Users/jinghuiliao/git/r3e/`)
 
 ## 1. Objective
 
@@ -19,7 +19,7 @@ Supporting objectives:
 
 ## 2. Current State (from joint exploration, 2026-07-17/18)
 
-### neo-miniapps-platform
+### neo-os-web
 
 - "MiniApp-OS v2": 77 miniapp frontends, Next.js host shell + admin console, 42 Supabase edge functions, on-chain estate of C# contracts (neo-devpack-dotnet, nccs 3.9.1, .NET 10).
 - The target architecture is documented in `docs/platform-contract-library-v2.md` ("Registry-Anchored Engine Estate"). The live testnet Registry at `0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b` has 77/77 active directory rows but predates the shared-AA ABI; it therefore requires a reviewed upgrade before any shared account can be materialized.
@@ -88,7 +88,7 @@ The registry-anchored engine estate, extended:
 
 ## 4. Folder / Architecture Cleanup
 
-### neo-miniapps-platform
+### neo-os-web
 
 - `contracts/`: platform library in `contracts/platform/`; legacy `MiniApp*` moved under `contracts/legacy/` during absorption, deleted as each family migrates; remove committed `contracts/build/*.nef` + manifests from git (gitignore + CI artifact generation); fix `deploy_all.sh` stale roster or delete it.
 - Resolve divergent PlatformAnchor testnet hashes and stale census rows (update `docs/archive/claudedocs/contract-estate-census-2026-07-16.md` after re-verification).

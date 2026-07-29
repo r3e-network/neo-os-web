@@ -3,7 +3,7 @@ import { mkdirSync } from 'fs';
 import { join } from 'path';
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const OUT = '/Users/jinghuiliao/git/r3e/neo-miniapps-platform/.workbuddy/artifacts/shots';
+const OUT = '/Users/jinghuiliao/git/r3e/neo-os-web/.workbuddy/artifacts/shots';
 mkdirSync(OUT, { recursive: true });
 
 async function clickEntry(page) {

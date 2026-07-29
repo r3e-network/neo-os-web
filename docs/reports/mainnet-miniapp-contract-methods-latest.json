@@ -2494,7 +2494,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppBreakupPact",
         "manifestFile": "MiniAppBreakupPact.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppBreakupPact.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppBreakupPact.manifest.json",
         "expectedSafeMethods": 6,
         "missingSafeMethods": [
           "getOwner"
@@ -3443,7 +3443,7 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/PlatformAnchor.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
         "expectedSafeMethods": 23,
         "missingSafeMethods": [
           "abstractAccount"
@@ -3860,7 +3860,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppDailyCheckin",
         "manifestFile": "MiniAppDailyCheckin.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppDailyCheckin.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppDailyCheckin.manifest.json",
         "expectedSafeMethods": 8,
         "missingSafeMethods": []
       },
@@ -4011,7 +4011,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppTipJar",
         "manifestFile": "MiniAppTipJar.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppTipJar.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppTipJar.manifest.json",
         "expectedSafeMethods": 8,
         "missingSafeMethods": [
           "getOwner"
@@ -4150,7 +4150,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppDiceGameV2",
         "manifestFile": "MiniAppDiceGameV2.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppDiceGameV2.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppDiceGameV2.manifest.json",
         "expectedSafeMethods": 10,
         "missingSafeMethods": []
       },
@@ -4346,7 +4346,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppEventTicketPass",
         "manifestFile": "MiniAppEventTicketPass.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppEventTicketPass.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppEventTicketPass.manifest.json",
         "expectedSafeMethods": 23,
         "missingSafeMethods": [
           "directAssetCreditOf"
@@ -5198,7 +5198,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppCoinFlipV2",
         "manifestFile": "MiniAppCoinFlipV2.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppCoinFlipV2.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppCoinFlipV2.manifest.json",
         "expectedSafeMethods": 11,
         "missingSafeMethods": [
           "getOwner"
@@ -5932,7 +5932,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppGasBoxV2",
         "manifestFile": "MiniAppGasBoxV2.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppGasBoxV2.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppGasBoxV2.manifest.json",
         "expectedSafeMethods": 10,
         "missingSafeMethods": []
       },
@@ -6122,7 +6122,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppGovMerc",
         "manifestFile": "MiniAppGovMerc.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppGovMerc.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppGovMerc.manifest.json",
         "expectedSafeMethods": 19,
         "missingSafeMethods": [
           "getOwner",
@@ -6404,7 +6404,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppLastSurvivor",
         "manifestFile": "MiniAppLastSurvivor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppLastSurvivor.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppLastSurvivor.manifest.json",
         "expectedSafeMethods": 8,
         "missingSafeMethods": [
           "getOwner"
@@ -7137,7 +7137,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppMilestoneEscrow",
         "manifestFile": "MiniAppMilestoneEscrow.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppMilestoneEscrow.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppMilestoneEscrow.manifest.json",
         "expectedSafeMethods": 16,
         "missingSafeMethods": [
           "directAssetCreditOf"
@@ -7444,7 +7444,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppMultisig",
         "manifestFile": "MiniAppMultisig.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppMultisig.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppMultisig.manifest.json",
         "expectedSafeMethods": 7,
         "missingSafeMethods": [
           "getOwner"
@@ -8801,7 +8801,7 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/PlatformAnchor.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
         "expectedSafeMethods": 23,
         "missingSafeMethods": [
           "abstractAccount"
@@ -9275,7 +9275,7 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/PlatformAnchor.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
         "expectedSafeMethods": 23,
         "missingSafeMethods": [
           "abstractAccount"
@@ -9678,7 +9678,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppQuadraticFunding",
         "manifestFile": "MiniAppQuadraticFunding.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppQuadraticFunding.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppQuadraticFunding.manifest.json",
         "expectedSafeMethods": 18,
         "missingSafeMethods": [
           "directAssetCreditOf"
@@ -10346,7 +10346,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppRedEnvelope",
         "manifestFile": "MiniAppRedEnvelope.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppRedEnvelope.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppRedEnvelope.manifest.json",
         "expectedSafeMethods": 10,
         "missingSafeMethods": [
           "getOwner"
@@ -10591,7 +10591,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppSelfLoan",
         "manifestFile": "MiniAppSelfLoan.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppSelfLoan.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppSelfLoan.manifest.json",
         "expectedSafeMethods": 11,
         "missingSafeMethods": []
       },
@@ -10817,7 +10817,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppSoulboundCertificate",
         "manifestFile": "MiniAppSoulboundCertificate.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppSoulboundCertificate.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppSoulboundCertificate.manifest.json",
         "expectedSafeMethods": 23,
         "missingSafeMethods": [
           "directAssetCreditOf"
@@ -11184,7 +11184,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppTimeCapsule",
         "manifestFile": "MiniAppTimeCapsule.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/MiniAppTimeCapsule.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppTimeCapsule.manifest.json",
         "expectedSafeMethods": 7,
         "missingSafeMethods": [
           "getOwner",
@@ -11400,7 +11400,7 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/PlatformAnchor.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
         "expectedSafeMethods": 23,
         "missingSafeMethods": [
           "abstractAccount"
@@ -11874,7 +11874,7 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts/build/PlatformAnchor.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
         "expectedSafeMethods": 23,
         "missingSafeMethods": [
           "abstractAccount"

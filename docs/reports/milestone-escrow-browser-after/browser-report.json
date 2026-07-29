@@ -1,6 +1,6 @@
 {
   "url": "http://localhost:3101/miniapps/milestone-escrow/index.html?network=testnet&v=1780322320459",
-  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/milestone-escrow-browser-after/after-cancel-testnet-mock-wallet.png",
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/milestone-escrow-browser-after/after-cancel-testnet-mock-wallet.png",
   "consoleErrors": [],
   "failedRequests": [],
   "badResponses": [],

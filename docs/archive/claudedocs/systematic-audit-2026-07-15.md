@@ -1,4 +1,4 @@
-# Systematic Audit — neo-miniapps-platform
+# Systematic Audit — neo-os-web
 
 | Field | Value |
 | --- | --- |

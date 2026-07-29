@@ -133,7 +133,7 @@
       "consoleMessages": [],
       "unexpectedConsole": [],
       "pageErrors": [],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/quadratic-funding-layout-after/desktop-after.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/quadratic-funding-layout-after/desktop-after.png"
     },
     {
       "scenario": "mobile",
@@ -252,7 +252,7 @@
       ],
       "unexpectedConsole": [],
       "pageErrors": [],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/quadratic-funding-layout-after/mobile-after.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/quadratic-funding-layout-after/mobile-after.png"
     }
   ]
 }

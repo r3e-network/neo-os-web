@@ -84,12 +84,12 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/breakup-contract/src/composables/useBreakup.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/breakup-contract/src/types/index.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/breakup-contract/src/components/ContractList.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/breakup-contract/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/breakup-contract/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/breakup-contract.logic.test.ts"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/breakup-contract/src/composables/useBreakup.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/breakup-contract/src/types/index.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/breakup-contract/src/components/ContractList.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/breakup-contract/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/breakup-contract/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/breakup-contract.logic.test.ts"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -139,11 +139,11 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/last-survivor/src/composables/useLastSurvivor.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/last-survivor/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/last-survivor/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/last-survivor.logic.test.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/last-survivor.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/last-survivor/src/composables/useLastSurvivor.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/last-survivor/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/last-survivor/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/last-survivor.logic.test.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/last-survivor.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -200,9 +200,9 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-convert/src/services/neo.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-convert/src/manifest.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/neo-convert.disassemble.test.ts"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-convert/src/services/neo.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-convert/src/manifest.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/neo-convert.disassemble.test.ts"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -258,12 +258,12 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/milestone-escrow/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/milestone-escrow/src/pages/index/components/EscrowList.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/milestone-escrow/src/manifest.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/milestone-escrow/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/milestone-escrow/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/milestone-escrow.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/milestone-escrow/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/milestone-escrow/src/pages/index/components/EscrowList.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/milestone-escrow/src/manifest.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/milestone-escrow/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/milestone-escrow/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/milestone-escrow.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -323,13 +323,13 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/unbreakable-vault/src/composables/useVaultBreaker.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/unbreakable-vault/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/unbreakable-vault/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/unbreakable-vault/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/unbreakable-vault/src/manifest.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/unbreakable-vault/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/unbreakable-vault.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/unbreakable-vault/src/composables/useVaultBreaker.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/unbreakable-vault/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/unbreakable-vault/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/unbreakable-vault/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/unbreakable-vault/src/manifest.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/unbreakable-vault/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/unbreakable-vault.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -379,14 +379,14 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gov-merc/src/hooks/useGovMercPool.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gov-merc/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gov-merc/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gov-merc/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gov-merc/src/components/MercActionCards.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gov-merc/src/components/MercActionCards.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gov-merc/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/gov-merc.logic.test.ts"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gov-merc/src/hooks/useGovMercPool.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gov-merc/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gov-merc/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gov-merc/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gov-merc/src/components/MercActionCards.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gov-merc/src/components/MercActionCards.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gov-merc/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/gov-merc.logic.test.ts"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -436,12 +436,12 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/graveyard/src/composables/useGraveyard.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/graveyard/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/graveyard/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/graveyard/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/graveyard/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/graveyard.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/graveyard/src/composables/useGraveyard.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/graveyard/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/graveyard/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/graveyard/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/graveyard/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/graveyard.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -502,8 +502,8 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/on-chain-tarot/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/on-chain-tarot/src/locale/messages.ts"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/on-chain-tarot/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/on-chain-tarot/src/locale/messages.ts"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -549,12 +549,12 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/self-loan/src/composables/useSelfLoan.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/self-loan/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/self-loan/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/self-loan/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/self-loan/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/self-loan.logic.test.ts"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/self-loan/src/composables/useSelfLoan.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/self-loan/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/self-loan/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/self-loan/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/self-loan/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/self-loan.logic.test.ts"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -618,11 +618,11 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/time-capsule/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/time-capsule/src/composables/useTimeCapsule.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/time-capsule/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/time-capsule/src/pages/index/time-capsule-theme.scss (deleted)",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/time-capsule.logic.test.ts (added)"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/time-capsule/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/time-capsule/src/composables/useTimeCapsule.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/time-capsule/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/time-capsule/src/pages/index/time-capsule-theme.scss (deleted)",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/time-capsule.logic.test.ts (added)"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -666,10 +666,10 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/aa-account-lab/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/aa-account-lab/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/aa-account-lab/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/aa-account-lab.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/aa-account-lab/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/aa-account-lab/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/aa-account-lab/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/aa-account-lab.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -725,7 +725,7 @@
         "buildOk": true,
         "tscOk": true,
         "testOk": true,
-        "notes": "Audit (/tmp/audit2.json) for slug aa-session-key-lab lists 1 medium + 2 low issues and NO high issues. All three were already correctly fixed in the current code (the audit was run against an earlier snapshot), so per the 'note skipped(already-fixed), don't redo' instruction I made no edits. Verification of each: (1) MEDIUM labelAA — defined in /apps/aa-session-key-lab/src/locale/messages.ts:126 with both en+zh, matching manifest.ts:24 labelKey:\\\"labelAA\\\"; embedded host header AA Core stat now shows a label instead of blank. (2) LOW key reveal/clipboard — PlayArea.tsx has masked field + Show/Hide toggle + copyFailed/copyPrivateKeyFailed alert. (3) LOW sponsor validation — sponsorAmountValid guard + invalidSponsorAmount error + min=0 + disabled/early-return on the Request Sponsor button. Dispatch/contract wiring and base-unit conventions untouched; direct-contract rewires preserved (callVerifier setSessionKey to aaCore). Locale completeness: every key present in both en and zh. GATES: cd apps/aa-session-key-lab && npm run build -> green (vite, 1802 modules, built in ~0.95s); npx tsc --noEmit -> exit 0 (no errors); cd apps/shared && npx vitest run aa-session-key-lab -> 2 files, 9 tests passed (logic 4 + playarea 5), covering private-key mask/reveal, clipboard-failure, and sponsor-amount empty/zero/negative validation. Vitest sourcemap warnings about noble-curves/ripemd160 shims are pre-existing environment noise, unrelated to this app, and do not affect results. No shared files modified, so the broader 785-test suite is unaffected. Relevant files: /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/aa-session-key-lab/src/locale/messages.ts, /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/aa-session-key-lab/src/PlayArea.tsx, /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/aa-session-key-lab/src/manifest.ts, /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/aa-session-key-lab.playarea.test.tsx, /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/aa-session-key-lab.logic.test.ts",
+        "notes": "Audit (/tmp/audit2.json) for slug aa-session-key-lab lists 1 medium + 2 low issues and NO high issues. All three were already correctly fixed in the current code (the audit was run against an earlier snapshot), so per the 'note skipped(already-fixed), don't redo' instruction I made no edits. Verification of each: (1) MEDIUM labelAA — defined in /apps/aa-session-key-lab/src/locale/messages.ts:126 with both en+zh, matching manifest.ts:24 labelKey:\\\"labelAA\\\"; embedded host header AA Core stat now shows a label instead of blank. (2) LOW key reveal/clipboard — PlayArea.tsx has masked field + Show/Hide toggle + copyFailed/copyPrivateKeyFailed alert. (3) LOW sponsor validation — sponsorAmountValid guard + invalidSponsorAmount error + min=0 + disabled/early-return on the Request Sponsor button. Dispatch/contract wiring and base-unit conventions untouched; direct-contract rewires preserved (callVerifier setSessionKey to aaCore). Locale completeness: every key present in both en and zh. GATES: cd apps/aa-session-key-lab && npm run build -> green (vite, 1802 modules, built in ~0.95s); npx tsc --noEmit -> exit 0 (no errors); cd apps/shared && npx vitest run aa-session-key-lab -> 2 files, 9 tests passed (logic 4 + playarea 5), covering private-key mask/reveal, clipboard-failure, and sponsor-amount empty/zero/negative validation. Vitest sourcemap warnings about noble-curves/ripemd160 shims are pre-existing environment noise, unrelated to this app, and do not affect results. No shared files modified, so the broader 785-test suite is unaffected. Relevant files: /Users/jinghuiliao/git/r3e/neo-os-web/apps/aa-session-key-lab/src/locale/messages.ts, /Users/jinghuiliao/git/r3e/neo-os-web/apps/aa-session-key-lab/src/PlayArea.tsx, /Users/jinghuiliao/git/r3e/neo-os-web/apps/aa-session-key-lab/src/manifest.ts, /Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/aa-session-key-lab.playarea.test.tsx, /Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/aa-session-key-lab.logic.test.ts",
         "verify": {
           "slug": "aa-session-key-lab",
           "verdicts": [
@@ -765,13 +765,13 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/explorer/src/components/SearchResultDisplay.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/explorer/src/components/SearchPanel.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/explorer/src/components/SearchPanel.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/explorer/src/manifest.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/explorer/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/explorer/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/explorer.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/explorer/src/components/SearchResultDisplay.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/explorer/src/components/SearchPanel.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/explorer/src/components/SearchPanel.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/explorer/src/manifest.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/explorer/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/explorer/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/explorer.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -826,10 +826,10 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gas-lucky-pool/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gas-lucky-pool/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gas-lucky-pool/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/gas-lucky-pool.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gas-lucky-pool/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gas-lucky-pool/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gas-lucky-pool/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/gas-lucky-pool.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -886,10 +886,10 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gas-sponsor/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gas-sponsor/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gas-sponsor/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/gas-sponsor.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gas-sponsor/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gas-sponsor/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gas-sponsor/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/gas-sponsor.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -945,13 +945,13 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gasbox/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gasbox/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gasbox/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gasbox/src/composables/useGasBox.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/gasbox/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/gasbox.logic.test.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/gasbox.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gasbox/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gasbox/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gasbox/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gasbox/src/composables/useGasBox.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/gasbox/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/gasbox.logic.test.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/gasbox.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1000,12 +1000,12 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/memorial-shrine/src/composables/useMemorialShrine.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/memorial-shrine/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/memorial-shrine/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/memorial-shrine/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/memorial-shrine/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/memorial-shrine.logic.test.ts"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/memorial-shrine/src/composables/useMemorialShrine.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/memorial-shrine/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/memorial-shrine/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/memorial-shrine/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/memorial-shrine/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/memorial-shrine.logic.test.ts"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1054,10 +1054,10 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-multisig/src/manifest.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-multisig/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-multisig/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/neo-multisig.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-multisig/src/manifest.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-multisig/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-multisig/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/neo-multisig.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1097,13 +1097,13 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-ns/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-ns/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-ns/src/components/ManageDomain.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-ns/src/hooks/useNeoNS.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-ns/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-ns/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/neo-ns.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-ns/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-ns/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-ns/src/components/ManageDomain.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-ns/src/hooks/useNeoNS.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-ns/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-ns/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/neo-ns.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1162,9 +1162,9 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-x-bridge/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-x-bridge/src/appConfig.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/neo-x-bridge.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-x-bridge/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-x-bridge/src/appConfig.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/neo-x-bridge.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1217,8 +1217,8 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/oracle-http-console/src/appConfig.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/oracle-http-console.config.test.ts"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/oracle-http-console/src/appConfig.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/oracle-http-console.config.test.ts"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1257,9 +1257,9 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/private-transfer/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/private-transfer/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/private-transfer.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/private-transfer/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/private-transfer/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/private-transfer.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1308,14 +1308,14 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/quadratic-funding/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/quadratic-funding/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/quadratic-funding/src/pages/index/composables/useQuadraticFundingPage.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/quadratic-funding/src/pages/index/components/RoundForm.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/quadratic-funding/src/pages/index/components/RoundAdminPanel.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/quadratic-funding/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/quadratic-funding/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/quadratic-funding.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/quadratic-funding/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/quadratic-funding/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/quadratic-funding/src/pages/index/composables/useQuadraticFundingPage.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/quadratic-funding/src/pages/index/components/RoundForm.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/quadratic-funding/src/pages/index/components/RoundAdminPanel.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/quadratic-funding/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/quadratic-funding/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/quadratic-funding.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1359,12 +1359,12 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/recovery-guardian/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/recovery-guardian/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/recovery-guardian/src/utils/validation.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/recovery-guardian/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/recovery-guardian.logic.test.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/recovery-guardian.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/recovery-guardian/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/recovery-guardian/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/recovery-guardian/src/utils/validation.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/recovery-guardian/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/recovery-guardian.logic.test.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/recovery-guardian.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1420,10 +1420,10 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/red-envelope/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/red-envelope/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/red-envelope/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/red-envelope.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/red-envelope/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/red-envelope/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/red-envelope/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/red-envelope.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1467,12 +1467,12 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/soulbound-certificate/src/composables/useSoulbound.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/soulbound-certificate/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/soulbound-certificate/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/soulbound-certificate/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/soulbound-certificate.logic.test.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/soulbound-certificate.playarea.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/soulbound-certificate/src/composables/useSoulbound.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/soulbound-certificate/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/soulbound-certificate/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/soulbound-certificate/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/soulbound-certificate.logic.test.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/soulbound-certificate.playarea.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1522,12 +1522,12 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/timestamp-proof/src/manifest.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/timestamp-proof/src/composables/useTimestampProof.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/timestamp-proof/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/timestamp-proof/src/PlayArea.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/timestamp-proof/src/components/ProofHero.scss",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/timestamp-proof.logic.test.ts"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/timestamp-proof/src/manifest.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/timestamp-proof/src/composables/useTimestampProof.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/timestamp-proof/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/timestamp-proof/src/PlayArea.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/timestamp-proof/src/components/ProofHero.scss",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/timestamp-proof.logic.test.ts"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1577,9 +1577,9 @@
         ],
         "skipped": [],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/trustanchor/src/PlayArea.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/trustanchor/src/locale/messages.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/anchor-user-playareas.test.tsx"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/trustanchor/src/PlayArea.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/trustanchor/src/locale/messages.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/anchor-user-playareas.test.tsx"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1631,10 +1631,10 @@
           }
         ],
         "filesTouched": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-pay/src/composables/deriveSchedule.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-pay/src/main.tsx",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-pay/src/composables/useNeoPayApp.ts",
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/neo-pay.logic.test.ts"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-pay/src/composables/deriveSchedule.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-pay/src/main.tsx",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-pay/src/composables/useNeoPayApp.ts",
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/neo-pay.logic.test.ts"
         ],
         "buildOk": true,
         "tscOk": true,
@@ -1694,7 +1694,7 @@
         "buildOk": true,
         "tscOk": true,
         "testOk": true,
-        "notes": "No edits required — every high and medium (and both low) audit issue for neo-pay-shared-example was already correctly resolved in a prior pass, with tests written to the new behavior. I verified each fix against current code rather than redoing it (per the task's already-fixed guidance) and confirmed nothing regressed.\n\nVerification of the HIGH fix: /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-pay/src/composables/deriveSchedule.ts line 47 returns `perDay.toFixed(8)` for GAS, so 0.7/7 -> \"0.10000000\" and 20/30 -> \"0.66666667\" pass the composable's /^\\\\d+(\\\\.\\\\d{1,8})?$/ validator (previously String(0.7/7)=\"0.09999999999999999\" was rejected). NEO indivisibility handled by collapsing sub-1/day into a single full-duration interval.\n\nMEDIUM (preview/dispatch agreement): /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-pay-shared-example/src/PlayArea.tsx imports the same deriveSchedule (line 11) and uses it for both the preview and the submit gate (lines 347-364), with a rateRoundsToZero warning + disabled submit (lines 755-762). main.tsx (lines 9,43) feeds the identical derived rate/intervalDays to handleCreateVault, preserving the direct-contract 0x27a81e6d createStream wiring and base-unit conventions (GAS x1e8, NEO integer).\n\nGates (all green, no changes made): \n- apps/neo-pay-shared-example: `npm run build` succeeded (vite, 1785 modules); `npx tsc --noEmit` exit 0.\n- apps/shared: `npx vitest run neo-pay-shared-example` -> 5/5 passed; also ran `npx vitest run neo-pay.logic` -> 18/18 passed (covers deriveSchedule quantization + create-flow regression). No shared files touched, so the broader suite is unaffected.\n\nRelevant files (unchanged, for reference): /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-pay/src/composables/deriveSchedule.ts, /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-pay-shared-example/src/PlayArea.tsx, /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-pay-shared-example/src/main.tsx, /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/neo-pay/src/locale/messages.ts, /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/neo-pay-shared-example.playarea.test.tsx, /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/test/neo-pay.logic.test.ts.",
+        "notes": "No edits required — every high and medium (and both low) audit issue for neo-pay-shared-example was already correctly resolved in a prior pass, with tests written to the new behavior. I verified each fix against current code rather than redoing it (per the task's already-fixed guidance) and confirmed nothing regressed.\n\nVerification of the HIGH fix: /Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-pay/src/composables/deriveSchedule.ts line 47 returns `perDay.toFixed(8)` for GAS, so 0.7/7 -> \"0.10000000\" and 20/30 -> \"0.66666667\" pass the composable's /^\\\\d+(\\\\.\\\\d{1,8})?$/ validator (previously String(0.7/7)=\"0.09999999999999999\" was rejected). NEO indivisibility handled by collapsing sub-1/day into a single full-duration interval.\n\nMEDIUM (preview/dispatch agreement): /Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-pay-shared-example/src/PlayArea.tsx imports the same deriveSchedule (line 11) and uses it for both the preview and the submit gate (lines 347-364), with a rateRoundsToZero warning + disabled submit (lines 755-762). main.tsx (lines 9,43) feeds the identical derived rate/intervalDays to handleCreateVault, preserving the direct-contract 0x27a81e6d createStream wiring and base-unit conventions (GAS x1e8, NEO integer).\n\nGates (all green, no changes made): \n- apps/neo-pay-shared-example: `npm run build` succeeded (vite, 1785 modules); `npx tsc --noEmit` exit 0.\n- apps/shared: `npx vitest run neo-pay-shared-example` -> 5/5 passed; also ran `npx vitest run neo-pay.logic` -> 18/18 passed (covers deriveSchedule quantization + create-flow regression). No shared files touched, so the broader suite is unaffected.\n\nRelevant files (unchanged, for reference): /Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-pay/src/composables/deriveSchedule.ts, /Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-pay-shared-example/src/PlayArea.tsx, /Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-pay-shared-example/src/main.tsx, /Users/jinghuiliao/git/r3e/neo-os-web/apps/neo-pay/src/locale/messages.ts, /Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/neo-pay-shared-example.playarea.test.tsx, /Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/test/neo-pay.logic.test.ts.",
         "verify": {
           "slug": "neo-pay-shared-example",
           "buildOk": true,

@@ -1,4 +1,4 @@
-# Joint Audit Report — neo-miniapps-platform × neo-morpheus-oracle × neo-abstract-account
+# Joint Audit Report — neo-os-web × neo-morpheus-oracle × neo-abstract-account
 
 Date: 2026-07-18. Sources: `audit-findings-2026-07/{miniapps,morpheus,aa}.json` (41 findings), `duplication.json`, `joint-baseline-2026-07-18.md`. All findings verified against actual code with file:line citations during the audit.
 

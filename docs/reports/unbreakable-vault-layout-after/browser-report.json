@@ -76,7 +76,7 @@
         }
       ],
       "relevantFailures": [],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/unbreakable-vault-layout-after/desktop-after.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/unbreakable-vault-layout-after/desktop-after.png"
     },
     {
       "scenario": "mobile",
@@ -151,7 +151,7 @@
         }
       ],
       "relevantFailures": [],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/unbreakable-vault-layout-after/mobile-after.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/unbreakable-vault-layout-after/mobile-after.png"
     }
   ]
 }

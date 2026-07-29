@@ -235,7 +235,7 @@ cd apps/zhuada-e && node scripts/tune.mjs
 
 ```bash
 # 从应用目录执行（cwd 每次调用会重置到仓库根）
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/zhuada-e
+cd /Users/jinghuiliao/git/r3e/neo-os-web/apps/zhuada-e
 
 npx eslint src                              # 期望 0/0
 npm run build                               # 入口 ~220KB/gzip ~70KB

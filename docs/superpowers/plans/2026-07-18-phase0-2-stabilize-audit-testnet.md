@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **Repo roots:** MINIAPPS=`/Users/jinghuiliao/git/r3e/neo-miniapps-platform`, MORPHEUS=`/Users/jinghuiliao/git/r3e/neo-morpheus-oracle`, AA=`/Users/jinghuiliao/git/r3e/neo-abstract-account`.
+- **Repo roots:** MINIAPPS=`/Users/jinghuiliao/git/r3e/neo-os-web`, MORPHEUS=`/Users/jinghuiliao/git/r3e/neo-morpheus-oracle`, AA=`/Users/jinghuiliao/git/r3e/neo-abstract-account`.
 - **Git mutations need explicit user approval.** Before the first `git add`/`git commit`/`git rm` in any repo, ask the user once for a batch commit policy covering this plan. Until approved, stage nothing; record intended commits in the task notes instead.
 - **Operator WIF handling:** the user-provided testnet WIF is supplied ONLY via `export NEO_TESTNET_WIF='...'` in the shell session. Never write it to any file, never echo it into logs, never commit it.
 - **Chain writes:** every deploy/registration script runs dry-run first. Live writes additionally require `PLATFORM_REGISTRY_DEPLOY_DRY_RUN=false` and `CONFIRM_PLATFORM_REGISTRY_DEPLOY=I_UNDERSTAND_THIS_WRITES_CHAIN` (per-script confirm var names are shown in each task).
@@ -135,7 +135,7 @@ Expected: all files pass; record `# pass` / `# fail` counts.
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 npm run -s test:framework 2>&1 | tail -3
 npm run -s test:shared 2>&1 | tail -3
 npm run -s test:deploy-scripts 2>&1 | tail -3
@@ -146,7 +146,7 @@ Expected: framework `Tests 553 passed`; shared `Tests 4424 passed`; deploy-scrip
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 npm run -s test:contracts 2>&1 | tail -5
 ```
 Expected: `Failed: 0`, ~505 passed. If nccs-built NEFs are stale, first `npm run -s build:contracts`.
@@ -155,7 +155,7 @@ Expected: `Failed: 0`, ~505 passed. If nccs-built NEFs are stale, first `npm run
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 npm run -s test:integration 2>&1 | tail -3
 npm run -s test:host-app 2>&1 | tail -3
 ```
@@ -251,7 +251,7 @@ Agent 3 (AA) focus list:
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 for f in docs/reports/audit-findings-2026-07/*.json; do node -e "const a=require('./$f'); if(!Array.isArray(a)) throw 1; console.log('$f', a.length, 'findings')"; done
 ```
 Expected: three files parse as arrays; counts printed.
@@ -271,7 +271,7 @@ Expected: three files parse as arrays; counts printed.
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform/contracts
+cd /Users/jinghuiliao/git/r3e/neo-os-web/contracts
 for d in MiniAppAimMaster MiniAppColorClash MiniAppCurveArrow MiniAppFlappyDash MiniAppGame2048 MiniAppJumpRush MiniAppMergeKingdom MiniAppPetPotion MiniAppSheepSolitaire MiniAppSnakeBounty MiniAppSudoku; do
   [ -d "$d" ] && echo "$d $(cat "$d"/*.cs 2>/dev/null | wc -l)"
 done
@@ -285,7 +285,7 @@ Run:
 ls /Users/jinghuiliao/git/r3e/neo-morpheus-oracle/workers/nitro-worker/src/game/engines/
 head -5 /Users/jinghuiliao/git/r3e/neo-morpheus-oracle/workers/nitro-worker/src/game/engines/snake.js
 ```
-Expected: 12 JS files; header confirms "JS port of neo-miniapps-platform/apps/snake-bounty/src/logic/snake-engine.ts".
+Expected: 12 JS files; header confirms "JS port of neo-os-web/apps/snake-bounty/src/logic/snake-engine.ts".
 
 - [ ] **Step 3: Envelope copy drift check**
 
@@ -335,7 +335,7 @@ Verify every critical/high finding cites a concrete `file:line` and a recommenda
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 export NEO_TESTNET_WIF='<operator-wif-from-user>'
 go run -tags=scripts deploy/scripts/deploy_platform_registry.go
 ```
@@ -345,7 +345,7 @@ with `PLATFORM_REGISTRY_ACTION=verify` exported. Expected: state dump prints adm
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 export NEO_TESTNET_WIF='<operator-wif-from-user>'
 PLATFORM_REGISTRY_ACTION=execute-timelocks go run -tags=scripts deploy/scripts/deploy_platform_registry.go
 ```
@@ -366,7 +366,7 @@ PLATFORM_REGISTRY_ACTION=execute-timelocks go run -tags=scripts deploy/scripts/d
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 export NEO_TESTNET_WIF='<operator-wif-from-user>'
 PLATFORM_REGISTRY_ACTION=execute-timelocks \
 PLATFORM_REGISTRY_DEPLOY_DRY_RUN=false \
@@ -423,7 +423,7 @@ Same env pattern with `PLATFORM_REGISTRY_ACTION=full-loop`. Expected: executes t
 - [ ] **Step 1: Dry-run**
 
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 export NEO_TESTNET_WIF='<operator-wif-from-user>'
 go run -tags=scripts deploy/scripts/register_apps_on_platform_registry.go
 ```
@@ -458,7 +458,7 @@ Read back a sample (first, middle, last appId) via `PLATFORM_REGISTRY_ACTION=ver
 - [ ] **Step 1: Miniapps cross-repo direct test**
 
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 npm run -s test:testnet:direct
 ```
 Expected: runtime-catalog parity across all three repos PASS; direct-oracle and AA+paymaster+relay live paths PASS.

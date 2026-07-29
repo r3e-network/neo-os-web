@@ -5,7 +5,7 @@
 ## Overview
 
 Comprehensive audit of the platform contract library refactoring across three related projects:
-- neo-miniapps-platform (main platform)
+- neo-os-web (main platform)
 - neo-abstract-account (AA system)
 - neo-morpheus-oracle (oracle integration)
 

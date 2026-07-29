@@ -27,5 +27,5 @@ After connecting the local developer-key wallet:
 
 ## Verification
 
-- `npm --prefix neo-miniapps-platform/platform/host-app test -- --runInBand __tests__/lib/auth.store.env.test.ts __tests__/components/NotificationDropdown.test.tsx __tests__/lib/fetch-client.test.ts`
-- `npm --prefix neo-miniapps-platform/platform/host-app run typecheck`
+- `npm --prefix neo-os-web/platform/host-app test -- --runInBand __tests__/lib/auth.store.env.test.ts __tests__/components/NotificationDropdown.test.tsx __tests__/lib/fetch-client.test.ts`
+- `npm --prefix neo-os-web/platform/host-app run typecheck`

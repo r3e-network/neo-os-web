@@ -18,7 +18,7 @@
       ],
       "disabledButtons": 0
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/aa-account-lab-desktop.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/aa-wallet-surfaces-browser-after/aa-account-lab-desktop.png"
   },
   {
     "slug": "aa-relay-console",
@@ -39,7 +39,7 @@
       ],
       "disabledButtons": 0
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/aa-relay-console-desktop.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/aa-wallet-surfaces-browser-after/aa-relay-console-desktop.png"
   },
   {
     "slug": "recovery-guardian",
@@ -60,7 +60,7 @@
       ],
       "disabledButtons": 0
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/recovery-guardian-desktop.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/aa-wallet-surfaces-browser-after/recovery-guardian-desktop.png"
   },
   {
     "slug": "aa-account-lab",
@@ -81,7 +81,7 @@
       ],
       "disabledButtons": 0
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/aa-account-lab-mobile.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/aa-wallet-surfaces-browser-after/aa-account-lab-mobile.png"
   },
   {
     "slug": "aa-relay-console",
@@ -102,7 +102,7 @@
       ],
       "disabledButtons": 0
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/aa-relay-console-mobile.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/aa-wallet-surfaces-browser-after/aa-relay-console-mobile.png"
   },
   {
     "slug": "recovery-guardian",
@@ -123,6 +123,6 @@
       ],
       "disabledButtons": 0
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/recovery-guardian-mobile.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/aa-wallet-surfaces-browser-after/recovery-guardian-mobile.png"
   }
 ]

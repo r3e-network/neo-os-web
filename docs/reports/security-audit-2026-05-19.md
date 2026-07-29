@@ -1,7 +1,7 @@
 # Security Audit — Neo MiniApps Platform
 
 **Audit date:** 2026-05-19
-**Repo:** `neo-miniapps-platform` (master @ `7cdfea53`)
+**Repo:** `neo-os-web` (master @ `7cdfea53`)
 **Auditor:** Claude (Opus 4.7) — multi-agent review across smart contracts, edge functions, frontends, and secrets/CI/supply chain, plus direct reviewer cross-check.
 **Method:** Static read-only analysis. No runtime testing. Every finding cites `file:line` evidence.
 

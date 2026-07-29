@@ -315,7 +315,7 @@ function main() {
         description: "Non-game miniapps, their contracts and tests",
         apps: apps.filter((app) => app.kind === "miniapps"),
       },
-      "neo-miniapps-platform": {
+      "neo-os-web": {
         description: "Platform only: host, admin console, edge, platform contracts",
         keeps_contracts: platformContracts,
         keeps_contract_tests: platformTests,

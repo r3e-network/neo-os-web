@@ -20,7 +20,7 @@
       ],
       "buttons": []
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/trustanchor-desktop.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/trustanchor-desktop.png"
   },
   {
     "slug": "profitanchor",
@@ -44,7 +44,7 @@
       ],
       "buttons": []
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/profitanchor-desktop.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/profitanchor-desktop.png"
   },
   {
     "slug": "trustanchor-admin",
@@ -69,7 +69,7 @@
         "Sync vote"
       ]
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/trustanchor-admin-desktop.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/trustanchor-admin-desktop.png"
   },
   {
     "slug": "profitanchor-admin",
@@ -94,7 +94,7 @@
         "Sync vote"
       ]
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/profitanchor-admin-desktop.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/profitanchor-admin-desktop.png"
   },
   {
     "slug": "custom-anchor",
@@ -117,7 +117,7 @@
       ],
       "buttons": []
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/custom-anchor-desktop.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/custom-anchor-desktop.png"
   },
   {
     "slug": "trustanchor",
@@ -140,7 +140,7 @@
       ],
       "buttons": []
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/trustanchor-mobile.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/trustanchor-mobile.png"
   },
   {
     "slug": "profitanchor",
@@ -163,7 +163,7 @@
       ],
       "buttons": []
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/profitanchor-mobile.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/profitanchor-mobile.png"
   },
   {
     "slug": "trustanchor-admin",
@@ -188,7 +188,7 @@
         "Sync vote"
       ]
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/trustanchor-admin-mobile.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/trustanchor-admin-mobile.png"
   },
   {
     "slug": "profitanchor-admin",
@@ -213,7 +213,7 @@
         "Sync vote"
       ]
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/profitanchor-admin-mobile.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/profitanchor-admin-mobile.png"
   },
   {
     "slug": "custom-anchor",
@@ -236,6 +236,6 @@
       ],
       "buttons": []
     },
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/custom-anchor-mobile.png"
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after/custom-anchor-mobile.png"
   }
 ]

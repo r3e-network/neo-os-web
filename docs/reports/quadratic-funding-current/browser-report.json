@@ -51,7 +51,7 @@
           "stack": "TypeError: Cannot read properties of undefined (reading 'toString')\n    at formatAmount (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:30404)\n    at Object.get (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:35739)\n    at http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:974\n    at Object.ss [as useSyncExternalStore] (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:6:19131)\n    at Tc.D.useSyncExternalStore (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:1:6602)\n    at us (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:1061)\n    at fs (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:9733)\n    at ju (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:6:16997)\n    at Yu (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:8:3154)\n    at va (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:8:44928)"
         }
       ],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/quadratic-funding-current/desktop-current.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/quadratic-funding-current/desktop-current.png"
     },
     {
       "scenario": "mobile",
@@ -111,7 +111,7 @@
         }
       ],
       "pageErrors": [],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/quadratic-funding-current/mobile-current.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/quadratic-funding-current/mobile-current.png"
     }
   ]
 }

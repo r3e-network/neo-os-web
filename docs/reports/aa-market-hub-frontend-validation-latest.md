@@ -2,7 +2,7 @@
 
 ## Scope
 
-- Target: `miniapp-aa-market-hub` in `neo-miniapps-platform`
+- Target: `miniapp-aa-market-hub` in `neo-os-web`
 - Route: `http://127.0.0.1:3000/miniapps/aa-market-hub?network=testnet`
 - Focus: host action console completeness, iframe launch params, embedded AA market form UX, wallet-gated submit, desktop/mobile layout.
 

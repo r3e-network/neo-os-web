@@ -1,7 +1,7 @@
 # Platform Contract Library v2 — Registry-Anchored Engine Estate
 
 **Status:** Final synthesized architecture, amended 2026-07-23 to make shared UnifiedSmartWallet accounts the default app identity
-**Audience:** neo-miniapps-platform maintainers
+**Audience:** neo-os-web maintainers
 **Landing path:** `docs/platform-contract-library-v2.md`
 **Ground truth:** the 2026-07-16 estate census (HEAD `020b53d87`, raw lane results in `docs/archive/claudedocs/contract-estate-census-2026-07-16.md`); every number below is cited from it. Trust the tests, not the README — `contracts/README.md` is measurably stale.
 

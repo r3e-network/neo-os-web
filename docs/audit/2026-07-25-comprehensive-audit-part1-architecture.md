@@ -1,7 +1,7 @@
 # Comprehensive Platform Audit - Part 1: Architecture Assessment
 **Date:** 2026-07-25
 **Auditor:** Platform Refactoring Team
-**Scope:** neo-miniapps-platform, neo-abstract-account, neo-morpheus-oracle
+**Scope:** neo-os-web, neo-abstract-account, neo-morpheus-oracle
 
 ## Executive Summary
 

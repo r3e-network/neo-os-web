@@ -20,7 +20,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
 const files = execSync(
-  "grep -rln 'linear-gradient.*#1\\|linear-gradient.*#0\\|conic-gradient.*#1' /home/neo/git/neo-miniapps-platform/apps/*/src/ 2>/dev/null | grep theme.scss | grep -v node_modules",
+  "grep -rln 'linear-gradient.*#1\\|linear-gradient.*#0\\|conic-gradient.*#1' /home/neo/git/neo-os-web/apps/*/src/ 2>/dev/null | grep theme.scss | grep -v node_modules",
   { encoding: "utf8" },
 )
   .split("\n")
@@ -116,7 +116,7 @@ for (const file of files) {
 
     writeFileSync(file, result, "utf8");
     flipped++;
-    console.log(`  ✓ ${file.replace("/home/neo/git/neo-miniapps-platform/apps/", "")}`);
+    console.log(`  ✓ ${file.replace("/home/neo/git/neo-os-web/apps/", "")}`);
   } catch (e) {
     failures.push({ file, error: e.message });
     console.error(`  ✗ ${file}: ${e.message}`);

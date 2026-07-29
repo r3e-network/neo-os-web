@@ -34,7 +34,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const workspaceRoot = path.resolve(repoRoot, "..");
 
 const REPOS = {
-  platform: path.join(workspaceRoot, "neo-miniapps-platform"),
+  platform: path.join(workspaceRoot, "neo-os-web"),
   sdk: path.join(workspaceRoot, "neo-miniapp-sdk"),
   minigames: path.join(workspaceRoot, "neo-minigames"),
   miniapps: path.join(workspaceRoot, "neo-miniapps"),
@@ -220,7 +220,7 @@ function checkMigrated() {
   // The cross-boundary parity tests are knowingly still here; they assert across
   // the platform/app seam and cannot travel with either side untouched.
   const expected = new Set(
-    (plan().repos["neo-miniapps-platform"].keeps_shared_tests || []).map((entry) => entry.test),
+    (plan().repos["neo-os-web"].keeps_shared_tests || []).map((entry) => entry.test),
   );
   const unexpected = lost.filter((file) => !expected.has(file));
 

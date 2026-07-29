@@ -6,7 +6,7 @@ Baseline test results across the three repos, plus repo hygiene outcomes. Input 
 
 | Repo | Branch | Dirty files | Notes |
 |---|---|---|---|
-| neo-miniapps-platform | (main line) | ~70 modified + untracked v2 WIP (RewardGame partials, MiniAppEngineBase.cs, registry/platform-game surfaces, RealKernel test files) | mid-refactor, expected |
+| neo-os-web | (main line) | ~70 modified + untracked v2 WIP (RewardGame partials, MiniAppEngineBase.cs, registry/platform-game surfaces, RealKernel test files) | mid-refactor, expected |
 | neo-morpheus-oracle | `chore/solc-0.8.35-upgrade` | 71 dirty incl. uncommitted `config/networks/testnet.json` oracle-hash change | side branch, expected |
 | neo-abstract-account | HEAD `f2d3b17` | 24 dirty + 2 untracked (`scripts/dotnet_env.sh`, `shared/registrationAccountId.mjs`) | fresh-clone breakage, see below |
 
@@ -18,7 +18,7 @@ Baseline test results across the three repos, plus repo hygiene outcomes. Input 
 
 ## Suite results
 
-### neo-miniapps-platform
+### neo-os-web
 
 | Suite | Command | Result | Counts |
 |---|---|---|---|

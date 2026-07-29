@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Make Morpheus the canonical source of public integration metadata, stop leaking validation secrets through stdout, and align neo-miniapps-platform plus neo-abstract-account with generated Morpheus registry defaults.
+**Goal:** Make Morpheus the canonical source of public integration metadata, stop leaking validation secrets through stdout, and align neo-os-web plus neo-abstract-account with generated Morpheus registry defaults.
 
 **Architecture:** `neo-morpheus-oracle` exports a normalized public registry plus a split public/secret workspace validation context. Consumer repos keep checked-in generated modules derived from the Morpheus export so runtime defaults stay local, deterministic, and reviewable without introducing sibling-repo runtime coupling.
 
@@ -58,7 +58,7 @@ Run: `node --test scripts/export-public-network-registry.test.mjs scripts/resolv
 
 **Files:**
 - Modify: `/home/neo/git/neo-morpheus-oracle/.worktrees/cross-repo-hardening/scripts/run_workspace_live_validation.sh`
-- Modify: `/home/neo/git/neo-miniapps-platform/.worktrees/cross-repo-hardening/deploy/scripts/verify_cross_repo_testnet.sh`
+- Modify: `/home/neo/git/neo-os-web/.worktrees/cross-repo-hardening/deploy/scripts/verify_cross_repo_testnet.sh`
 
 **Step 1: Add minimal behavior checks indirectly through existing tests**
 
@@ -74,14 +74,14 @@ Run script help or static shell validation as appropriate:
 - `bash -n scripts/run_workspace_live_validation.sh`
 - `bash -n deploy/scripts/verify_cross_repo_testnet.sh`
 
-### Task 4: Move neo-miniapps-platform onto generated Morpheus registry defaults
+### Task 4: Move neo-os-web onto generated Morpheus registry defaults
 
 **Files:**
-- Create: `/home/neo/git/neo-miniapps-platform/.worktrees/cross-repo-hardening/apps/shared/constants/generated-morpheus-registry.ts`
-- Modify: `/home/neo/git/neo-miniapps-platform/.worktrees/cross-repo-hardening/apps/shared/constants/rpc.ts`
-- Modify: `/home/neo/git/neo-miniapps-platform/.worktrees/cross-repo-hardening/.github/workflows/ci.yml`
-- Test: `/home/neo/git/neo-miniapps-platform/.worktrees/cross-repo-hardening/platform/host-app/__tests__/lib/external-integration-registry.test.ts`
-- Test: `/home/neo/git/neo-miniapps-platform/.worktrees/cross-repo-hardening/deploy/scripts/lib/ci_workflow.test.mjs`
+- Create: `/home/neo/git/neo-os-web/.worktrees/cross-repo-hardening/apps/shared/constants/generated-morpheus-registry.ts`
+- Modify: `/home/neo/git/neo-os-web/.worktrees/cross-repo-hardening/apps/shared/constants/rpc.ts`
+- Modify: `/home/neo/git/neo-os-web/.worktrees/cross-repo-hardening/.github/workflows/ci.yml`
+- Test: `/home/neo/git/neo-os-web/.worktrees/cross-repo-hardening/platform/host-app/__tests__/lib/external-integration-registry.test.ts`
+- Test: `/home/neo/git/neo-os-web/.worktrees/cross-repo-hardening/deploy/scripts/lib/ci_workflow.test.mjs`
 
 **Step 1: Keep the failing tests**
 

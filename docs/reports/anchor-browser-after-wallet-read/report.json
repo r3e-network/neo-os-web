@@ -5,7 +5,7 @@
     "viewport": "desktop",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-trustanchor?network=testnet",
     "frameUrl": "http://127.0.0.1:3023/miniapps/trustanchor/index.html?network=testnet&source=embed",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/trustanchor-desktop.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/trustanchor-desktop.png",
     "buttons": [],
     "overflowX": false,
     "walletBridgeErrors": 0,
@@ -25,7 +25,7 @@
     "viewport": "desktop",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-profitanchor?network=testnet",
     "frameUrl": "http://127.0.0.1:3023/miniapps/profitanchor/index.html?network=testnet&source=embed",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/profitanchor-desktop.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/profitanchor-desktop.png",
     "buttons": [],
     "overflowX": false,
     "walletBridgeErrors": 0,
@@ -45,7 +45,7 @@
     "viewport": "desktop",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-trustanchor-admin?network=testnet",
     "frameUrl": "http://127.0.0.1:3023/miniapps/trustanchor-admin/index.html?network=testnet&source=embed",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/trustanchor-admin-desktop.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/trustanchor-admin-desktop.png",
     "buttons": [
       {
         "text": "Submit move",
@@ -78,7 +78,7 @@
     "viewport": "desktop",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-profitanchor-admin?network=testnet",
     "frameUrl": "http://127.0.0.1:3023/miniapps/profitanchor-admin/index.html?network=testnet&source=embed",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/profitanchor-admin-desktop.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/profitanchor-admin-desktop.png",
     "buttons": [
       {
         "text": "Submit move",
@@ -111,7 +111,7 @@
     "viewport": "desktop",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-custom-anchor?network=testnet&anchorAppId=custom-anchor:demo:001",
     "frameUrl": "http://127.0.0.1:3023/miniapps/custom-anchor/index.html?network=testnet&source=embed&anchorAppId=custom-anchor%3Ademo%3A001",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/custom-anchor-desktop.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/custom-anchor-desktop.png",
     "buttons": [],
     "overflowX": false,
     "walletBridgeErrors": 0,
@@ -131,7 +131,7 @@
     "viewport": "mobile",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-trustanchor?network=testnet",
     "frameUrl": "http://127.0.0.1:3023/miniapps/trustanchor/index.html?network=testnet&source=embed",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/trustanchor-mobile.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/trustanchor-mobile.png",
     "buttons": [],
     "overflowX": false,
     "walletBridgeErrors": 0,
@@ -151,7 +151,7 @@
     "viewport": "mobile",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-profitanchor?network=testnet",
     "frameUrl": "http://127.0.0.1:3023/miniapps/profitanchor/index.html?network=testnet&source=embed",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/profitanchor-mobile.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/profitanchor-mobile.png",
     "buttons": [],
     "overflowX": false,
     "walletBridgeErrors": 0,
@@ -171,7 +171,7 @@
     "viewport": "mobile",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-trustanchor-admin?network=testnet",
     "frameUrl": "http://127.0.0.1:3023/miniapps/trustanchor-admin/index.html?network=testnet&source=embed",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/trustanchor-admin-mobile.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/trustanchor-admin-mobile.png",
     "buttons": [
       {
         "text": "Submit move",
@@ -204,7 +204,7 @@
     "viewport": "mobile",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-profitanchor-admin?network=testnet",
     "frameUrl": "http://127.0.0.1:3023/miniapps/profitanchor-admin/index.html?network=testnet&source=embed",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/profitanchor-admin-mobile.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/profitanchor-admin-mobile.png",
     "buttons": [
       {
         "text": "Submit move",
@@ -237,7 +237,7 @@
     "viewport": "mobile",
     "url": "http://127.0.0.1:3023/miniapps/miniapp-custom-anchor?network=testnet&anchorAppId=custom-anchor:demo:001",
     "frameUrl": "http://127.0.0.1:3023/miniapps/custom-anchor/index.html?network=testnet&source=embed&anchorAppId=custom-anchor%3Ademo%3A001",
-    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after-wallet-read/custom-anchor-mobile.png",
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-browser-after-wallet-read/custom-anchor-mobile.png",
     "buttons": [],
     "overflowX": false,
     "walletBridgeErrors": 0,

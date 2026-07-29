@@ -147,7 +147,7 @@
             "severity": "medium",
             "risk": "low",
             "files": [
-              "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/components-react/ConsoleToolPanel.scss:311"
+              "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/components-react/ConsoleToolPanel.scss:311"
             ],
             "problem": "The console panel's custom <select> element uses :focus pseudo-selector instead of :focus-visible. This means the focus ring will show on mouse click (unwanted) and disappear on keyboard navigation (broken for keyboard users). All other components correctly use :focus-visible. This inconsistency breaks keyboard accessibility for the select fields used in oracle consoles.",
             "fix": "Change line 311 from `.console-tool__field select:focus {` to `.console-tool__field select:focus-visible {` to match the pattern used in NeoButton.scss:33 and NeoCard.scss:31.",
@@ -160,7 +160,7 @@
             "severity": "medium",
             "risk": "low",
             "files": [
-              "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/components-react/ConsoleToolPanel.scss:424"
+              "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/components-react/ConsoleToolPanel.scss:424"
             ],
             "problem": "The <details><summary> disclosure control (PayloadCard) has cursor:pointer and ::after pseudo-element for the expand/collapse chevron, but lacks any :focus-visible styling. Keyboard users cannot see when the summary is focused, violating WCAG 2.1 AA focus-visible requirement. This is a critical interaction element in the console result panel.",
             "fix": "Add a :focus-visible rule after line 431: `.console-tool__payload-card > summary:focus-visible { outline: 2px solid var(--ns-violet, #16c784); outline-offset: 2px; }` to match button/card focus styling.",
@@ -399,7 +399,7 @@
         "severity": "medium",
         "risk": "low",
         "files": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/components-react/ConsoleToolPanel.scss:311"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/components-react/ConsoleToolPanel.scss:311"
         ],
         "problem": "The console panel's custom <select> element uses :focus pseudo-selector instead of :focus-visible. This means the focus ring will show on mouse click (unwanted) and disappear on keyboard navigation (broken for keyboard users). All other components correctly use :focus-visible. This inconsistency breaks keyboard accessibility for the select fields used in oracle consoles.",
         "fix": "Change line 311 from `.console-tool__field select:focus {` to `.console-tool__field select:focus-visible {` to match the pattern used in NeoButton.scss:33 and NeoCard.scss:31.",
@@ -412,7 +412,7 @@
         "severity": "medium",
         "risk": "low",
         "files": [
-          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/components-react/ConsoleToolPanel.scss:424"
+          "/Users/jinghuiliao/git/r3e/neo-os-web/apps/shared/components-react/ConsoleToolPanel.scss:424"
         ],
         "problem": "The <details><summary> disclosure control (PayloadCard) has cursor:pointer and ::after pseudo-element for the expand/collapse chevron, but lacks any :focus-visible styling. Keyboard users cannot see when the summary is focused, violating WCAG 2.1 AA focus-visible requirement. This is a critical interaction element in the console result panel.",
         "fix": "Add a :focus-visible rule after line 431: `.console-tool__payload-card > summary:focus-visible { outline: 2px solid var(--ns-violet, #16c784); outline-offset: 2px; }` to match button/card focus styling.",

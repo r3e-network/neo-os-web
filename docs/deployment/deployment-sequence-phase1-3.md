@@ -185,7 +185,7 @@ neo-express contract invoke $WALLET_HASH getPlatformRegistrar
 
 **Step 5.2: Execute Registry Timelock** (24 hours after Step 4.2)
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-miniapps-platform
+cd /Users/jinghuiliao/git/r3e/neo-os-web
 
 # Execute after 24-hour timelock
 neo-express contract invoke $REGISTRY_HASH executeAbstractAccountCoreChange \

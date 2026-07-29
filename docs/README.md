@@ -1,6 +1,6 @@
 # docs/ — documentation index
 
-Canonical documentation tree for neo-miniapps-platform. Historical archives live under `archive/`; design references under `prototypes/`; current reports under `reports/`.
+Canonical documentation tree for neo-os-web. Historical archives live under `archive/`; design references under `prototypes/`; current reports under `reports/`.
 
 ## Current
 

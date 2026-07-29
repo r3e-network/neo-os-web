@@ -35,7 +35,7 @@
   "txHashVisibleInUi": true,
   "successTitleVisibleInJapanese": true,
   "transactionIdLabelVisibleInJapanese": true,
-  "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/onegate-vault-mainnet-live/onegate-vault-mainnet-claim-ja-polished.png",
+  "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/onegate-vault-mainnet-live/onegate-vault-mainnet-claim-ja-polished.png",
   "sameWalletStatusCheck": {
     "code": 200,
     "status": "paid",
@@ -65,6 +65,6 @@
     "claimSubmittedToastHidden": true,
     "claimOnlyBackground": "rgb(245, 246, 243)"
   },
-  "polishedScreenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/onegate-vault-mainnet-live/onegate-vault-mainnet-claim-ja-polished.png",
+  "polishedScreenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/onegate-vault-mainnet-live/onegate-vault-mainnet-claim-ja-polished.png",
   "generatedAtLocal": "2026-05-13T07:51:09+0800"
 }

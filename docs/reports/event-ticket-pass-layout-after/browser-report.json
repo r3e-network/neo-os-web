@@ -66,7 +66,7 @@
       "consoleMessages": [],
       "unexpectedConsole": [],
       "pageErrors": [],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/event-ticket-pass-layout-after/desktop-after.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/event-ticket-pass-layout-after/desktop-after.png"
     },
     {
       "scenario": "mobile",
@@ -131,7 +131,7 @@
       "consoleMessages": [],
       "unexpectedConsole": [],
       "pageErrors": [],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/event-ticket-pass-layout-after/mobile-after.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/event-ticket-pass-layout-after/mobile-after.png"
     }
   ]
 }

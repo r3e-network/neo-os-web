@@ -9,7 +9,7 @@ That is now four repositories, with bundles delivered from a CDN.
 
 | Repository | Holds |
 | --- | --- |
-| [`neo-miniapps-platform`](https://github.com/r3e-network/neo-miniapps-platform) | Platform only: host app, admin console, edge functions, platform contracts, deploy tooling. Loads apps from the CDN. |
+| [`neo-os-web`](https://github.com/r3e-network/neo-os-web) | Platform only: host app, admin console, edge functions, platform contracts, deploy tooling. Loads apps from the CDN. |
 | [`neo-miniapp-sdk`](https://github.com/r3e-network/neo-miniapp-sdk) | The app-facing SDK: `@r3e-network/neo-miniapp-framework` (was `framework/`) and `@r3e-network/neo-miniapp-shared` (was `apps/shared`). |
 | [`neo-miniapps`](https://github.com/r3e-network/neo-miniapps) | 53 non-game MiniApps, their Neo N3 contracts, and their CDN publish pipeline. |
 | [`neo-minigames`](https://github.com/r3e-network/neo-minigames) | 25 MiniGames, same. |

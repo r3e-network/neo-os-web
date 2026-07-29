@@ -81,15 +81,15 @@ export function MiniAppsPageHeader({
   const links = [
     {
       label: "Live Smoke Workflow",
-      href: "https://github.com/r3e-network/neo-miniapps-platform/actions/workflows/live-smoke.yml",
+      href: "https://github.com/r3e-network/neo-os-web/actions/workflows/live-smoke.yml",
     },
     {
       label: "Smoke Reports",
-      href: "https://github.com/r3e-network/neo-miniapps-platform/tree/main/docs/reports/live-smoke",
+      href: "https://github.com/r3e-network/neo-os-web/tree/main/docs/reports/live-smoke",
     },
     {
       label: "Runbook",
-      href: "https://github.com/r3e-network/neo-miniapps-platform/blob/main/README.md#run-the-full-live-smoke-suite-with-timestamped-reports",
+      href: "https://github.com/r3e-network/neo-os-web/blob/main/README.md#run-the-full-live-smoke-suite-with-timestamped-reports",
     },
   ];
 

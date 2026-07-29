@@ -29,7 +29,7 @@ function acquireRunLock() {
     .slice(0, 10);
   const lockDir = path.join(
     tmpRoot,
-    `neo-miniapps-platform.flagship-live-flows.${lockSuffix}.lock`,
+    `neo-os-web.flagship-live-flows.${lockSuffix}.lock`,
   );
   const pidFile = path.join(lockDir, "pid");
 

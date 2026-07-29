@@ -1,7 +1,7 @@
 # Cross-Repo Security & Correctness Audit — 2026-06-16
 
 Comprehensive review/refactor/validate pass across the three repos:
-`neo-miniapps-platform`, `neo-morpheus-oracle`, `neo-abstract-account`.
+`neo-os-web`, `neo-morpheus-oracle`, `neo-abstract-account`.
 
 Method: per-domain deep review by independent agents, **every finding adversarially
 verified** (2–3 skeptics defaulting to "refute"; kept only on majority confirmation).
@@ -15,7 +15,7 @@ False positives were rejected (platform 3, AA 1). Severity reflects the adjusted
 | Repo | Lint | Tests |
 |---|---|---|
 | neo-morpheus-oracle | clean (fixed 11 unused-var errors) | worker 250 + relayer 339 + control-plane 31 + ops 86 = **706 pass** |
-| neo-miniapps-platform | clean (fixed irregular-whitespace error) | `npm test` pass; C# contracts **185/185** |
+| neo-os-web | clean (fixed irregular-whitespace error) | `npm test` pass; C# contracts **185/185** |
 | neo-abstract-account | — | C# contracts **115/115** |
 
 (`build:contracts` needed `DOTNET_ROOT` exported — env only, not a code defect; dotnet 10 present.)

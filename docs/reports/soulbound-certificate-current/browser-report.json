@@ -52,7 +52,7 @@
       },
       "unexpectedConsole": [],
       "pageErrors": [],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/soulbound-certificate-current/desktop-current.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/soulbound-certificate-current/desktop-current.png"
     },
     {
       "scenario": "mobile",
@@ -104,7 +104,7 @@
       },
       "unexpectedConsole": [],
       "pageErrors": [],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/soulbound-certificate-current/mobile-current.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/soulbound-certificate-current/mobile-current.png"
     }
   ]
 }

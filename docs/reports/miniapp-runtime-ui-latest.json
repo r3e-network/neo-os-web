@@ -16,7 +16,7 @@
     }
   ],
   "screenshots_enabled": true,
-  "screenshot_dir": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots",
+  "screenshot_dir": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots",
   "min_text_length": 50,
   "low_text_warning_length": 100,
   "catalog_count": 78,
@@ -39,7 +39,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-account-lab-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-account-lab-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-account-lab-desktop-1440x1000.png"
       },
       "title": "AA Account Lab",
@@ -72,7 +72,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-market-hub-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-market-hub-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-market-hub-desktop-1440x1000.png"
       },
       "title": "AA Market Hub",
@@ -105,7 +105,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-permissions-lab-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-permissions-lab-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-permissions-lab-desktop-1440x1000.png"
       },
       "title": "AA Permissions",
@@ -138,7 +138,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-relay-console-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-relay-console-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-relay-console-desktop-1440x1000.png"
       },
       "title": "AA Relay Console",
@@ -171,7 +171,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-session-key-lab-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-session-key-lab-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-session-key-lab-desktop-1440x1000.png"
       },
       "title": "AA Session Key Lab",
@@ -204,7 +204,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aim-master-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aim-master-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aim-master-desktop-1440x1000.png"
       },
       "title": "Aim Master",
@@ -237,7 +237,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/arrow-escape-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/arrow-escape-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/arrow-escape-desktop-1440x1000.png"
       },
       "title": "Garden Arrowworks",
@@ -270,7 +270,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/asset-factory-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/asset-factory-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/asset-factory-desktop-1440x1000.png"
       },
       "title": "Asset Factory",
@@ -303,7 +303,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/automation-copilot-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/automation-copilot-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/automation-copilot-desktop-1440x1000.png"
       },
       "title": "Automation Copilot",
@@ -336,7 +336,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/bead-workshop-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/bead-workshop-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/bead-workshop-desktop-1440x1000.png"
       },
       "title": "Bead Workshop",
@@ -369,7 +369,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/breakup-contract-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/breakup-contract-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/breakup-contract-desktop-1440x1000.png"
       },
       "title": "Breakup Contract",
@@ -402,7 +402,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/burn-league-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/burn-league-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/burn-league-desktop-1440x1000.png"
       },
       "title": "Burn League",
@@ -435,7 +435,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/color-clash-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/color-clash-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/color-clash-desktop-1440x1000.png"
       },
       "title": "Color Clash",
@@ -468,7 +468,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/council-governance-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/council-governance-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/council-governance-desktop-1440x1000.png"
       },
       "title": "Council Governance",
@@ -501,7 +501,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/curve-arrow-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/curve-arrow-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/curve-arrow-desktop-1440x1000.png"
       },
       "title": "Curve Arrow",
@@ -534,7 +534,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/custom-anchor-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/custom-anchor-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/custom-anchor-desktop-1440x1000.png"
       },
       "title": "Custom Anchor",
@@ -567,7 +567,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/daily-checkin-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/daily-checkin-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/daily-checkin-desktop-1440x1000.png"
       },
       "title": "Daily Checkin",
@@ -600,7 +600,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/dev-tipping-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/dev-tipping-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/dev-tipping-desktop-1440x1000.png"
       },
       "title": "Developer Tipping",
@@ -633,7 +633,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/dice-game-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/dice-game-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/dice-game-desktop-1440x1000.png"
       },
       "title": "Dice Game",
@@ -666,7 +666,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/event-ticket-pass-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/event-ticket-pass-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/event-ticket-pass-desktop-1440x1000.png"
       },
       "title": "Event Ticket Pass",
@@ -699,7 +699,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/explorer-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/explorer-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/explorer-desktop-1440x1000.png"
       },
       "title": "Explorer",
@@ -732,7 +732,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/flappy-dash-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/flappy-dash-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/flappy-dash-desktop-1440x1000.png"
       },
       "title": "Flappy Dash",
@@ -765,7 +765,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/flashloan-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/flashloan-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/flashloan-desktop-1440x1000.png"
       },
       "title": "Flashloan",
@@ -798,7 +798,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/fogplay-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/fogplay-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/fogplay-desktop-1440x1000.png"
       },
       "title": "FogPlay",
@@ -831,7 +831,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/forever-album-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/forever-album-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/forever-album-desktop-1440x1000.png"
       },
       "title": "Forever Album",
@@ -864,7 +864,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/fruit-funnel-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/fruit-funnel-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/fruit-funnel-desktop-1440x1000.png"
       },
       "title": "Fruit Funnel",
@@ -897,7 +897,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/game-2048-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/game-2048-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/game-2048-desktop-1440x1000.png"
       },
       "title": "2048 Rush",
@@ -930,7 +930,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gas-lucky-pool-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gas-lucky-pool-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gas-lucky-pool-desktop-1440x1000.png"
       },
       "title": "OneGate Vault",
@@ -963,7 +963,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gas-sponsor-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gas-sponsor-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gas-sponsor-desktop-1440x1000.png"
       },
       "title": "Gas Sponsor",
@@ -996,7 +996,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gasbox-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gasbox-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gasbox-desktop-1440x1000.png"
       },
       "title": "GASBOX",
@@ -1029,7 +1029,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gomoku-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gomoku-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gomoku-desktop-1440x1000.png"
       },
       "title": "Gomoku Arena",
@@ -1062,7 +1062,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gov-merc-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gov-merc-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gov-merc-desktop-1440x1000.png"
       },
       "title": "Gov Merc",
@@ -1095,7 +1095,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/graveyard-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/graveyard-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/graveyard-desktop-1440x1000.png"
       },
       "title": "Graveyard",
@@ -1128,7 +1128,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/jump-rush-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/jump-rush-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/jump-rush-desktop-1440x1000.png"
       },
       "title": "Jump Rush",
@@ -1161,7 +1161,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/last-survivor-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/last-survivor-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/last-survivor-desktop-1440x1000.png"
       },
       "title": "LastSurvivor",
@@ -1194,7 +1194,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/memorial-shrine-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/memorial-shrine-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/memorial-shrine-desktop-1440x1000.png"
       },
       "title": "Memorial Shrine",
@@ -1227,7 +1227,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/merge-kingdom-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/merge-kingdom-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/merge-kingdom-desktop-1440x1000.png"
       },
       "title": "Merge Kingdom",
@@ -1260,7 +1260,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/milestone-escrow-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/milestone-escrow-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/milestone-escrow-desktop-1440x1000.png"
       },
       "title": "Milestone Escrow",
@@ -1293,7 +1293,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/miniapp-factory-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/miniapp-factory-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/miniapp-factory-desktop-1440x1000.png"
       },
       "title": "MiniApp Factory",
@@ -1326,7 +1326,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-convert-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-convert-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-convert-desktop-1440x1000.png"
       },
       "title": "Neo Convert",
@@ -1359,7 +1359,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-message-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-message-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-message-desktop-1440x1000.png"
       },
       "title": "Neo Message",
@@ -1392,7 +1392,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-multisig-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-multisig-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-multisig-desktop-1440x1000.png"
       },
       "title": "Neo Multisig",
@@ -1425,7 +1425,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-ns-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-ns-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-ns-desktop-1440x1000.png"
       },
       "title": "Neo Ns",
@@ -1458,7 +1458,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-pay-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-pay-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-pay-desktop-1440x1000.png"
       },
       "title": "NeoPay",
@@ -1491,7 +1491,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-pay-shared-example-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-pay-shared-example-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-pay-shared-example-desktop-1440x1000.png"
       },
       "title": "NeoPay Stream Studio",
@@ -1524,7 +1524,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-sign-anything-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-sign-anything-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-sign-anything-desktop-1440x1000.png"
       },
       "title": "Neo Signature Desk",
@@ -1557,7 +1557,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-swap-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-swap-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-swap-desktop-1440x1000.png"
       },
       "title": "Neo Swap",
@@ -1590,7 +1590,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-treasury-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-treasury-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-treasury-desktop-1440x1000.png"
       },
       "title": "Neo Treasury",
@@ -1623,7 +1623,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-x-bridge-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-x-bridge-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-x-bridge-desktop-1440x1000.png"
       },
       "title": "Neo X Bridge",
@@ -1656,7 +1656,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neodid-passport-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neodid-passport-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neodid-passport-desktop-1440x1000.png"
       },
       "title": "NeoDID Passport",
@@ -1689,7 +1689,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/nft-factory-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/nft-factory-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/nft-factory-desktop-1440x1000.png"
       },
       "title": "NFT Factory",
@@ -1722,7 +1722,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/on-chain-tarot-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/on-chain-tarot-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/on-chain-tarot-desktop-1440x1000.png"
       },
       "title": "On Chain Tarot",
@@ -1755,7 +1755,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-compute-lab-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-compute-lab-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-compute-lab-desktop-1440x1000.png"
       },
       "title": "Oracle Compute Lab",
@@ -1788,7 +1788,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-http-console-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-http-console-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-http-console-desktop-1440x1000.png"
       },
       "title": "Oracle HTTP Console",
@@ -1821,7 +1821,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-neodid-console-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-neodid-console-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-neodid-console-desktop-1440x1000.png"
       },
       "title": "Oracle NeoDID Console",
@@ -1854,7 +1854,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-price-console-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-price-console-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-price-console-desktop-1440x1000.png"
       },
       "title": "Oracle Price Console",
@@ -1887,7 +1887,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-seal-console-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-seal-console-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-seal-console-desktop-1440x1000.png"
       },
       "title": "Oracle Seal Console",
@@ -1920,7 +1920,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-vrf-console-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-vrf-console-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-vrf-console-desktop-1440x1000.png"
       },
       "title": "Oracle VRF Console",
@@ -1953,7 +1953,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/pet-potion-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/pet-potion-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/pet-potion-desktop-1440x1000.png"
       },
       "title": "Pet Potion",
@@ -1986,7 +1986,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/private-transfer-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/private-transfer-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/private-transfer-desktop-1440x1000.png"
       },
       "title": "Confidential Transfer",
@@ -2019,7 +2019,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/profitanchor-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/profitanchor-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/profitanchor-desktop-1440x1000.png"
       },
       "title": "ProfitAnchor",
@@ -2052,7 +2052,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/profitanchor-admin-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/profitanchor-admin-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/profitanchor-admin-desktop-1440x1000.png"
       },
       "title": "ProfitAnchor Admin",
@@ -2085,7 +2085,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/quadratic-funding-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/quadratic-funding-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/quadratic-funding-desktop-1440x1000.png"
       },
       "title": "Quadratic Funding",
@@ -2118,7 +2118,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/recovery-guardian-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/recovery-guardian-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/recovery-guardian-desktop-1440x1000.png"
       },
       "title": "Recovery Guardian",
@@ -2151,7 +2151,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/red-envelope-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/red-envelope-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/red-envelope-desktop-1440x1000.png"
       },
       "title": "Red Envelope",
@@ -2184,7 +2184,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/screw-sort-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/screw-sort-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/screw-sort-desktop-1440x1000.png"
       },
       "title": "Screw Sort · 螺丝工坊",
@@ -2217,7 +2217,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/self-loan-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/self-loan-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/self-loan-desktop-1440x1000.png"
       },
       "title": "SelfLoan",
@@ -2250,7 +2250,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/sheep-solitaire-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/sheep-solitaire-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/sheep-solitaire-desktop-1440x1000.png"
       },
       "title": "Sheep Solitaire",
@@ -2283,7 +2283,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/snake-bounty-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/snake-bounty-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/snake-bounty-desktop-1440x1000.png"
       },
       "title": "Snake Bounty",
@@ -2316,7 +2316,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/soulbound-certificate-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/soulbound-certificate-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/soulbound-certificate-desktop-1440x1000.png"
       },
       "title": "Soulbound Certificate",
@@ -2349,7 +2349,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/sudoku-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/sudoku-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/sudoku-desktop-1440x1000.png"
       },
       "title": "Sudoku Arena",
@@ -2388,7 +2388,7 @@
       ],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/time-capsule-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/time-capsule-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/time-capsule-desktop-1440x1000.png"
       },
       "title": "Time Capsule",
@@ -2421,7 +2421,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/timestamp-proof-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/timestamp-proof-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/timestamp-proof-desktop-1440x1000.png"
       },
       "title": "Timestamp Proof",
@@ -2454,7 +2454,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/trustanchor-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/trustanchor-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/trustanchor-desktop-1440x1000.png"
       },
       "title": "Trust Anchor",
@@ -2487,7 +2487,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/trustanchor-admin-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/trustanchor-admin-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/trustanchor-admin-desktop-1440x1000.png"
       },
       "title": "TrustAnchor Admin",
@@ -2520,7 +2520,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/unbreakable-vault-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/unbreakable-vault-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/unbreakable-vault-desktop-1440x1000.png"
       },
       "title": "Unbreakable Vault",
@@ -2553,7 +2553,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/wallet-health-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/wallet-health-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/wallet-health-desktop-1440x1000.png"
       },
       "title": "Wallet Health",
@@ -2586,7 +2586,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/zhuada-e-desktop-1440x1000.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/zhuada-e-desktop-1440x1000.png",
         "relative_path": "miniapp-runtime-ui-screenshots/zhuada-e-desktop-1440x1000.png"
       },
       "title": "鹅篮翻翻乐 · Goose Basket Shuffle",
@@ -2619,7 +2619,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-account-lab-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-account-lab-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-account-lab-mobile-390x844.png"
       },
       "title": "AA Account Lab",
@@ -2652,7 +2652,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-market-hub-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-market-hub-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-market-hub-mobile-390x844.png"
       },
       "title": "AA Market Hub",
@@ -2685,7 +2685,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-permissions-lab-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-permissions-lab-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-permissions-lab-mobile-390x844.png"
       },
       "title": "AA Permissions",
@@ -2718,7 +2718,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-relay-console-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-relay-console-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-relay-console-mobile-390x844.png"
       },
       "title": "AA Relay Console",
@@ -2751,7 +2751,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aa-session-key-lab-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aa-session-key-lab-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aa-session-key-lab-mobile-390x844.png"
       },
       "title": "AA Session Key Lab",
@@ -2784,7 +2784,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/aim-master-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/aim-master-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/aim-master-mobile-390x844.png"
       },
       "title": "Aim Master",
@@ -2817,7 +2817,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/arrow-escape-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/arrow-escape-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/arrow-escape-mobile-390x844.png"
       },
       "title": "Garden Arrowworks",
@@ -2850,7 +2850,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/asset-factory-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/asset-factory-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/asset-factory-mobile-390x844.png"
       },
       "title": "Asset Factory",
@@ -2883,7 +2883,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/automation-copilot-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/automation-copilot-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/automation-copilot-mobile-390x844.png"
       },
       "title": "Automation Copilot",
@@ -2916,7 +2916,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/bead-workshop-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/bead-workshop-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/bead-workshop-mobile-390x844.png"
       },
       "title": "Bead Workshop",
@@ -2949,7 +2949,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/breakup-contract-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/breakup-contract-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/breakup-contract-mobile-390x844.png"
       },
       "title": "Breakup Contract",
@@ -2982,7 +2982,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/burn-league-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/burn-league-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/burn-league-mobile-390x844.png"
       },
       "title": "Burn League",
@@ -3015,7 +3015,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/color-clash-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/color-clash-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/color-clash-mobile-390x844.png"
       },
       "title": "Color Clash",
@@ -3048,7 +3048,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/council-governance-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/council-governance-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/council-governance-mobile-390x844.png"
       },
       "title": "Council Governance",
@@ -3081,7 +3081,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/curve-arrow-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/curve-arrow-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/curve-arrow-mobile-390x844.png"
       },
       "title": "Curve Arrow",
@@ -3114,7 +3114,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/custom-anchor-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/custom-anchor-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/custom-anchor-mobile-390x844.png"
       },
       "title": "Custom Anchor",
@@ -3147,7 +3147,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/daily-checkin-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/daily-checkin-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/daily-checkin-mobile-390x844.png"
       },
       "title": "Daily Checkin",
@@ -3180,7 +3180,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/dev-tipping-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/dev-tipping-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/dev-tipping-mobile-390x844.png"
       },
       "title": "Developer Tipping",
@@ -3213,7 +3213,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/dice-game-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/dice-game-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/dice-game-mobile-390x844.png"
       },
       "title": "Dice Game",
@@ -3246,7 +3246,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/event-ticket-pass-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/event-ticket-pass-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/event-ticket-pass-mobile-390x844.png"
       },
       "title": "Event Ticket Pass",
@@ -3279,7 +3279,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/explorer-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/explorer-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/explorer-mobile-390x844.png"
       },
       "title": "Explorer",
@@ -3312,7 +3312,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/flappy-dash-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/flappy-dash-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/flappy-dash-mobile-390x844.png"
       },
       "title": "Flappy Dash",
@@ -3345,7 +3345,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/flashloan-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/flashloan-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/flashloan-mobile-390x844.png"
       },
       "title": "Flashloan",
@@ -3378,7 +3378,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/fogplay-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/fogplay-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/fogplay-mobile-390x844.png"
       },
       "title": "FogPlay",
@@ -3411,7 +3411,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/forever-album-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/forever-album-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/forever-album-mobile-390x844.png"
       },
       "title": "Forever Album",
@@ -3444,7 +3444,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/fruit-funnel-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/fruit-funnel-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/fruit-funnel-mobile-390x844.png"
       },
       "title": "Fruit Funnel",
@@ -3477,7 +3477,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/game-2048-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/game-2048-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/game-2048-mobile-390x844.png"
       },
       "title": "2048 Rush",
@@ -3510,7 +3510,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gas-lucky-pool-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gas-lucky-pool-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gas-lucky-pool-mobile-390x844.png"
       },
       "title": "OneGate Vault",
@@ -3543,7 +3543,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gas-sponsor-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gas-sponsor-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gas-sponsor-mobile-390x844.png"
       },
       "title": "Gas Sponsor",
@@ -3576,7 +3576,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gasbox-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gasbox-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gasbox-mobile-390x844.png"
       },
       "title": "GASBOX",
@@ -3609,7 +3609,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gomoku-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gomoku-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gomoku-mobile-390x844.png"
       },
       "title": "Gomoku Arena",
@@ -3642,7 +3642,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/gov-merc-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/gov-merc-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/gov-merc-mobile-390x844.png"
       },
       "title": "Gov Merc",
@@ -3675,7 +3675,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/graveyard-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/graveyard-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/graveyard-mobile-390x844.png"
       },
       "title": "Graveyard",
@@ -3708,7 +3708,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/jump-rush-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/jump-rush-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/jump-rush-mobile-390x844.png"
       },
       "title": "Jump Rush",
@@ -3741,7 +3741,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/last-survivor-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/last-survivor-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/last-survivor-mobile-390x844.png"
       },
       "title": "LastSurvivor",
@@ -3774,7 +3774,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/memorial-shrine-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/memorial-shrine-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/memorial-shrine-mobile-390x844.png"
       },
       "title": "Memorial Shrine",
@@ -3807,7 +3807,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/merge-kingdom-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/merge-kingdom-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/merge-kingdom-mobile-390x844.png"
       },
       "title": "Merge Kingdom",
@@ -3840,7 +3840,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/milestone-escrow-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/milestone-escrow-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/milestone-escrow-mobile-390x844.png"
       },
       "title": "Milestone Escrow",
@@ -3873,7 +3873,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/miniapp-factory-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/miniapp-factory-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/miniapp-factory-mobile-390x844.png"
       },
       "title": "MiniApp Factory",
@@ -3906,7 +3906,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-convert-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-convert-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-convert-mobile-390x844.png"
       },
       "title": "Neo Convert",
@@ -3939,7 +3939,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-message-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-message-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-message-mobile-390x844.png"
       },
       "title": "Neo Message",
@@ -3972,7 +3972,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-multisig-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-multisig-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-multisig-mobile-390x844.png"
       },
       "title": "Neo Multisig",
@@ -4005,7 +4005,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-ns-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-ns-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-ns-mobile-390x844.png"
       },
       "title": "Neo Ns",
@@ -4038,7 +4038,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-pay-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-pay-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-pay-mobile-390x844.png"
       },
       "title": "NeoPay",
@@ -4071,7 +4071,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-pay-shared-example-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-pay-shared-example-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-pay-shared-example-mobile-390x844.png"
       },
       "title": "NeoPay Stream Studio",
@@ -4104,7 +4104,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-sign-anything-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-sign-anything-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-sign-anything-mobile-390x844.png"
       },
       "title": "Neo Signature Desk",
@@ -4137,7 +4137,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-swap-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-swap-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-swap-mobile-390x844.png"
       },
       "title": "Neo Swap",
@@ -4170,7 +4170,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-treasury-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-treasury-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-treasury-mobile-390x844.png"
       },
       "title": "Neo Treasury",
@@ -4203,7 +4203,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neo-x-bridge-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neo-x-bridge-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neo-x-bridge-mobile-390x844.png"
       },
       "title": "Neo X Bridge",
@@ -4236,7 +4236,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/neodid-passport-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/neodid-passport-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/neodid-passport-mobile-390x844.png"
       },
       "title": "NeoDID Passport",
@@ -4269,7 +4269,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/nft-factory-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/nft-factory-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/nft-factory-mobile-390x844.png"
       },
       "title": "NFT Factory",
@@ -4302,7 +4302,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/on-chain-tarot-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/on-chain-tarot-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/on-chain-tarot-mobile-390x844.png"
       },
       "title": "On Chain Tarot",
@@ -4335,7 +4335,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-compute-lab-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-compute-lab-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-compute-lab-mobile-390x844.png"
       },
       "title": "Oracle Compute Lab",
@@ -4368,7 +4368,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-http-console-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-http-console-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-http-console-mobile-390x844.png"
       },
       "title": "Oracle HTTP Console",
@@ -4401,7 +4401,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-neodid-console-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-neodid-console-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-neodid-console-mobile-390x844.png"
       },
       "title": "Oracle NeoDID Console",
@@ -4434,7 +4434,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-price-console-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-price-console-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-price-console-mobile-390x844.png"
       },
       "title": "Oracle Price Console",
@@ -4467,7 +4467,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-seal-console-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-seal-console-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-seal-console-mobile-390x844.png"
       },
       "title": "Oracle Seal Console",
@@ -4500,7 +4500,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/oracle-vrf-console-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/oracle-vrf-console-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/oracle-vrf-console-mobile-390x844.png"
       },
       "title": "Oracle VRF Console",
@@ -4533,7 +4533,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/pet-potion-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/pet-potion-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/pet-potion-mobile-390x844.png"
       },
       "title": "Pet Potion",
@@ -4566,7 +4566,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/private-transfer-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/private-transfer-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/private-transfer-mobile-390x844.png"
       },
       "title": "Confidential Transfer",
@@ -4599,7 +4599,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/profitanchor-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/profitanchor-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/profitanchor-mobile-390x844.png"
       },
       "title": "ProfitAnchor",
@@ -4632,7 +4632,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/profitanchor-admin-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/profitanchor-admin-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/profitanchor-admin-mobile-390x844.png"
       },
       "title": "ProfitAnchor Admin",
@@ -4665,7 +4665,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/quadratic-funding-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/quadratic-funding-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/quadratic-funding-mobile-390x844.png"
       },
       "title": "Quadratic Funding",
@@ -4698,7 +4698,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/recovery-guardian-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/recovery-guardian-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/recovery-guardian-mobile-390x844.png"
       },
       "title": "Recovery Guardian",
@@ -4731,7 +4731,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/red-envelope-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/red-envelope-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/red-envelope-mobile-390x844.png"
       },
       "title": "Red Envelope",
@@ -4764,7 +4764,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/screw-sort-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/screw-sort-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/screw-sort-mobile-390x844.png"
       },
       "title": "Screw Sort · 螺丝工坊",
@@ -4797,7 +4797,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/self-loan-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/self-loan-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/self-loan-mobile-390x844.png"
       },
       "title": "SelfLoan",
@@ -4830,7 +4830,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/sheep-solitaire-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/sheep-solitaire-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/sheep-solitaire-mobile-390x844.png"
       },
       "title": "Sheep Solitaire",
@@ -4863,7 +4863,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/snake-bounty-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/snake-bounty-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/snake-bounty-mobile-390x844.png"
       },
       "title": "Snake Bounty",
@@ -4896,7 +4896,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/soulbound-certificate-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/soulbound-certificate-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/soulbound-certificate-mobile-390x844.png"
       },
       "title": "Soulbound Certificate",
@@ -4929,7 +4929,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/sudoku-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/sudoku-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/sudoku-mobile-390x844.png"
       },
       "title": "Sudoku Arena",
@@ -4968,7 +4968,7 @@
       ],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/time-capsule-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/time-capsule-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/time-capsule-mobile-390x844.png"
       },
       "title": "Time Capsule",
@@ -5001,7 +5001,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/timestamp-proof-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/timestamp-proof-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/timestamp-proof-mobile-390x844.png"
       },
       "title": "Timestamp Proof",
@@ -5034,7 +5034,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/trustanchor-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/trustanchor-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/trustanchor-mobile-390x844.png"
       },
       "title": "Trust Anchor",
@@ -5067,7 +5067,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/trustanchor-admin-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/trustanchor-admin-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/trustanchor-admin-mobile-390x844.png"
       },
       "title": "TrustAnchor Admin",
@@ -5100,7 +5100,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/unbreakable-vault-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/unbreakable-vault-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/unbreakable-vault-mobile-390x844.png"
       },
       "title": "Unbreakable Vault",
@@ -5133,7 +5133,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/wallet-health-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/wallet-health-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/wallet-health-mobile-390x844.png"
       },
       "title": "Wallet Health",
@@ -5166,7 +5166,7 @@
       "logs": [],
       "failedAssets": [],
       "screenshot": {
-        "path": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots/zhuada-e-mobile-390x844.png",
+        "path": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots/zhuada-e-mobile-390x844.png",
         "relative_path": "miniapp-runtime-ui-screenshots/zhuada-e-mobile-390x844.png"
       },
       "title": "鹅篮翻翻乐 · Goose Basket Shuffle",

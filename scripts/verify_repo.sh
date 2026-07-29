@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-LOCK_DIR="${TMPDIR:-/tmp}/neo-miniapps-platform.verify-repo.lock"
+LOCK_DIR="${TMPDIR:-/tmp}/neo-os-web.verify-repo.lock"
 
 cleanup_playwright_artifacts() {
   # Ensure hourly validation does not leave stray Playwright/Next web servers behind.
@@ -13,7 +13,7 @@ cleanup_playwright_artifacts() {
   if [[ -n "${port_pid}" ]]; then
     local port_cmd=""
     port_cmd="$(ps -p "${port_pid}" -o command= 2>/dev/null || true)"
-    if [[ "${port_cmd}" == *"neo-miniapps-platform"* || "${port_cmd}" == *"next-server"* ]]; then
+    if [[ "${port_cmd}" == *"neo-os-web"* || "${port_cmd}" == *"next-server"* ]]; then
       kill "${port_pid}" 2>/dev/null || true
       sleep 0.5
       if ps -p "${port_pid}" >/dev/null 2>&1; then

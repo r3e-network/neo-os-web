@@ -8,7 +8,7 @@ Total checks: 156
 Passed: 156
 Failed: 0
 Warnings: 0
-Screenshots: /Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots
+Screenshots: /Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/miniapp-runtime-ui-screenshots
 
 ## Checks
 

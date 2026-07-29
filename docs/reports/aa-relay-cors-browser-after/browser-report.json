@@ -10,5 +10,5 @@
   },
   "noCorsConsoleErrors": true,
   "visibleFailureIsRelayConfigNotCors": true,
-  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-relay-cors-browser-after/aa-relay-testnet-submit-desktop.png"
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/aa-relay-cors-browser-after/aa-relay-testnet-submit-desktop.png"
 }

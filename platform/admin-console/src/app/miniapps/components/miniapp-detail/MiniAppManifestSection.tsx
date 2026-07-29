@@ -53,11 +53,11 @@ function getLiveSmokeCommand(
 export function MiniAppManifestSection({ selectedApp }: Props) {
   const liveSmoke = getLiveSmokeCommand(selectedApp.app_id);
   const workflowHref =
-    "https://github.com/r3e-network/neo-miniapps-platform/actions/workflows/live-smoke.yml";
+    "https://github.com/r3e-network/neo-os-web/actions/workflows/live-smoke.yml";
   const reportsHref =
-    "https://github.com/r3e-network/neo-miniapps-platform/tree/main/docs/reports/live-smoke";
+    "https://github.com/r3e-network/neo-os-web/tree/main/docs/reports/live-smoke";
   const runbookHref =
-    "https://github.com/r3e-network/neo-miniapps-platform/blob/main/README.md#run-the-full-live-smoke-suite-with-timestamped-reports";
+    "https://github.com/r3e-network/neo-os-web/blob/main/README.md#run-the-full-live-smoke-suite-with-timestamped-reports";
 
   return (
     <>

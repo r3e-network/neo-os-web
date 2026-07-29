@@ -1,7 +1,7 @@
 # Joint Verification Report — Platform Contract Library v2 on N3 Testnet
 
 **Date:** 2026-07-18 (rolling — final section updated as the remaining milestones land)
-**Repos:** neo-miniapps-platform (platform), neo-morpheus-oracle (kernel), neo-abstract-account (AA)
+**Repos:** neo-os-web (platform), neo-morpheus-oracle (kernel), neo-abstract-account (AA)
 **Signer (all testnet writes):** `NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu` (`0x13ef519c362973f9a34648a9eac5b71250b2a80a`)
 **Design authority:** `docs/platform-contract-library-v2.md`
 **Audit companion:** `docs/reports/joint-audit-2026-07.md` (41 findings, dispositions)

@@ -19,7 +19,7 @@
       "consoleMessages": [
         "warning: [private-transfer] seal failed during store stage"
       ],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/private-transfer-service-layout-after/standalone-private-transfer.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/private-transfer-service-layout-after/standalone-private-transfer.png"
     },
     {
       "name": "host-detail",
@@ -35,7 +35,7 @@
         "warning: [private-transfer] seal failed during store stage",
         "warning: [private-transfer] seal failed during store stage"
       ],
-      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/private-transfer-service-layout-after/host-private-transfer.png"
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/private-transfer-service-layout-after/host-private-transfer.png"
     }
   ],
   "passed": true

@@ -382,7 +382,7 @@ jobs:
   files["README.md"] = `# neo-miniapp-sdk
 
 The SDK every Neo MiniApp and MiniGame builds against. Split out of
-[neo-miniapps-platform](https://github.com/r3e-network/neo-miniapps-platform) so
+[neo-os-web](https://github.com/r3e-network/neo-os-web) so
 that the platform repo holds only platform code, and app repos depend on a
 versioned SDK instead of a monorepo path.
 
@@ -397,7 +397,7 @@ versioned SDK instead of a monorepo path.
 
 - \`neo-miniapps\` — non-game MiniApps
 - \`neo-minigames\` — MiniGames
-- \`neo-miniapps-platform\` — host app and admin console
+- \`neo-os-web\` — host app and admin console
 
 Apps keep importing \`@shared/*\` and \`@framework/*\`; only what those aliases
 point at changed. In an app repo they resolve into \`node_modules\`.
@@ -750,7 +750,7 @@ if (failures.length > 0) {
  * depend on. That means the DevPack is vendored here, and a vendored copy can
  * drift from the platform's canonical one.
  *
- * This compares every vendored file against neo-miniapps-platform@master and
+ * This compares every vendored file against neo-os-web@master and
  * fails on any difference, so drift surfaces in CI instead of at deploy time.
  */
 import fs from "node:fs/promises";
@@ -762,7 +762,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const devPackDir = path.join(repoRoot, "contracts", "MiniApp.DevPack");
 const RAW_BASE =
   process.env.DEVPACK_UPSTREAM_BASE ||
-  "https://raw.githubusercontent.com/r3e-network/neo-miniapps-platform/master/contracts/MiniApp.DevPack";
+  "https://raw.githubusercontent.com/r3e-network/neo-os-web/master/contracts/MiniApp.DevPack";
 
 function sha256(buffer) {
   return crypto.createHash("sha256").update(buffer).digest("hex");
@@ -884,7 +884,7 @@ function renderAppRepoReadme(repoName, kind, label, apps, withContracts) {
 
 Neo ${label} — app sources, their contracts, and the pipeline that publishes
 built bundles to the CDN. Split out of
-[neo-miniapps-platform](https://github.com/r3e-network/neo-miniapps-platform),
+[neo-os-web](https://github.com/r3e-network/neo-os-web),
 which now holds only platform code and loads these apps from the CDN at runtime.
 
 ## Layout

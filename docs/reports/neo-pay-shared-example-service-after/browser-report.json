@@ -45,7 +45,7 @@
           "status": 501
         }
       ],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/desktop-1440x1000-static-direct.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/neo-pay-shared-example-service-after/desktop-1440x1000-static-direct.png"
     },
     {
       "name": "desktop-1440x1000",
@@ -73,7 +73,7 @@
       "consoleMessages": [],
       "failedRequests": [],
       "badResponses": [],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/desktop-1440x1000-host-direct.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/neo-pay-shared-example-service-after/desktop-1440x1000-host-direct.png"
     },
     {
       "name": "mobile-390x844",
@@ -119,7 +119,7 @@
           "status": 501
         }
       ],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/mobile-390x844-static-direct.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/neo-pay-shared-example-service-after/mobile-390x844-static-direct.png"
     },
     {
       "name": "mobile-390x844",
@@ -147,7 +147,7 @@
       "consoleMessages": [],
       "failedRequests": [],
       "badResponses": [],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/mobile-390x844-host-direct.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/neo-pay-shared-example-service-after/mobile-390x844-host-direct.png"
     }
   ],
   "hostDetail": [
@@ -183,7 +183,7 @@
       "iframeTooShort": false,
       "consoleMessages": [],
       "badResponses": [],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/desktop-1440x1000-host-detail.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/neo-pay-shared-example-service-after/desktop-1440x1000-host-detail.png"
     },
     {
       "name": "mobile-390x844",
@@ -217,7 +217,7 @@
       "iframeTooShort": false,
       "consoleMessages": [],
       "badResponses": [],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/mobile-390x844-host-detail.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/neo-pay-shared-example-service-after/mobile-390x844-host-detail.png"
     }
   ]
 }

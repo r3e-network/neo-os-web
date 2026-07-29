@@ -141,7 +141,7 @@ usage() {
 Usage: deploy/scripts/verify_cross_repo_testnet.sh
 
 Environment overrides:
-  MINIAPP_ENV_FILE         Path to neo-miniapps-platform .env
+  MINIAPP_ENV_FILE         Path to neo-os-web .env
   MORPHEUS_DIR             Path to neo-morpheus-oracle repo
   AA_DIR                   Path to neo-abstract-account repo
   AA_TEST_WIF              Funded Neo N3 testnet WIF for AA relay test (required)

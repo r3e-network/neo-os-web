@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer-core";
 
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const OUT = "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/.workbuddy/artifacts/shots";
+const OUT = "/Users/jinghuiliao/git/r3e/neo-os-web/.workbuddy/artifacts/shots";
 const URL = "http://localhost:5190/";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

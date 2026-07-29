@@ -65,7 +65,7 @@
           "url": "http://127.0.0.1:3037/api/edge/os-game-bet"
         }
       ],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/staticDirect-desktop.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/burn-league-service-layout-after/staticDirect-desktop.png"
     },
     {
       "label": "hostDirect",
@@ -91,7 +91,7 @@
       "consoleMessages": [],
       "pageErrors": [],
       "badResponses": [],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/hostDirect-desktop.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/burn-league-service-layout-after/hostDirect-desktop.png"
     },
     {
       "label": "hostDetail",
@@ -124,7 +124,7 @@
       "consoleMessages": [],
       "pageErrors": [],
       "badResponses": [],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/hostDetail-desktop.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/burn-league-service-layout-after/hostDetail-desktop.png"
     },
     {
       "label": "staticDirect",
@@ -176,7 +176,7 @@
           "url": "http://127.0.0.1:3037/api/edge/os-game-bet"
         }
       ],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/staticDirect-mobile.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/burn-league-service-layout-after/staticDirect-mobile.png"
     },
     {
       "label": "hostDirect",
@@ -202,7 +202,7 @@
       "consoleMessages": [],
       "pageErrors": [],
       "badResponses": [],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/hostDirect-mobile.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/burn-league-service-layout-after/hostDirect-mobile.png"
     },
     {
       "label": "hostDetail",
@@ -244,7 +244,7 @@
       "consoleMessages": [],
       "pageErrors": [],
       "badResponses": [],
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/hostDetail-mobile.png"
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/burn-league-service-layout-after/hostDetail-mobile.png"
     }
   ]
 }

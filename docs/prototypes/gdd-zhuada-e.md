@@ -1,7 +1,7 @@
 # 鹅篮翻翻乐 (Goose Basket Shuffle) — 小游戏 GDD v4.1
 
 > 产品版本：`3.1.0`
-> 平台：`neo-miniapps-platform`
+> 平台：`neo-os-web`
 > 技术栈：React + Three.js + cannon-es + GameBridge
 > 模式：免费本地玩法；不依赖链上合约；个人记录保存在本机
 > 文档状态：2026-07-11 按当前源码重写。浏览器与自动化基线已建立，最终发布仍以 iOS/Android 真机门禁为准。

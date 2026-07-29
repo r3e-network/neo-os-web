@@ -18,7 +18,7 @@
     "test:validation": "cd tests && npx vitest run",
     "test:validation:watch": "cd tests && npx vitest",
     "test:miniapps": "node scripts/run-miniapp-tests.mjs",
-    "test:go": "node -e \"console.log('Legacy Go service layer moved to external repos; root Go test suite is no longer part of neo-miniapps-platform.')\"",
+    "test:go": "node -e \"console.log('Legacy Go service layer moved to external repos; root Go test suite is no longer part of neo-os-web.')\"",
     "test:testnet:local-gates": "bash deploy/scripts/run_local_validation_gates.sh",
     "test:testnet:live": "bash deploy/scripts/run_live_testnet_validation.sh",
     "test:testnet:live:smoke": "bash deploy/scripts/run_full_live_smoke.sh",

@@ -1,4 +1,4 @@
-# Full-System Verification — neo-miniapps-platform
+# Full-System Verification — neo-os-web
 
 - **Repo / commit:** `master @ 6ad55c23d3773798637f09b98ad7ff47a9320c24`
 - **Date:** 2026-07-13
@@ -100,4 +100,4 @@ All test failures were traced to uncommitted parallel work. A green full-suite r
 - Dim 4 (robustness/security): `…/scratchpad/full-verify/dim4-robustness-security.md`
 - Dim 5 (functional/live): `…/scratchpad/full-verify/dimension5-functional.md` (+ 34 capture PNGs, `index__v.json`, `guest-probe.json`)
 
-(`…` = `/private/tmp/claude-501/-Users-jinghuiliao-git-r3e-neo-miniapps-platform/4992f2ed-76b0-47d4-b668-7d5a34b0262c`)
+(`…` = `/private/tmp/claude-501/-Users-jinghuiliao-git-r3e-neo-os-web/4992f2ed-76b0-47d4-b668-7d5a34b0262c`)

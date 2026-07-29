@@ -508,7 +508,7 @@ def generate_game_images(app_dir, app_cfg):
 # ── Main ────────────────────────────────────────────────────────────────────
 
 def main():
-    base = '/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps'
+    base = '/Users/jinghuiliao/git/r3e/neo-os-web/apps'
 
     for app in APPS:
         app_dir = os.path.join(base, app['name'])

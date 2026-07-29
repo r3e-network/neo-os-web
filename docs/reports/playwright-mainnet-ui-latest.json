@@ -16,7 +16,7 @@
         "Claim Reward"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-onegate-vault-standalone.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-onegate-vault-standalone.png"
     },
     {
       "profile": "desktop",
@@ -31,7 +31,7 @@
         "Claim Reward"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-onegate-vault-alias.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-onegate-vault-alias.png"
     },
     {
       "profile": "desktop",
@@ -54,7 +54,7 @@
         "Wallet"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-onegate-id-23.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-onegate-id-23.png"
     },
     {
       "profile": "desktop",
@@ -76,7 +76,7 @@
         "Send Red Envelope"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-red-envelope.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-red-envelope.png"
     },
     {
       "profile": "desktop",
@@ -95,7 +95,7 @@
         "Roll with VRF"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-dice-game.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-dice-game.png"
     },
     {
       "profile": "desktop",
@@ -119,7 +119,7 @@
         "Stake NEO"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-profitanchor.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-profitanchor.png"
     },
     {
       "profile": "desktop",
@@ -143,7 +143,7 @@
         "Stake NEO"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-trustanchor.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-trustanchor.png"
     },
     {
       "profile": "desktop",
@@ -161,7 +161,7 @@
         "Post"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-self-loan.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-self-loan.png"
     },
     {
       "profile": "desktop",
@@ -180,7 +180,7 @@
         "Post"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-gasbox.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-gasbox.png"
     },
     {
       "profile": "desktop",
@@ -199,7 +199,7 @@
         "Post"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-fogplay.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/desktop-fogplay.png"
     },
     {
       "profile": "mobile",
@@ -214,7 +214,7 @@
         "Claim Reward"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-onegate-vault-standalone.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-onegate-vault-standalone.png"
     },
     {
       "profile": "mobile",
@@ -229,7 +229,7 @@
         "Claim Reward"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-onegate-vault-alias.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-onegate-vault-alias.png"
     },
     {
       "profile": "mobile",
@@ -252,7 +252,7 @@
         "Wallet"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-onegate-id-23.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-onegate-id-23.png"
     },
     {
       "profile": "mobile",
@@ -274,7 +274,7 @@
         "Send Red Envelope"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-red-envelope.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-red-envelope.png"
     },
     {
       "profile": "mobile",
@@ -293,7 +293,7 @@
         "Roll with VRF"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-dice-game.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-dice-game.png"
     },
     {
       "profile": "mobile",
@@ -317,7 +317,7 @@
         "Stake NEO"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-profitanchor.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-profitanchor.png"
     },
     {
       "profile": "mobile",
@@ -341,7 +341,7 @@
         "Stake NEO"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-trustanchor.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-trustanchor.png"
     },
     {
       "profile": "mobile",
@@ -359,7 +359,7 @@
         "Post"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-self-loan.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-self-loan.png"
     },
     {
       "profile": "mobile",
@@ -378,7 +378,7 @@
         "Post"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-gasbox.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-gasbox.png"
     },
     {
       "profile": "mobile",
@@ -397,7 +397,7 @@
         "Post"
       ],
       "consoleErrors": [],
-      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-fogplay.png"
+      "screenshot": "/Users/jinghuiliao/git/neo-os-web/docs/reports/playwright-mainnet-ui/mobile-fogplay.png"
     }
   ]
 }

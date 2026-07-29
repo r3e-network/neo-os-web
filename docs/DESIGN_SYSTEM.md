@@ -2,7 +2,7 @@
 
 Canonical, cross-repo design language for the Neo MiniApps ecosystem:
 
-- `neo-miniapps-platform` — platform host (Next.js + Tailwind) + 77 miniapps (Vite/React + SCSS via `apps/shared/styles`)
+- `neo-os-web` — platform host (Next.js + Tailwind) + 77 miniapps (Vite/React + SCSS via `apps/shared/styles`)
 - `neo-abstract-account` — AA frontend (Vue 3 + Tailwind)
 - `neo-morpheus-oracle` — Oracle web (Next.js + custom CSS variables)
 

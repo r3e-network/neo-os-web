@@ -52,13 +52,13 @@ The repo's generated Morpheus kernel artifact does include the new OS methods in
 
 ## Verification
 
-- `npm --prefix neo-miniapps-platform run -s build:miniapp-dapps -- forever-album`
-- `npm --prefix neo-miniapps-platform run -s stage:miniapps:dist -- forever-album`
-- `npm --prefix neo-miniapps-platform/platform/host-app run typecheck`
-- `npm --prefix neo-miniapps-platform/platform/host-app test -- --runInBand __tests__/api/edge.proxy.test.ts __tests__/components/PlayAreaRegistry.test.tsx`
-- `cd neo-miniapps-platform/apps/shared && npx vitest run test/forever-album.playarea.test.tsx test/wallet-sdk-nep21.test.ts`
-- `cd neo-miniapps-platform/apps/shared && npx vitest run test/forever-album.playarea.test.tsx`
-- `cd neo-miniapps-platform/platform/host-app && npm test -- --runInBand __tests__/components/PlayAreaRegistry.test.tsx`
+- `npm --prefix neo-os-web run -s build:miniapp-dapps -- forever-album`
+- `npm --prefix neo-os-web run -s stage:miniapps:dist -- forever-album`
+- `npm --prefix neo-os-web/platform/host-app run typecheck`
+- `npm --prefix neo-os-web/platform/host-app test -- --runInBand __tests__/api/edge.proxy.test.ts __tests__/components/PlayAreaRegistry.test.tsx`
+- `cd neo-os-web/apps/shared && npx vitest run test/forever-album.playarea.test.tsx test/wallet-sdk-nep21.test.ts`
+- `cd neo-os-web/apps/shared && npx vitest run test/forever-album.playarea.test.tsx`
+- `cd neo-os-web/platform/host-app && npm test -- --runInBand __tests__/components/PlayAreaRegistry.test.tsx`
 
 ## Host Upload Workspace Refresh
 

@@ -251,7 +251,7 @@ async function main() {
     path.join(publicRoot, "onegate-catalog.json"),
     `${JSON.stringify({
       generatedAt,
-      source: "neo-miniapps-platform",
+      source: "neo-os-web",
       baseUrl,
       dapps: outputCatalogApps.map((app) => app.onegate),
     }, null, 2)}\n`,

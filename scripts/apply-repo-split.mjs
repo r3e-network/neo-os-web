@@ -64,7 +64,7 @@ const outDir = path.join(outBase, targetRepo);
  * single app.
  */
 const PLATFORM_BOUND_TESTS = new Set(
-  (plan.repos["neo-miniapps-platform"].keeps_shared_tests || []).map((entry) => entry.test),
+  (plan.repos["neo-os-web"].keeps_shared_tests || []).map((entry) => entry.test),
 );
 
 /**

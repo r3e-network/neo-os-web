@@ -11,7 +11,7 @@ usage() {
   cat <<'EOF'
 Usage: deploy/scripts/run_live_testnet_validation.sh [--direct-only|--flagship-only]
 
-Runs live testnet validation layers for neo-miniapps-platform:
+Runs live testnet validation layers for neo-os-web:
 - cross-repo direct validation
 - flagship miniapp live user flows
 EOF

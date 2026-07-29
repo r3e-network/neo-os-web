@@ -3,8 +3,8 @@
   "reports": [
     {
       "app": "profitanchor",
-      "report": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-user-browser-after/profitanchor-browser-report.json",
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-user-browser-after/profitanchor-after-stake-redeem-claim.png",
+      "report": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-user-browser-after/profitanchor-browser-report.json",
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-user-browser-after/profitanchor-after-stake-redeem-claim.png",
       "assertions": {
         "transferInvoked": true,
         "withdrawInvoked": true,
@@ -24,8 +24,8 @@
     },
     {
       "app": "trustanchor",
-      "report": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-user-browser-after/trustanchor-browser-report.json",
-      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-user-browser-after/trustanchor-after-stake-redeem-claim.png",
+      "report": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-user-browser-after/trustanchor-browser-report.json",
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-os-web/docs/reports/anchor-user-browser-after/trustanchor-after-stake-redeem-claim.png",
       "assertions": {
         "transferInvoked": true,
         "withdrawInvoked": true,
