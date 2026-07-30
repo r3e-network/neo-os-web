@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
-import { existsSync } from "node:fs";
+import fs, { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -81,3 +81,34 @@ test("no shell script contains a shellcheck error", (t) => {
 
   assert.deepEqual(errors, [], `shellcheck errors:\n${errors.join("\n")}`);
 });
+
+// Moved here from build_artifacts.test.mjs, whose subject - the artifact
+// promotion helper - went to neo-os-contracts with the contracts. This rule is
+// about this repo's own shell scripts, so it stays.
+// Matches `[ -f $x ]` and friends, capturing the operand so an unquoted glob in
+// it can be spotted: the shell expands it before the test runs, so the test
+// silently examines the wrong path (or several).
+const GLOB_FILE_TEST = /\[{1,2}\s+-(?:f|e|d|s|r|w|x|L|h)\s+([^\]]+?)\s*\]{1,2}/g;
+
+test("no shell script passes a glob to a file test operand", () => {
+  const offenders = [];
+
+  for (const relativePath of trackedShellScripts()) {
+    const contents = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+    contents.split(/\r?\n/).forEach((line, index) => {
+      if (/^\s*#/.test(line)) return;
+      for (const match of line.matchAll(GLOB_FILE_TEST)) {
+        const unquoted = match[1].replace(/"[^"]*"/g, "").replace(/'[^']*'/g, "");
+        if (/[*?]/.test(unquoted)) {
+          offenders.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+        }
+      }
+    });
+  }
+
+  assert.deepEqual(offenders, [], `glob passed to a file test:\n${offenders.join("\n")}`);
+});
+
+// The deploy-factory.sh rules that used to close this file moved to
+// neo-os-contracts with the script and the artifact-promotion helper it sources.
+// See that repo's scripts/lib/neoexpress_config.test.mjs.
