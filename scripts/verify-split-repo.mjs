@@ -10,7 +10,7 @@
  *
  * Usage:
  *   node scripts/verify-split-repo.mjs ../neo-miniapp-sdk
- *   node scripts/verify-split-repo.mjs ../neo-minigames --json
+ *   node scripts/verify-split-repo.mjs ../neo-os-minigames --json
  */
 import fs from "node:fs";
 import path from "node:path";

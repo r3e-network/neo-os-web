@@ -29,11 +29,11 @@ const snapshotPath = path.join(
 const SOURCES = [
   {
     kind: "minigames",
-    dir: process.env.NEO_MINIGAMES_DIR || path.resolve(repoRoot, "../neo-minigames"),
+    dir: process.env.NEO_MINIGAMES_DIR || path.resolve(repoRoot, "../neo-os-minigames"),
   },
   {
     kind: "miniapps",
-    dir: process.env.NEO_MINIAPPS_DIR || path.resolve(repoRoot, "../neo-miniapps"),
+    dir: process.env.NEO_MINIAPPS_DIR || path.resolve(repoRoot, "../neo-os-miniapps"),
   },
 ];
 
@@ -65,7 +65,7 @@ async function build() {
     } catch {
       throw new Error(
         `cannot read ${source.kind} manifests: ${appsDir} is missing. ` +
-          `Clone r3e-network/neo-${source.kind} beside this repo, or set ` +
+          `Clone r3e-network/neo-os-${source.kind} beside this repo, or set ` +
           `NEO_${source.kind.toUpperCase()}_DIR.`,
       );
     }
