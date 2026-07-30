@@ -52,6 +52,14 @@ type appManifest struct {
 }
 
 var deployTargets = []deployTarget{
+	// Nine entries were dropped here: MiniAppDevTipping, MiniAppExFiles,
+	// MiniAppGasCircle, MiniAppGraveyard, MiniAppHallOfFame,
+	// MiniAppHeritageTrust, MiniAppMasqueradeDAO, MiniAppMillionPieceMap and
+	// MiniAppTurtleMatch. Their sources were deleted on 2026-04-15 by "migrate to
+	// modular kernel architecture" and the table was never updated, so every run
+	// reported nine missing NEFs. dev-tipping and graveyard, the only two of the
+	// nine whose apps still exist, are bound to already-deployed contracts in
+	// their manifests.
 	{"MiniAppMultisig", "contracts/build/MiniAppMultisig.nef", "contracts/build/MiniAppMultisig.manifest.json", "apps/neo-multisig/neo-manifest.json"},
 	{"MiniAppBurnLeague", "contracts/build/MiniAppBurnLeague.nef", "contracts/build/MiniAppBurnLeague.manifest.json", "apps/burn-league/neo-manifest.json"},
 	{"MiniAppEventTicketPass", "contracts/build/MiniAppEventTicketPass.nef", "contracts/build/MiniAppEventTicketPass.manifest.json", "apps/event-ticket-pass/neo-manifest.json"},
@@ -64,17 +72,8 @@ var deployTargets = []deployTarget{
 	{"MiniAppLastSurvivor", "contracts/build/MiniAppLastSurvivor.nef", "contracts/build/MiniAppLastSurvivor.manifest.json", "apps/last-survivor/neo-manifest.json"},
 	{"MiniAppTarot", "contracts/build/MiniAppTarot.nef", "contracts/build/MiniAppTarot.manifest.json", "apps/on-chain-tarot/neo-manifest.json"},
 	{"MiniAppRedEnvelope", "contracts/build/MiniAppRedEnvelope.nef", "contracts/build/MiniAppRedEnvelope.manifest.json", "apps/red-envelope/neo-manifest.json"},
-	{"MiniAppDevTipping", "contracts/build/MiniAppDevTipping.nef", "contracts/build/MiniAppDevTipping.manifest.json", "apps/dev-tipping/neo-manifest.json"},
-	{"MiniAppGasCircle", "contracts/build/MiniAppGasCircle.nef", "contracts/build/MiniAppGasCircle.manifest.json", ""},
-	{"MiniAppExFiles", "contracts/build/MiniAppExFiles.nef", "contracts/build/MiniAppExFiles.manifest.json", ""},
 	{"MiniAppGovMerc", "contracts/build/MiniAppGovMerc.nef", "contracts/build/MiniAppGovMerc.manifest.json", "apps/gov-merc/neo-manifest.json"},
-	{"MiniAppMasqueradeDAO", "contracts/build/MiniAppMasqueradeDAO.nef", "contracts/build/MiniAppMasqueradeDAO.manifest.json", ""},
-	{"MiniAppMillionPieceMap", "contracts/build/MiniAppMillionPieceMap.nef", "contracts/build/MiniAppMillionPieceMap.manifest.json", ""},
-	{"MiniAppGraveyard", "contracts/build/MiniAppGraveyard.nef", "contracts/build/MiniAppGraveyard.manifest.json", "apps/graveyard/neo-manifest.json"},
-	{"MiniAppHeritageTrust", "contracts/build/MiniAppHeritageTrust.nef", "contracts/build/MiniAppHeritageTrust.manifest.json", ""},
-	{"MiniAppHallOfFame", "contracts/build/MiniAppHallOfFame.nef", "contracts/build/MiniAppHallOfFame.manifest.json", ""},
 	{"MiniAppTimeCapsule", "contracts/build/MiniAppTimeCapsule.nef", "contracts/build/MiniAppTimeCapsule.manifest.json", "apps/time-capsule/neo-manifest.json"},
-	{"MiniAppTurtleMatch", "contracts/build/MiniAppTurtleMatch.nef", "contracts/build/MiniAppTurtleMatch.manifest.json", ""},
 }
 
 var legacyCloneDeployTargets = []deployTarget{
@@ -496,7 +495,46 @@ func parseOptionalPublicKey(raw string) (*keys.PublicKey, error) {
 	return keys.NewPublicKeyFromString(raw)
 }
 
-func loadNEF(path string) (*nef.File, []byte, error) {
+// resolveRepoPath finds a path that used to be relative to this repo.
+//
+// The app contracts and their neo-manifest.json files are in neo-os-miniapps and
+// neo-os-minigames now, so contracts/build/... and apps/... no longer resolve
+// here. Each candidate root is tried in order and the first hit wins; overridable
+// so CI can point at wherever it placed the checkouts.
+func repoRoots() []string {
+	roots := []string{"."}
+	for _, spec := range [][2]string{
+		{"NEO_MINIAPPS_DIR", "../neo-os-miniapps"},
+		{"NEO_MINIGAMES_DIR", "../neo-os-minigames"},
+		{"NEO_OS_CONTRACTS_DIR", "../neo-os-contracts"},
+	} {
+		if override := os.Getenv(spec[0]); override != "" {
+			roots = append(roots, override)
+			continue
+		}
+		roots = append(roots, spec[1])
+	}
+	return roots
+}
+
+func resolveRepoPath(relative string) (string, error) {
+	roots := repoRoots()
+	for _, root := range roots {
+		candidate := filepath.Join(root, relative)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf(
+		"%s not found in any of %v; clone the app repos beside this one or set NEO_MINIAPPS_DIR / NEO_MINIGAMES_DIR / NEO_OS_CONTRACTS_DIR",
+		relative, roots)
+}
+
+func loadNEF(relative string) (*nef.File, []byte, error) {
+	path, err := resolveRepoPath(relative)
+	if err != nil {
+		return nil, nil, err
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read nef %s: %w", path, err)
@@ -508,7 +546,11 @@ func loadNEF(path string) (*nef.File, []byte, error) {
 	return &file, data, nil
 }
 
-func loadManifest(path string) (*manifest.Manifest, []byte, error) {
+func loadManifest(relative string) (*manifest.Manifest, []byte, error) {
+	path, err := resolveRepoPath(relative)
+	if err != nil {
+		return nil, nil, err
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read manifest %s: %w", path, err)
@@ -622,7 +664,16 @@ func waitForTx(ctx context.Context, client *rpcclient.Client, txHash util.Uint25
 	}
 }
 
-func updateAppManifest(path string, networkKey string, contractHash string) error {
+// The manifest belongs to the app's repo, so this writes outside this checkout.
+// It is deliberate: this tool is the deployment operator and the hash it just
+// deployed is what the manifest has to record. The write only happens for a path
+// that already exists - resolveRepoPath does not invent one - so it cannot create
+// a stray manifest in the wrong repo.
+func updateAppManifest(relative string, networkKey string, contractHash string) error {
+	path, err := resolveRepoPath(relative)
+	if err != nil {
+		return err
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err

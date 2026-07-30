@@ -19,78 +19,110 @@ const root = path.resolve(__dirname, "..", "..");
 // One row per flagship. expectedMethods are the methods the frontend / live
 // flow validator depends on — if the on-chain ABI is missing one, the page
 // or the smoke test will break.
+// Every method here is one the app's own source invokes by name, checked to
+// exist on the contract its manifest binds to. Derived that way on 2026-07-30
+// and verified against mainnet and testnet.
+//
+// The lists had gone stale: they still named the PlatformGame kernel API
+// (getGameType, startCountdownRound, buyCountdownKeys, ...) that these apps
+// stopped using when they moved to standalone contracts, so the audit was
+// asserting an interface nothing implements any more. Two more - red-envelope's
+// isPaused and daily-checkin's checkIn - were methods no app calls.
+//
+// To refresh after an app changes its contract calls: list the methods the app
+// source quotes, intersect with the deployed ABI, and put the result here.
 const items = [
   {
     brand: "LastSurvivor",
     manifest: "apps/last-survivor/neo-manifest.json",
-    expectedMethods: ["currentRoundId", "timeRemaining", "totalKeysSold", "totalPotDistributed", "totalPlayers", "getCurrentKeyPrice"],
+    expectedMethods: ["buyKeys", "creditOf", "currentKeyCost", "getCurrentRound", "getRound", "playerKeys", "settle", "withdraw"],
     expectedMethodsByNetwork: {
-      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "startCountdownRound", "buyCountdownKeys", "getCountdownStatus", "calculateCountdownKeyCost"],
-      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "startCountdownRound", "buyCountdownKeys", "getCountdownStatus", "calculateCountdownKeyCost"],
-    },
+        "neo-n3-mainnet": ["buyKeys", "creditOf", "currentKeyCost", "getCurrentRound", "getRound", "playerKeys", "settle", "withdraw"],
+        "neo-n3-testnet": ["buyKeys", "creditOf", "currentKeyCost", "getCurrentRound", "getOwner", "getRound", "playerKeys", "settle", "withdraw"],
+      },
   },
   {
     brand: "GASBOX",
     manifest: "apps/gasbox/neo-manifest.json",
-    expectedMethods: ["totalMachines", "isPaused", "initiatePlay", "settlePlay", "getMachine"],
+    expectedMethods: ["addItem", "commit", "createMachine", "getItem", "getMachine", "getOwner", "getPendingBet", "lastBetId", "lastMachineId", "pendingBetCount", "playCreditOf", "setActive", "settle", "withdraw", "withdrawPool", "withdrawRevenue"],
     expectedMethodsByNetwork: {
-      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "createGachaMachine", "pullGacha", "resolveGachaPull", "getGachaMachine"],
-      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "createGachaMachine", "pullGacha", "resolveGachaPull", "getGachaMachine"],
-    },
+        "neo-n3-mainnet": ["addItem", "commit", "createMachine", "getItem", "getMachine", "getOwner", "getPendingBet", "lastBetId", "lastMachineId", "pendingBetCount", "playCreditOf", "setActive", "settle", "withdraw", "withdrawPool", "withdrawRevenue"],
+        "neo-n3-testnet": ["addItem", "commit", "createMachine", "getItem", "getMachine", "getOwner", "getPendingBet", "lastBetId", "lastMachineId", "pendingBetCount", "playCreditOf", "setActive", "settle", "withdraw", "withdrawPool", "withdrawRevenue"],
+      },
   },
   {
     brand: "Red Envelope",
     manifest: "apps/red-envelope/neo-manifest.json",
-    expectedMethods: ["isPaused", "createEnvelope", "claim", "getEnvelope"],
+    expectedMethods: ["claim", "claimedAmount", "claimerEnvelopeCount", "createEnvelope", "creatorEnvelopeCount", "creditOf", "getClaimerEnvelopes", "getCreatorEnvelopes", "getEnvelope", "hasClaimed", "lastEnvelopeId", "reclaim", "withdraw"],
   },
   {
     brand: "Daily Check-in",
     manifest: "apps/daily-checkin/neo-manifest.json",
-    expectedMethods: ["isPaused", "checkIn", "getPlatformStats"],
+    expectedMethods: ["checkInFee", "claimRewards", "getCheckInStateForFrontend", "getCheckinStatus", "getPlatformStats", "getUserStatsDetails", "isPaused", "rewardPool", "totalUnclaimed"],
   },
   {
     brand: "FogPlay",
     manifest: "apps/fogplay/neo-manifest.json",
-    expectedMethods: ["isPaused", "placeBet", "getBet"],
+    expectedMethods: ["bankroll", "commit", "creditOf", "freeBankroll", "getPendingBet", "getPlayerBets", "getStats", "playerBetCount", "settle", "withdraw"],
     expectedMethodsByNetwork: {
-      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "placeCoinFlipBet", "resolveCoinFlipBet", "getCoinFlipBet", "getCoinFlipBetLimits"],
-      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "placeCoinFlipBet", "resolveCoinFlipBet", "getCoinFlipBet", "getCoinFlipBetLimits"],
-    },
+        "neo-n3-mainnet": ["bankroll", "commit", "creditOf", "freeBankroll", "getPendingBet", "getPlayerBets", "getStats", "playerBetCount", "settle", "withdraw"],
+        "neo-n3-testnet": ["bankroll", "commit", "creditOf", "freeBankroll", "getPendingBet", "getPlayerBets", "getStats", "playerBetCount", "settle", "withdraw"],
+      },
   },
   {
     brand: "Dice Game",
     manifest: "apps/dice-game/neo-manifest.json",
     expectedMethodsByNetwork: {
-      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "placeDiceBet", "resolveDiceBet", "getDiceBet", "getDiceBetLimits"],
-      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "placeDiceBet", "resolveDiceBet", "getDiceBet", "getDiceBetLimits"],
-    },
+        "neo-n3-mainnet": ["bankroll", "commit", "creditOf", "getPendingBet", "settle", "withdraw"],
+        "neo-n3-testnet": ["bankroll", "commit", "creditOf", "getPendingBet", "settle", "withdraw"],
+      },
   },
   {
     brand: "SelfLoan",
     manifest: "apps/self-loan/neo-manifest.json",
-    expectedMethods: ["isPaused", "createLoan", "repayDebt", "getLoanDetails", "getPlatformStats"],
+    expectedMethods: ["addCollateral", "borrow", "collateralCreditOf", "feeBps", "getLoan", "getOwner", "ltvTierBps", "neoPrice", "onNEP17Payment", "pool", "repay", "repayCreditOf", "setNeoPrice", "totalBorrowed", "totalLoans", "totalRepaid", "withdraw", "withdrawPool", "withdrawRepayCredit"],
     expectedMethodsByNetwork: {
-      "neo-n3-testnet": ["isPaused", "createLoan", "repayLoan", "getLoan", "getLendingStats", "setProfitAnchor", "syncProfitAnchorVote"],
-    },
+        "neo-n3-mainnet": ["addCollateral", "borrow", "collateralCreditOf", "feeBps", "getLoan", "getOwner", "ltvTierBps", "neoPrice", "onNEP17Payment", "pool", "repay", "repayCreditOf", "setNeoPrice", "totalBorrowed", "totalLoans", "totalRepaid", "withdraw", "withdrawPool", "withdrawRepayCredit"],
+        "neo-n3-testnet": ["addCollateral", "borrow", "collateralCreditOf", "feeBps", "getLoan", "getOwner", "ltvTierBps", "neoPrice", "onNEP17Payment", "pool", "repay", "repayCreditOf", "setNeoPrice", "totalBorrowed", "totalLoans", "totalRepaid", "withdraw", "withdrawPool", "withdrawRepayCredit"],
+      },
   },
   {
     brand: "ProfitAnchor",
     manifest: "apps/profitanchor/neo-manifest.json",
     deploymentOptional: true,
-    expectedMethods: ["getAnchorStats", "registerAgent", "registerAgents", "transferAgentNeo", "setAgentCandidate", "voteAgent"],
+    expectedMethods: ["claimRewards"],
   },
   {
     brand: "TrustAnchor",
     manifest: "apps/trustanchor/neo-manifest.json",
     deploymentOptional: true,
-    expectedMethods: ["getAnchorStats", "registerAgent", "registerAgents", "transferAgentNeo", "setAgentCandidate", "voteAgent"],
+    expectedMethods: ["claimRewards", "stake", "withdraw"],
   },
   {
     brand: "NeoPay",
     manifest: "apps/neo-pay/neo-manifest.json",
-    expectedMethods: ["totalStreams", "createStream", "claimStream", "cancelStream", "getStreamDetails"],
+    expectedMethods: ["cancelStream", "claimStream", "createStream", "getBeneficiaryStreams", "getStreamDetails", "getUserStreams", "isPaused"],
   },
 ];
+
+
+// One app's manifest, out of the committed snapshot rather than a sibling
+// checkout. scripts/refresh-manifest-snapshot.mjs --check keeps it honest.
+const MANIFEST_SNAPSHOT = "platform/host-app/public/miniapp-manifests.json";
+let snapshotCache = null;
+
+function readSnapshotManifest(slug) {
+  if (!snapshotCache) {
+    const parsed = JSON.parse(fs.readFileSync(path.join(root, MANIFEST_SNAPSHOT), "utf8"));
+    snapshotCache = parsed?.manifests ?? {};
+    if (Object.keys(snapshotCache).length === 0) {
+      throw new Error(`${MANIFEST_SNAPSHOT} is empty; run: node scripts/refresh-manifest-snapshot.mjs`);
+    }
+  }
+  const manifest = snapshotCache[slug];
+  if (!manifest) throw new Error(`no manifest for "${slug}" in ${MANIFEST_SNAPSHOT}`);
+  return manifest;
+}
 
 function buildRpcCandidates(networkConfig) {
   const candidates = [];
@@ -189,7 +221,12 @@ async function main() {
   let failed = false;
 
   for (const item of items) {
-    const manifest = JSON.parse(fs.readFileSync(path.join(root, item.manifest), "utf8"));
+    // The apps are in neo-os-miniapps and neo-os-minigames; their manifests reach
+    // this repo through the committed snapshot the host app serves. The table
+    // above still names apps/<slug>/neo-manifest.json because that is the
+    // identity the snapshot is keyed by.
+    const slug = item.manifest.split("/")[1];
+    const manifest = readSnapshotManifest(slug);
     const targetNetwork = getTargetNetwork(manifest);
     const networkConfig = getNetworkConfig(targetNetwork);
     const deployedHash = getManifestContractHash(manifest, targetNetwork);

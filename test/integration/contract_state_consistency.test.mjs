@@ -104,6 +104,16 @@ const KNOWN_PENDING_REDEPLOY = new Set([
   "MiniAppSoulboundCertificate.directAssetCreditOf/2",
   "MiniAppTimeCapsule.getOwner/0",
   "MiniAppTimeCapsule.fishRevenueOf/1",
+  // Found the first time this test could run after the repo split - it had been
+  // reading apps/ and contracts/build out of this repo, both of which had moved.
+  // The committed PlatformAnchor build exposes these three as safe; the deployed
+  // contract 0xab079b4f9a0a2471d136392e25eb8e99898dcad0 exposes none of them and
+  // its updatecounter is 0, so it has never been updated since deployment.
+  // Queried against testnet 2026-07-30. Redeploying PlatformAnchor prunes all
+  // three, which the self-cleaning assertion above enforces.
+  "PlatformAnchor.getAppCredit/3",
+  "PlatformAnchor.getAppTotalNeoCredit/1",
+  "PlatformAnchor.getAppTotalGasCredit/1",
 ]);
 
 function isPendingRedeploy(contractName, method) {
@@ -150,12 +160,26 @@ const UNKNOWN_ID = 999_999_999;
 
 // ── Build-manifest helpers ─────────────────────────────────────────────────
 
+// Compiled contract manifests are built in the repo that owns the contract:
+// neo-os-contracts for the platform estate, neo-os-miniapps and
+// neo-os-minigames for the app contracts this test binds apps to. Each root is
+// overridable so CI can point at wherever it placed the checkouts.
+const BUILD_ROOTS = [
+  process.env.NEO_OS_CONTRACTS_DIR || path.resolve(ROOT, "..", "neo-os-contracts"),
+  process.env.NEO_MINIAPPS_DIR || path.resolve(ROOT, "..", "neo-os-miniapps"),
+  process.env.NEO_MINIGAMES_DIR || path.resolve(ROOT, "..", "neo-os-minigames"),
+].map((root) => path.join(root, "contracts", "build"));
+
 function readBuildManifest(contractName) {
-  return JSON.parse(
-    fs.readFileSync(
-      path.join(ROOT, "contracts", "build", `${contractName}.manifest.json`),
-      "utf8",
-    ),
+  const file = `${contractName}.manifest.json`;
+  for (const buildDir of BUILD_ROOTS) {
+    const candidate = path.join(buildDir, file);
+    if (fs.existsSync(candidate)) return JSON.parse(fs.readFileSync(candidate, "utf8"));
+  }
+  throw new Error(
+    `${file} not found. It is built in one of the sibling repos; clone them beside this one or ` +
+      `set NEO_OS_CONTRACTS_DIR / NEO_MINIAPPS_DIR / NEO_MINIGAMES_DIR. Looked in:\n  ` +
+      BUILD_ROOTS.join("\n  "),
   );
 }
 

@@ -21,7 +21,16 @@ import {
   stackHash160,
 } from "./helpers.mjs";
 
-const APPS_DIR = path.join(ROOT, "apps");
+// The apps are in neo-os-miniapps and neo-os-minigames; their manifests reach
+// this repo through the committed snapshot the host app serves, kept current by
+// scripts/refresh-manifest-snapshot.mjs --check.
+const MANIFEST_SNAPSHOT = path.join(
+  ROOT,
+  "platform",
+  "host-app",
+  "public",
+  "miniapp-manifests.json",
+);
 const DEFINITIONS_DIR = path.join(
   ROOT,
   "platform",
@@ -98,17 +107,29 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
+let snapshotCache = null;
+
+function allManifests() {
+  if (snapshotCache) return snapshotCache;
+  const manifests = readJson(MANIFEST_SNAPSHOT)?.manifests ?? {};
+  // An empty snapshot would make every rule below iterate over nothing.
+  if (Object.keys(manifests).length === 0) {
+    throw new Error(
+      "platform/host-app/public/miniapp-manifests.json is empty; run: node scripts/refresh-manifest-snapshot.mjs",
+    );
+  }
+  snapshotCache = manifests;
+  return snapshotCache;
+}
+
 function listMiniAppSlugs() {
-  return fs
-    .readdirSync(APPS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .filter((slug) => fs.existsSync(path.join(APPS_DIR, slug, "neo-manifest.json")))
-    .sort();
+  return Object.keys(allManifests()).sort();
 }
 
 function readManifest(slug) {
-  return readJson(path.join(APPS_DIR, slug, "neo-manifest.json"));
+  const manifest = allManifests()[slug];
+  if (!manifest) throw new Error(`no manifest for "${slug}" in the snapshot`);
+  return manifest;
 }
 
 function readDefinition(slug) {

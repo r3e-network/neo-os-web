@@ -19,6 +19,7 @@ import {
   getContractState,
   getNetworkConfig,
   readManifest,
+  listManifestSlugs,
   getManifestContractHash,
 } from "./helpers.mjs";
 
@@ -118,15 +119,9 @@ test("oracle hash in neo_network.js matches the testnet oracle hash used by flag
 // ── All neo-manifest.json testnet hashes resolve (broad scan) ─────────────
 
 test("all neo-manifest.json files with testnet hashes resolve to deployed contracts", async () => {
-  const appsDir = path.join(ROOT, "apps");
-  const slugs = fs
-    .readdirSync(appsDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name)
-    .filter((name) => {
-      const manifestPath = path.join(appsDir, name, "neo-manifest.json");
-      return fs.existsSync(manifestPath);
-    });
+  // From the committed manifest snapshot: the apps are in neo-os-miniapps and
+  // neo-os-minigames, and this scan must cover the same set the host serves.
+  const slugs = listManifestSlugs();
 
   let checked = 0;
   const failures = [];

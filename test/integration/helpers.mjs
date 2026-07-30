@@ -146,10 +146,40 @@ export function stackHash160(item) {
   return null;
 }
 
-/** Read a neo-manifest.json from apps/<slug>. */
-export function readManifest(slug) {
+/**
+ * One app's manifest, from the committed snapshot.
+ *
+ * The apps and their neo-manifest.json files are in neo-os-miniapps and
+ * neo-os-minigames. This repo carries the snapshot the host app serves, kept
+ * current by scripts/refresh-manifest-snapshot.mjs --check, so these tests read
+ * the same manifests the host does without needing a sibling checkout.
+ */
+const MANIFEST_SNAPSHOT = "platform/host-app/public/miniapp-manifests.json";
+let manifestCache = null;
+
+function allManifests() {
+  if (manifestCache) return manifestCache;
   const fs = require("fs");
-  return JSON.parse(
-    fs.readFileSync(path.join(ROOT, "apps", slug, "neo-manifest.json"), "utf8"),
-  );
+  const parsed = JSON.parse(fs.readFileSync(path.join(ROOT, MANIFEST_SNAPSHOT), "utf8"));
+  const manifests = parsed?.manifests ?? {};
+  if (Object.keys(manifests).length === 0) {
+    throw new Error(
+      `${MANIFEST_SNAPSHOT} is empty; run: node scripts/refresh-manifest-snapshot.mjs`,
+    );
+  }
+  manifestCache = manifests;
+  return manifestCache;
+}
+
+/** Every app slug in the snapshot, sorted. */
+export function listManifestSlugs() {
+  return Object.keys(allManifests()).sort();
+}
+
+export function readManifest(slug) {
+  const manifest = allManifests()[slug];
+  if (!manifest) {
+    throw new Error(`no manifest for "${slug}" in ${MANIFEST_SNAPSHOT}`);
+  }
+  return manifest;
 }
