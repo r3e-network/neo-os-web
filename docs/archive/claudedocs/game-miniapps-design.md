@@ -6,7 +6,7 @@
 > Morpheus oracle **generically**, with ZERO per-game code in the oracle. The
 > oracle is a generic privacy-compute platform; each game is DATA.
 >
-> - **Worker (`neo-morpheus-oracle/workers/nitro-worker/src/game/`)**: a
+> - **Worker (`neo-os-services/workers/nitro-worker/src/game/`)**: a
 >   game-agnostic "confidential session" host. `registry.js` loads an engine by
 >   `(appId, engineHash)` from an operator whitelist (hash-pinned reviewed JS);
 >   `abi.js` is the fixed engine ABI (`deal/applyOp/replay/score` + `descriptor`
@@ -48,7 +48,7 @@ Status: Sudoku Arena (`apps/sudoku` + `contracts/MiniAppSudoku`) and 2048 Rush
 (`apps/game-2048` + `contracts/MiniAppGame2048`) implemented on the PRIVATE
 TEE-settlement protocol (v2 — supersedes the launch beacon design): the puzzle
 /spawn stream is generated inside the Morpheus enclave (worker game-session
-service in neo-morpheus-oracle, `workers/nitro-worker/src/game/`), only its
+service in neo-os-services, `workers/nitro-worker/src/game/`), only its
 SHA-256 commitment is bound on-chain (`bindPuzzle`, TEE-signed), gameplay ops
 stream to the enclave (telemetry + undo ledger, no per-move txs), and
 `settleVerified` pays only after checking the enclave's secp256r1 settlement
@@ -62,7 +62,7 @@ This document records the reusable pattern and the specs for follow-up titles
 
 Before designing ANY new title, sweep the live catalog (`apps/*/neo-manifest.json`
 descriptions + categories, `platform/host-app/public/miniapp-definitions/`, and
-the neo-morpheus-oracle examples) for the same game or the same core mechanic.
+the neo-os-services examples) for the same game or the same core mechanic.
 The existing `games` catalog is entirely CHANCE/WAGER mechanics:
 
 | Existing game | Core mechanic |
@@ -221,7 +221,7 @@ All six reuse the shared entry→pool-reservation→pull-payment→`Solved`-7-sl
 leaderboard machinery, the −30%/max-3 enclave-tracked undo economics, per-
 difficulty entry/reward (0.02→0.1 / 0.10→0.5 / 0.20→1 GAS), min-solve floors +
 deadlines, daily caps, pause, and the Semi-backed PlayStage v2 shell. Worker
-game-session handlers live in `neo-morpheus-oracle/workers/nitro-worker/src/game/`.
+game-session handlers live in `neo-os-services/workers/nitro-worker/src/game/`.
 
 **Honest threat model.** Reflex/memory games can't perfectly distinguish humans
 from bots on-chain; the enclave replay makes the SCORE unforgeable, progressive

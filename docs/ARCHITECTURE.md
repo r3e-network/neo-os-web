@@ -32,7 +32,7 @@ This repo owns:
 
 This repo does **not** own the Oracle / AA runtimes:
 
-- `neo-morpheus-oracle` owns Oracle / DataFeed / VRF / Compute / Paymaster —
+- `neo-os-services` owns Oracle / DataFeed / VRF / Compute / Paymaster —
   including the **kernel contract** that backs all `os-*` edge functions
 - `neo-abstract-account` owns AA core contracts, verifiers, relay UX, and AA
   runtime
@@ -77,7 +77,7 @@ Supabase Edge functions (Deno)
         │ writes: wallet-signed invocation intents
         ▼
   ┌─────────────────────┐    ┌───────────────────────────────┐
-  │  Morpheus kernel     │    │  neo-morpheus-oracle           │
+  │  Morpheus kernel     │    │  neo-os-services           │
   │  contract (external) │    │  oracle / datafeed / vrf /     │
   │  — backs every os-*  │    │  compute / paymaster runtime   │
   │  service operation   │    └───────────────────────────────┘
@@ -149,7 +149,7 @@ deployments — no edge function reads them (`_shared/os-contracts.ts`).
 
 ### 4. External Oracle and AA Stacks
 
-`neo-morpheus-oracle` owns allowlisted external fetches, datafeed aggregation,
+`neo-os-services` owns allowlisted external fetches, datafeed aggregation,
 VRF, confidential compute, paymaster authorization, and on-chain callback
 fulfillment. `neo-abstract-account` owns the canonical AA deployment,
 verifiers/hooks, relay endpoint, and Web3Auth / session-key / recovery flows.
@@ -254,7 +254,7 @@ The preferred production path is:
 
 1. MiniApp host or host-only tooling calls the platform edge / host proxy
 2. the platform forwards directly to:
-   - `neo-morpheus-oracle` for Oracle / DataFeed / VRF / Compute / sponsorship
+   - `neo-os-services` for Oracle / DataFeed / VRF / Compute / sponsorship
    - `neo-abstract-account` for AA relay / verifier-aware execution
 3. the external system performs the chain interaction
 4. the platform only consumes the result, receipt, or user-facing state

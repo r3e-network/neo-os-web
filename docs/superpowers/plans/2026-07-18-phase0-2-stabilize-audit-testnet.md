@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **Repo roots:** MINIAPPS=`/Users/jinghuiliao/git/r3e/neo-os-web`, MORPHEUS=`/Users/jinghuiliao/git/r3e/neo-morpheus-oracle`, AA=`/Users/jinghuiliao/git/r3e/neo-abstract-account`.
+- **Repo roots:** MINIAPPS=`/Users/jinghuiliao/git/r3e/neo-os-web`, MORPHEUS=`/Users/jinghuiliao/git/r3e/neo-os-services`, AA=`/Users/jinghuiliao/git/r3e/neo-abstract-account`.
 - **Git mutations need explicit user approval.** Before the first `git add`/`git commit`/`git rm` in any repo, ask the user once for a batch commit policy covering this plan. Until approved, stage nothing; record intended commits in the task notes instead.
 - **Operator WIF handling:** the user-provided testnet WIF is supplied ONLY via `export NEO_TESTNET_WIF='...'` in the shell session. Never write it to any file, never echo it into logs, never commit it.
 - **Chain writes:** every deploy/registration script runs dry-run first. Live writes additionally require `PLATFORM_REGISTRY_DEPLOY_DRY_RUN=false` and `CONFIRM_PLATFORM_REGISTRY_DEPLOY=I_UNDERSTAND_THIS_WRITES_CHAIN` (per-script confirm var names are shown in each task).
@@ -177,7 +177,7 @@ Expected: integration suites pass; host-app jest passes. Record actuals (failure
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-morpheus-oracle
+cd /Users/jinghuiliao/git/r3e/neo-os-services
 dotnet test contracts/__tests__/NeoContracts.Tests.csproj --nologo 2>&1 | tail -5
 ```
 Expected: `Failed: 0`; record passed count.
@@ -186,7 +186,7 @@ Expected: `Failed: 0`; record passed count.
 
 Run:
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-morpheus-oracle
+cd /Users/jinghuiliao/git/r3e/neo-os-services
 npm run -s test:scripts 2>&1 | tail -3
 npm run -s test:control-plane 2>&1 | tail -3
 npm run -s test:ops 2>&1 | tail -3
@@ -282,8 +282,8 @@ Expected: 10–11 dirs, ~815 LOC each. Record total.
 
 Run:
 ```bash
-ls /Users/jinghuiliao/git/r3e/neo-morpheus-oracle/workers/nitro-worker/src/game/engines/
-head -5 /Users/jinghuiliao/git/r3e/neo-morpheus-oracle/workers/nitro-worker/src/game/engines/snake.js
+ls /Users/jinghuiliao/git/r3e/neo-os-services/workers/nitro-worker/src/game/engines/
+head -5 /Users/jinghuiliao/git/r3e/neo-os-services/workers/nitro-worker/src/game/engines/snake.js
 ```
 Expected: 12 JS files; header confirms "JS port of neo-os-web/apps/snake-bounty/src/logic/snake-engine.ts".
 
@@ -291,7 +291,7 @@ Expected: 12 JS files; header confirms "JS port of neo-os-web/apps/snake-bounty/
 
 Run:
 ```bash
-shasum -a 256 /Users/jinghuiliao/git/r3e/neo-morpheus-oracle/packages/shared/src/confidential-envelope.js \
+shasum -a 256 /Users/jinghuiliao/git/r3e/neo-os-services/packages/shared/src/confidential-envelope.js \
   /Users/jinghuiliao/git/r3e/neo-abstract-account/frontend/src/utils/morpheusEncryption.js
 ```
 Expected: record both hashes; note whether they match (miniapps TS copy is a port, checked by its own drift guard).
@@ -475,7 +475,7 @@ Expected: dry-run gates pass; smoke test passes against AA core `0xdbf38e7b21171
 - [ ] **Step 3: Morpheus workspace live validation**
 
 ```bash
-cd /Users/jinghuiliao/git/r3e/neo-morpheus-oracle
+cd /Users/jinghuiliao/git/r3e/neo-os-services
 bash scripts/run_workspace_live_validation.sh
 ```
 Expected: workspace context collection across all three repos + live lanes PASS. Suites that require morpheus operator secrets (CVM endpoints) and fail on missing env are recorded as env-gated, not failures.

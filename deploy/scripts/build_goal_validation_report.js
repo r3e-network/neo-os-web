@@ -9,7 +9,7 @@ const ROOT = path.resolve(__dirname, "../..");
 const REPORT_DIR = path.join(ROOT, "docs/reports");
 const JSON_REPORT = path.join(REPORT_DIR, "goal-validation-latest.json");
 const MD_REPORT = path.join(REPORT_DIR, "goal-validation-latest.md");
-const DEFAULT_ORACLE_ROOT = path.resolve(ROOT, "../neo-morpheus-oracle");
+const DEFAULT_ORACLE_ROOT = path.resolve(ROOT, "../neo-os-services");
 
 const INPUTS = {
   runtimeUi: path.join(REPORT_DIR, "miniapp-runtime-ui-latest.json"),

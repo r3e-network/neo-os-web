@@ -41,7 +41,7 @@ Current layering is:
 
 External runtime ownership:
 
-- `neo-morpheus-oracle`
+- `neo-os-services`
   - Oracle
   - DataFeed
   - VRF

@@ -33,7 +33,6 @@ test("repo verification script runs the canonical local validation stack", () =>
   assert.match(script, /^run_npm_audit_scope "root audit"$/m);
   assert.match(script, /^run_npm_audit_scope "host-app audit" --workspace platform\/host-app$/m);
   assert.match(script, /test:deploy-scripts/);
-  assert.match(script, /check:platform:contracts/);
   assert.match(script, /check:platform:social-framework/);
   assert.match(script, /check:factory-template-artifacts/);
   assert.match(script, /platform\/admin-console test --silent/);
@@ -42,29 +41,47 @@ test("repo verification script runs the canonical local validation stack", () =>
   assert.match(script, /platform\/host-app run test:full/);
 });
 
-test("root package exposes the platform contract acceptance ledger commands", () => {
+test("every gate verify_repo.sh runs is a script this package defines", () => {
+  const script = read("scripts/verify_repo.sh");
   const rootPackageJson = readJson("package.json");
 
-  assert.equal(
-    rootPackageJson.scripts["audit:platform:contracts"],
-    "node deploy/scripts/audit_platform_contract_acceptance.mjs",
-  );
-  assert.equal(
-    rootPackageJson.scripts["check:platform:contracts"],
-    "node deploy/scripts/audit_platform_contract_acceptance.mjs --check",
-  );
-  assert.equal(
-    rootPackageJson.scripts["audit:platform:testnet-live"],
-    "node deploy/scripts/verify_platform_contracts_live.mjs",
-  );
-  assert.equal(
-    rootPackageJson.scripts["audit:platform:upgrade-readiness"],
-    "node deploy/scripts/audit_platform_upgrade_readiness.mjs",
-  );
-  assert.equal(
-    rootPackageJson.scripts["check:factory-template-artifacts"],
-    "node deploy/scripts/generate_factory_template_artifacts.mjs --check",
-  );
+  // The gate list is read out of the script rather than repeated here: pinning
+  // the names meant that when four gates moved to neo-os-contracts, the script
+  // kept calling them and this test kept asserting it did, so verify:repo was
+  // broken and green at the same time.
+  const gateBlock = script.match(/for gate in \\\n([\s\S]*?); do/);
+  assert.ok(gateBlock, "verify_repo.sh must keep its `for gate in ...` list");
+
+  const gates = gateBlock[1]
+    .split("\n")
+    .map((line) => line.replace(/\\$/, "").trim())
+    .filter(Boolean);
+
+  assert.ok(gates.length > 0, "the gate list must not be empty");
+  const undefinedGates = gates.filter((gate) => !rootPackageJson.scripts?.[gate]);
+  assert.deepEqual(undefinedGates, [], "verify_repo.sh runs gates this package does not define");
+});
+
+// The contract acceptance and upgrade-readiness audits read contract sources and
+// contracts/build artifacts, so they moved to neo-os-contracts along with the
+// contracts; the commands that ran them are gone from this package. What is
+// still asserted is that no command here points at a script that is not.
+test("every root script points at a file that exists", () => {
+  const rootPackageJson = readJson("package.json");
+  const dangling = [];
+
+  for (const [name, command] of Object.entries(rootPackageJson.scripts ?? {})) {
+    const referenced = String(command).match(
+      /(?:deploy\/scripts|scripts)\/[A-Za-z0-9_\-/.]+\.(?:mjs|cjs|js|ts|sh)/g,
+    );
+    for (const file of referenced ?? []) {
+      if (!fs.existsSync(path.join(repoRoot, file))) dangling.push(`${name} -> ${file}`);
+    }
+  }
+
+  // A command that runs a script another repo now owns fails only when someone
+  // runs it; naming them here fails at the same time as the move.
+  assert.deepEqual(dangling, [], "these npm scripts run files that are not in this repo");
 });
 
 test("host app Playwright config caps local workers while preserving CI serialization", () => {

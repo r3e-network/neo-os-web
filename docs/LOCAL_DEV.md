@@ -42,7 +42,7 @@ Use this when you need to debug the extracted runtimes themselves.
 Run:
 
 - this repo for host/admin/edge/contracts
-- `neo-morpheus-oracle` for Oracle / DataFeed / VRF / Compute / Paymaster
+- `neo-os-services` for Oracle / DataFeed / VRF / Compute / Paymaster
 - `neo-abstract-account` for AA relay / verifier / UX work
 
 Then point this repo's `.env` to those running services.

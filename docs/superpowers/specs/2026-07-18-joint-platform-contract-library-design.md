@@ -2,7 +2,7 @@
 
 Date: 2026-07-18
 Status: Approved by user (2026-07-18), amended by the shared-AA architecture decision (2026-07-23)
-Scope: `neo-os-web` (this repo), `neo-morpheus-oracle`, `neo-abstract-account` (sibling checkouts under `/Users/jinghuiliao/git/r3e/`)
+Scope: `neo-os-web` (this repo), `neo-os-services`, `neo-abstract-account` (sibling checkouts under `/Users/jinghuiliao/git/r3e/`)
 
 ## 1. Objective
 
@@ -30,7 +30,7 @@ Supporting objectives:
 - Tests: 66 C# xunit files (505 methods), framework vitest 553 PASS, apps/shared vitest 4424 PASS, host-app jest, Playwright e2e last run FAILED.
 - Deploy: Go scripts (`//go:build scripts`), dry-run by default, `CONFIRM_*` gate, WIFs via env only (`NEO_TESTNET_WIF`).
 
-### neo-morpheus-oracle
+### neo-os-services
 
 - MorpheusOracle contract IS the MiniApp OS kernel: miniapp registration, module registration, capability grants, request routing, inbox delivery, fee credits, generic app state.
 - Known kernel upgrade debt (source-fixed, not deployed): OR-D-03 callback reverse-mapping hijack, rich 8-arg `onMiniAppResult` dispatch, ExpireStaleRequest inbox gap. Deployed testnet kernel `0xf54d8584…` lacks these; miniapps platform carries `deploy_private_kernel.go` workaround.
@@ -103,7 +103,7 @@ The registry-anchored engine estate, extended:
 - Remove `market-deployment-results.json` from root (move to docs/reports), LaTeX build junk, stale docs (TESTNET_DEPLOYMENT.md, ACCOUNT_DISCOVERY.md) or update them.
 - Consolidate the three overlapping validation runners; resolve root `verifiers/` vs `contracts/verifiers/`.
 
-### neo-morpheus-oracle
+### neo-os-services
 
 - Land the solc-0.8.35-upgrade branch state deliberately (71 dirty files): commit or stash with clear messages.
 - Replace the 12 duplicated JS game engines with the shared game-logic source (import/generate from miniapps platform).

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const oracleRoot = path.resolve(repoRoot, '..', 'neo-morpheus-oracle');
+const oracleRoot = path.resolve(repoRoot, '..', 'neo-os-services');
 
 async function loadCanonicalModule(moduleName, exportName) {
   const modulePath = path.join(oracleRoot, 'scripts', moduleName);

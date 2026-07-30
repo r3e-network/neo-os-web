@@ -18,7 +18,7 @@
 | **(B)** | In-flight WIP (dirty-tree parallel work) |
 | **(C)** | Env / tooling / load flake or live-RPC contingency |
 
-Only **(A)** items count as product defects in the executive verdict. Security residual items that live in external repos (`neo-morpheus-oracle`, `neo-abstract-account`) are residual risks, not in-repo (A) defects.
+Only **(A)** items count as product defects in the executive verdict. Security residual items that live in external repos (`neo-os-services`, `neo-abstract-account`) are residual risks, not in-repo (A) defects.
 
 ---
 
@@ -44,7 +44,7 @@ Only **(A)** items count as product defects in the executive verdict. Security r
 
 | Item | Reason |
 | --- | --- |
-| Full deep audit of `neo-morpheus-oracle` / `neo-abstract-account` internals | Out of repo boundary; integration surface + prior audit residual status only |
+| Full deep audit of `neo-os-services` / `neo-abstract-account` internals | Out of repo boundary; integration surface + prior audit residual status only |
 | Live mainnet fund-moving / TEE re-attestation | Requires secrets + production cert; non-goal |
 | Exhaustive line-by-line review of every MiniApp binary/asset | Automated coverage + gates; sample on failures |
 | UX / art polish / product roadmap | Non-goal |

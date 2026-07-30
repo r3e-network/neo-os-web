@@ -39,7 +39,7 @@ pick_env_file() {
 }
 
 MINIAPP_ENV_FILE="${MINIAPP_ENV_FILE:-$(pick_env_file "$REPO_ROOT" "$REPO_CANONICAL_ROOT" ".env")}"
-MORPHEUS_DIR="${MORPHEUS_DIR:-$(resolve_sibling_repo_root neo-morpheus-oracle)}"
+MORPHEUS_DIR="${MORPHEUS_DIR:-$(resolve_sibling_repo_root neo-os-services)}"
 AA_DIR="${AA_DIR:-$(resolve_sibling_repo_root neo-abstract-account)}"
 MORPHEUS_CANONICAL_ROOT="$MORPHEUS_DIR"
 if [[ "$MORPHEUS_DIR" == */.worktrees/* ]]; then
@@ -142,7 +142,7 @@ Usage: deploy/scripts/verify_cross_repo_testnet.sh
 
 Environment overrides:
   MINIAPP_ENV_FILE         Path to neo-os-web .env
-  MORPHEUS_DIR             Path to neo-morpheus-oracle repo
+  MORPHEUS_DIR             Path to neo-os-services repo
   AA_DIR                   Path to neo-abstract-account repo
   AA_TEST_WIF              Funded Neo N3 testnet WIF for AA relay test (required)
   MORPHEUS_PAYMASTER_APP_ID
@@ -223,7 +223,7 @@ if [[ -z "${MORPHEUS_PUBLIC_API_URL:-}" || "$MORPHEUS_PUBLIC_API_URL" == "null" 
 fi
 
 echo ""
-echo "=== Public Runtime API: neo-morpheus-oracle ==="
+echo "=== Public Runtime API: neo-os-services ==="
 set +e
 (cd "$MORPHEUS_DIR" && node scripts/check-public-runtime-api.mjs "$MORPHEUS_PUBLIC_API_URL")
 runtime_api_status=$?
@@ -286,7 +286,7 @@ NEO_N3_TESTNET_RPC_URL="${NEO_RPC_TESTNET:-${NEO_RPC_URL:-https://testnet1.neo.c
 AA_TESTNET_RPC_URL="${TESTNET_RPC_URL:-$NEO_N3_TESTNET_RPC_URL}"
 
 echo ""
-echo "=== Direct Oracle: neo-morpheus-oracle testnet smoke ==="
+echo "=== Direct Oracle: neo-os-services testnet smoke ==="
 oracle_smoke_retries=3
 oracle_smoke_delay_seconds=8
 oracle_smoke_attempt=1

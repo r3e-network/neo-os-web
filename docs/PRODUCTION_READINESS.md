@@ -5,7 +5,7 @@ This checklist covers the **MiniApp platform repo**.
 It assumes the Oracle / DataFeed / VRF / Compute / Paymaster / AA runtimes are
 provided externally by:
 
-- `neo-morpheus-oracle`
+- `neo-os-services`
 - `neo-abstract-account`
 
 ## Scope

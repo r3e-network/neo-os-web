@@ -540,7 +540,7 @@
       "is_real_confidence": "likely"
     },
     {
-      "subsystem": "oracle-relayer (neo-morpheus-oracle/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
+      "subsystem": "oracle-relayer (neo-os-services/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
       "title": "Neo N3 fulfill confirmation timeout silently records request as fulfilled, permanently losing the callback",
       "dimension": "fault-recovery",
       "severity": "high",
@@ -552,7 +552,7 @@
       "risk_note": "n/a"
     },
     {
-      "subsystem": "oracle-relayer (neo-morpheus-oracle/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
+      "subsystem": "oracle-relayer (neo-os-services/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
       "title": "Durable idempotency claim is bypassed during Supabase quota/outage backoff, allowing double-delivery across instances",
       "dimension": "robustness",
       "severity": "medium",
@@ -564,7 +564,7 @@
       "risk_note": "Severity hinges on whether >1 relayer instance ever runs concurrently; only one systemd unit found, so kept at medium."
     },
     {
-      "subsystem": "oracle-relayer (neo-morpheus-oracle/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
+      "subsystem": "oracle-relayer (neo-os-services/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
       "title": "Mainnet block_cursor scan does a getapplicationlog RPC for every transaction in every scanned block (no pre-filter)",
       "dimension": "performance",
       "severity": "medium",
@@ -576,7 +576,7 @@
       "risk_note": "n/a"
     },
     {
-      "subsystem": "oracle-relayer (neo-morpheus-oracle/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
+      "subsystem": "oracle-relayer (neo-os-services/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
       "title": "Single getLatestRequestId FAULT/transport error aborts the entire tick before due retries run (request_cursor mode)",
       "dimension": "fault-recovery",
       "severity": "medium",
@@ -588,7 +588,7 @@
       "risk_note": "n/a"
     },
     {
-      "subsystem": "oracle-relayer (neo-morpheus-oracle/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
+      "subsystem": "oracle-relayer (neo-os-services/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
       "title": "Dead-letter and durable job records embed the full original event, growing local state and Supabase rows unboundedly per request",
       "dimension": "maintainability",
       "severity": "low",
@@ -600,7 +600,7 @@
       "risk_note": "n/a"
     },
     {
-      "subsystem": "oracle-relayer (neo-morpheus-oracle/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
+      "subsystem": "oracle-relayer (neo-os-services/workers/morpheus-relayer): fulfillment/callback delivery, retry/backoff, idempotency, durable queue + DLQ, block/request cursor scan, error classification",
       "title": "scheduleRetry/computeRetryDelayMs use deterministic exponential backoff with no jitter — synchronized retry storms",
       "dimension": "performance",
       "severity": "low",
@@ -612,18 +612,18 @@
       "risk_note": "n/a"
     },
     {
-      "subsystem": "oracle-worker-edge (neo-morpheus-oracle: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
+      "subsystem": "oracle-worker-edge (neo-os-services: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
       "title": "Edge gateway returns no CORS headers, so browser consoles cannot fetch any tokenless GET lane",
       "dimension": "ux",
       "severity": "high",
-      "evidence": "deploy/cloudflare/morpheus-edge-gateway/worker.mjs has zero CORS handling: the default fetch() (lines 324-466), the json() helper from @neo-morpheus-oracle/shared/utils, the public-runtime routes (lines 341-376), and the worker handler (workers/nitro-worker/src/worker.js + platform/core.js json() at line 18) never set Access-Control-Allow-Origin and never answer an OPTIONS preflight. grep for 'Access-Control|cors|OPTIONS|preflight' across workers/nitro-worker/src, deploy/cloudflare, and packages/shared/src returns nothing. The platform consoles explicitly intend to call edge.meshmini.app GETs from the browser — apps/shared/components-react/ConsoleToolPanel.tsx:73-80 documents that tokenless GETs (feeds/price/:symbol, feeds/catalog, neodid/providers, oracle/public-key) are the only live lanes consoles should wire — but a cross-origin browser fetch from the host app to edge.meshmini.app is blocked by the same-origin policy with no ACAO header. This is the root cause of 'consoles cannot fetch live'.",
+      "evidence": "deploy/cloudflare/morpheus-edge-gateway/worker.mjs has zero CORS handling: the default fetch() (lines 324-466), the json() helper from @neo-os-services/shared/utils, the public-runtime routes (lines 341-376), and the worker handler (workers/nitro-worker/src/worker.js + platform/core.js json() at line 18) never set Access-Control-Allow-Origin and never answer an OPTIONS preflight. grep for 'Access-Control|cors|OPTIONS|preflight' across workers/nitro-worker/src, deploy/cloudflare, and packages/shared/src returns nothing. The platform consoles explicitly intend to call edge.meshmini.app GETs from the browser — apps/shared/components-react/ConsoleToolPanel.tsx:73-80 documents that tokenless GETs (feeds/price/:symbol, feeds/catalog, neodid/providers, oracle/public-key) are the only live lanes consoles should wire — but a cross-origin browser fetch from the host app to edge.meshmini.app is blocked by the same-origin policy with no ACAO header. This is the root cause of 'consoles cannot fetch live'.",
       "fix": "In deploy/cloudflare/morpheus-edge-gateway/worker.mjs add a safe CORS layer scoped to the read-only, tokenless GET lanes: (1) handle request.method === 'OPTIONS' early with a 204 + Access-Control-Allow-Methods: GET, OPTIONS, Access-Control-Allow-Headers, and an allow-listed Access-Control-Allow-Origin (echo the request Origin only if it matches an env allow-list e.g. MORPHEUS_CORS_ALLOWED_ORIGINS — meshmini host app + localhost dev); (2) on the cacheable GET responses (the CACHE_RULES set: health, providers, feeds/catalog, oracle/public-key, feeds/price) and the public-runtime routes, set the same Access-Control-Allow-Origin + Vary: Origin. Do NOT add wildcard CORS to the token/Turnstile-protected POST lanes. Add Vary: Origin so the CF cache does not serve one origin's ACAO to another.",
       "effort": "small",
       "risk": "Low/medium: additive, reversible. Must use an env allow-list (not '*') and add Vary: Origin to avoid cache poisoning of the ACAO header across origins; mistakes are config-level and reversible.",
       "is_real_confidence": "certain"
     },
     {
-      "subsystem": "oracle-worker-edge (neo-morpheus-oracle: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
+      "subsystem": "oracle-worker-edge (neo-os-services: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
       "title": "Edge gateway makes origin fetches with no timeout — a hung origin stalls the worker (the exact Phala-outage failure mode)",
       "dimension": "fault-recovery",
       "severity": "high",
@@ -634,7 +634,7 @@
       "is_real_confidence": "certain"
     },
     {
-      "subsystem": "oracle-worker-edge (neo-morpheus-oracle: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
+      "subsystem": "oracle-worker-edge (neo-os-services: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
       "title": "VRF lane signs CSPRNG output without binding it to the request — replayable, not a true VRF",
       "dimension": "robustness",
       "severity": "medium",
@@ -645,7 +645,7 @@
       "is_real_confidence": "needs-verify"
     },
     {
-      "subsystem": "oracle-worker-edge (neo-morpheus-oracle: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
+      "subsystem": "oracle-worker-edge (neo-os-services: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
       "title": "Emergency Vercel runtime shim is GET-only and 503s all real lanes — confirm it is wired as fallback, not the live origin",
       "dimension": "fault-recovery",
       "severity": "medium",
@@ -656,7 +656,7 @@
       "is_real_confidence": "likely"
     },
     {
-      "subsystem": "oracle-worker-edge (neo-morpheus-oracle: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
+      "subsystem": "oracle-worker-edge (neo-os-services: workers/nitro-worker + deploy/cloudflare edge + feed-pusher + emergency-vercel-runtime)",
       "title": "Worker capability routing uses unanchored path.endsWith(), making route matching order-fragile",
       "dimension": "maintainability",
       "severity": "low",

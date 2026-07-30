@@ -29,12 +29,12 @@ const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || "0xf54d8584ef82315c1800
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const ROOT = path.resolve(__dirname, "../..");
 // NOTE: the directory literal stays "phala" because that is the on-box path
-// the live oracle keeps its env file at (neo-morpheus-oracle/deploy/nitro);
+// the live oracle keeps its env file at (neo-os-services/deploy/nitro);
 // changing it would break credential discovery. Only the identifier is renamed.
 const siblingOracleNitroEnvPath = path.resolve(
   ROOT,
   "..",
-  "neo-morpheus-oracle",
+  "neo-os-services",
   "deploy",
   "phala",
   "morpheus.testnet.env"

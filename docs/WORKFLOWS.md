@@ -63,7 +63,7 @@ This is the preferred runtime path.
     - Edge validates auth, rate limits, manifest permissions, and usage caps.
     - Host `/api/aa/relay` forwards relay-ready payloads to the external AA relay.
 3. **External Runtime**
-    - `neo-morpheus-oracle` handles:
+    - `neo-os-services` handles:
         - allowlisted Oracle queries
         - datafeed price reads
         - VRF / randomness
@@ -287,7 +287,7 @@ env-configured external governance contract. The old standalone
 3. Triggers on-chain update when `abs(delta) / last` exceeds `NEOFEEDS_PUBLISH_THRESHOLD_BPS` (default `10`, i.e. `0.1%`).
 4. Applies hysteresis + throttling via `NEOFEEDS_PUBLISH_HYSTERESIS_BPS`, `NEOFEEDS_PUBLISH_MIN_INTERVAL`, and `NEOFEEDS_PUBLISH_MAX_PER_MINUTE`.
 5. Optional heartbeat publishes are controlled by `NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL` when source timestamps advance.
-6. The on-chain DataFeed contract (owned by `neo-morpheus-oracle`, not in this
+6. The on-chain DataFeed contract (owned by `neo-os-services`, not in this
    repo) stores the update and emits events for subscribers.
 
 Current production/testnet symbol set includes:

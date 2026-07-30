@@ -4,7 +4,7 @@ Canonical, cross-repo design language for the Neo MiniApps ecosystem:
 
 - `neo-os-web` — platform host (Next.js + Tailwind) + 77 miniapps (Vite/React + SCSS via `apps/shared/styles`)
 - `neo-abstract-account` — AA frontend (Vue 3 + Tailwind)
-- `neo-morpheus-oracle` — Oracle web (Next.js + custom CSS variables)
+- `neo-os-services` — Oracle web (Next.js + custom CSS variables)
 
 Inspiration: *E-Robo Wallet* crypto iOS UI kit — soft, friendly, professional fintech. Light canvas, white floating cards, generous radius, soft diffuse shadows, pastel icon badges, restrained navy CTAs, lots of whitespace.
 
@@ -132,7 +132,7 @@ Circular badges behind coin/app icons. Cycle these for variety.
 | Platform shared (77 miniapps) | `apps/shared/styles/theme-base.scss` (CSS vars = source of truth) + `tokens.scss`, `_pm-light.scss`, `_console-common.scss`, `_playarea-base.scss`, `_hero.scss`, `mixins.scss`, `_responsive-card.scss`, `desktop-theme.scss` | SCSS partials + CSS custom properties |
 | Platform host | `platform/host-app/tailwind.config.js` + `styles/globals.css` | Tailwind theme + CSS vars |
 | AA frontend | `neo-abstract-account/frontend/tailwind.config.js` + `src/style.css` | Tailwind theme + CSS vars |
-| Oracle web | `neo-morpheus-oracle/apps/web/app/globals.css` | CSS vars |
+| Oracle web | `neo-os-services/apps/web/app/globals.css` | CSS vars |
 
 Each home re-declares the **same** values under both the canonical `--ns-*` names and the home's existing semantic names (`--bg-card`, `--text-primary`, Tailwind `colors`, etc.) so existing components inherit the new look without per-component edits.
 

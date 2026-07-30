@@ -14,7 +14,7 @@ set -uo pipefail
 PLATFORM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 R3E_DIR="$(cd "$PLATFORM_DIR/.." && pwd)"
 AA_DIR="$R3E_DIR/neo-abstract-account"
-ORACLE_DIR="$R3E_DIR/neo-morpheus-oracle"
+ORACLE_DIR="$R3E_DIR/neo-os-services"
 QUICK="${1:-}"
 
 fail=0
@@ -54,7 +54,7 @@ scan_legacy "platform" "$PLATFORM_DIR/platform" '#00e599|#7000ff'
 # AA legacy brand: burnt orange + old sky-blue accent
 scan_legacy "neo-abstract-account" "$AA_DIR/frontend" '#c2410c|#9a3412|#ea580c|#00a3ff'
 # oracle legacy brand: forest green, indigo purple, steel blue
-scan_legacy "neo-morpheus-oracle" "$ORACLE_DIR/apps/web" '#006b49|#533afd|#2874ad'
+scan_legacy "neo-os-services" "$ORACLE_DIR/apps/web" '#006b49|#533afd|#2874ad'
 
 # ── Gate 3: all 60 miniapps build green ──────────────────────────────
 if [ "$QUICK" = "--quick" ]; then

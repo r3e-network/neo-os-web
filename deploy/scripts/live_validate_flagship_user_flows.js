@@ -85,12 +85,12 @@ function acquireRunLock() {
 }
 
 acquireRunLock();
-const siblingOracleEnvPath = path.resolve(root, "..", "neo-morpheus-oracle", ".env");
-const siblingOracleEnvLocalPath = path.resolve(root, "..", "neo-morpheus-oracle", ".env.local");
+const siblingOracleEnvPath = path.resolve(root, "..", "neo-os-services", ".env");
+const siblingOracleEnvLocalPath = path.resolve(root, "..", "neo-os-services", ".env.local");
 const siblingEdgeGatewayConfigPath = path.resolve(
   root,
   "..",
-  "neo-morpheus-oracle",
+  "neo-os-services",
   "deploy",
   "cloudflare",
   "morpheus-edge-gateway",
@@ -98,12 +98,12 @@ const siblingEdgeGatewayConfigPath = path.resolve(
 );
 const TARGET_NETWORK = normalizeNetworkName(process.env.NEO_TARGET_NETWORK || process.env.FLAGSHIP_NETWORK) || "testnet";
 // NOTE: the directory literal stays "phala" because that is the on-box path
-// the live oracle keeps its env file at (neo-morpheus-oracle/deploy/nitro);
+// the live oracle keeps its env file at (neo-os-services/deploy/nitro);
 // changing it would break credential discovery. Only the identifier is renamed.
 const siblingOracleNitroEnvPath = path.resolve(
   root,
   "..",
-  "neo-morpheus-oracle",
+  "neo-os-services",
   "deploy",
   "phala",
   TARGET_NETWORK === "mainnet" ? "morpheus.mainnet.env" : "morpheus.testnet.env"

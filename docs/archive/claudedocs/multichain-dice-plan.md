@@ -4,7 +4,7 @@ Goal: dice-game works on both Neo N3 and Neo X, auto-detecting the chain from th
 connected wallet; the OS `ctx.services.chain` abstraction becomes multi-chain.
 
 ## Backend (DONE + validated on Neo X mainnet)
-- `MiniAppDiceGameEVM` @ `0xFA795F814d38F218153d21838360096f3F5cb774` (neo-morpheus-oracle/contracts-evm):
+- `MiniAppDiceGameEVM` @ `0xFA795F814d38F218153d21838360096f3F5cb774` (neo-os-services/contracts-evm):
   payable `placeBet(uint8 face)` → escrows stake, requests VRF from `MorpheusOracleEVM`
   (`0xeCFC1C65…`) via `requestFromCallback`, settles in `onOracleResult` (win 5.7x from
   bankroll, loss keeps stake, VRF-fail refunds). `settleFromKernel(id)` = trustless recovery.

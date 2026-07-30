@@ -139,13 +139,13 @@ npm run test:shared-aa-governance
 
 # Framework and repo-hygiene gates. Each is a `check:` script that exits
 # non-zero on a real regression, so they run before the slower suites.
+# check:platform:contracts, :engine-base, :game-migration and :joint-aa audited
+# contract sources and moved to neo-os-contracts with them; they run in that
+# repo's verification now.
 for gate in \
   check:repo:secret-material \
   check:repo:lint-scope \
-  check:platform:contracts \
   check:factory-template-artifacts \
-  check:platform:engine-base \
-  check:platform:game-migration \
   check:platform:social-framework \
   check:platform:anchor-framework \
   check:platform:registry-framework \
@@ -153,14 +153,12 @@ for gate in \
   check:platform:factory-framework \
   check:platform:vesting-framework \
   check:platform:escrow-framework \
-  check:platform:joint-aa \
   check:platform:shared-aa-roster \
   check:cross-repo:duplication; do
   echo "[verify_repo] gate: ${gate}"
   npm run -s "${gate}"
 done
 
-npm run -s test:shared
 npm --prefix platform/admin-console test --silent
 npm --prefix platform/admin-console run typecheck
 

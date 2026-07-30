@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const defaultOracleRoot = path.resolve(repoRoot, '..', 'neo-morpheus-oracle');
+const defaultOracleRoot = path.resolve(repoRoot, '..', 'neo-os-services');
 const oracleRoot = process.env.MORPHEUS_ORACLE_ROOT
   ? path.resolve(process.env.MORPHEUS_ORACLE_ROOT)
   : defaultOracleRoot;
@@ -148,7 +148,7 @@ async function main() {
     'MORPHEUS_PUBLIC_REGISTRY',
     'MorpheusPublicRegistry',
     registry,
-    '// Generated from neo-morpheus-oracle/scripts/export-public-network-registry.mjs.'
+    '// Generated from neo-os-services/scripts/export-public-network-registry.mjs.'
   );
 
   writeGeneratedTs(
@@ -156,7 +156,7 @@ async function main() {
     'MORPHEUS_PUBLIC_RUNTIME_CATALOG',
     'MorpheusPublicRuntimeCatalog',
     catalog,
-    '// Generated from neo-morpheus-oracle/scripts/export-public-runtime-catalog.mjs.'
+    '// Generated from neo-os-services/scripts/export-public-runtime-catalog.mjs.'
   );
 
   writeGeneratedTs(
@@ -164,7 +164,7 @@ async function main() {
     'MORPHEUS_PUBLIC_SIGNER_REGISTRY',
     'MorpheusPublicSignerRegistry',
     signers,
-    '// Generated from neo-morpheus-oracle/config/signer-identities.json.',
+    '// Generated from neo-os-services/config/signer-identities.json.',
     { eslintDisable: false }
   );
 

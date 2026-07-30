@@ -77,7 +77,7 @@
    "evidence": "processEvent spans lines 839-1375 (~535 lines). The same shape \u2014 classifyError(message) -> if permanent-or-over-ceiling recordDeliveryExhaustion(...) else enqueueRetryItem(...) + incrementMetric('retries_scheduled_total') + persistState() + maybeUpsertJob(...) + logger.warn(...) -> return {retry_status} \u2014 is hand-inlined five times: prepared-redelivery (1084-1144), finalize-only (1146-1211), exhausted-then-finalize-then-finalize-fails (1267-1337), and the trailing generic scheduleRetry arm (1340-1373). buildEventKey, kernelIntent, attempts, and the maybeUpsertJob field set are repeated in each. The catch block alone is ~385 lines.",
    "proposal": "Extract three helpers that already have all the inputs threaded through: scheduleCallbackRetry(config,state,persistState,logger,event,kernelIntent,{nextAttempts,route,errorMessage,extraRetryItemFields,upsertStatus,upsertWorkerResponse}) returning the standard result envelope; handleSettledOutcome and handleTerminalConfigOutcome (lines 991-1082 are themselves two more near-clones of recordDeliveryExhaustion). Have each catch arm compute classifyError once, then call the appropriate helper. Target: shrink processEvent to a dispatcher under ~120 lines. This is the highest-leverage maintainability win on the money path and would let the dead-letter ceiling logic be unit-tested in isolation rather than only via the two end-to-end ceiling tests at fulfillment.test.mjs:451/473.",
    "subsystem": "or-relayer-core",
-   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "root": "/Users/jinghuiliao/git/r3e/neo-os-services",
    "verdict": {
     "isReal": true,
     "confidence": "high",
@@ -94,7 +94,7 @@
    "evidence": "scanNeoN3OracleRequests (382-420) is the mainnet default (config.js:437 sets scanMode='block_cursor' for non-testnet). It loops blocks sequentially (for height...), and for EACH block calls getblock then issues a separate getapplicationlog RPC for EVERY transaction in the block (line 393, inside the per-tx loop) with no contract pre-filter and no concurrency. With maxBlocksPerTick=250 (config.js:301) and busy blocks this is hundreds\u2013thousands of serial round-trips per tick against a single RPC endpoint. The request-cursor and Neo X scans already batch via mapWithConcurrency (neo-n3.js:522, neox.js:228); this path does not. There is also NO test for it (grep confirms scanNeoN3OracleRequests is untested).",
    "proposal": "Reuse the existing mapWithConcurrency to parallelize at the block level (fetch getblock+per-tx logs under resolveScanConcurrency), preserving ascending order on flatten. getblock with verbosity already returns tx execution triggers \u2014 confirm whether the oracle notification is reachable without a second getapplicationlog (or use the node's getapplicationlog-by-block where available) to drop the per-tx call entirely. At minimum add a bounded-concurrency wrapper and a unit test mirroring neo-n3.test.mjs:272 ('batched scan is equivalent to the sequential path'). Lower risk: document block_cursor as legacy-only and steer mainnet to n3index_notifications/request_cursor, which are already batched.",
    "subsystem": "or-relayer-core",
-   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "root": "/Users/jinghuiliao/git/r3e/neo-os-services",
    "verdict": {
     "isReal": true,
     "confidence": "high",
@@ -111,11 +111,11 @@
    "evidence": "Single module spans: local feed-state file persistence + cache (feedStateCache, loadFeedState/saveFeedState L52-271), Supabase REST snapshot read/write (getSupabaseRestConfig/fetchLatestFeedSnapshots/persistFeedSnapshots L76-164), decimal/integer math (decimalToIntegerString/integerToDecimalString/multiplyDecimalString/transformDecimalString L310-373), Neo JSON-RPC + stack-item decoding (parseNeoStackItem/fetchNeoN3FeedRecords/decodeNeoByteString L694-804), sync-policy/threshold logic (buildSyncPolicy/shouldSubmitFeed L495-884), and N3 batch submission with single-tx fallback (submitQuoteToN3/submitQuotesToN3/submitQuotesToN3WithFallback L1067-1234). handleOracleFeed itself is ~245 lines (L1247-1490) with the quote loop, decision, state mutation and submission inlined. ~30 of the exports are __forTests shims, a sign the internal seams are not real module boundaries. This was explicitly flagged in monorepo-review-2026-05-29.md ('1513 LOC ... split into cohesive modules') and is the one item from that list never actioned.",
    "proposal": "Behavior-preserving extraction into peer modules under oracle/feeds/: feed-state.js (state file + cache + supabase snapshots), neo-stack-decode.js (parseNeoStackItem/decodeNeoByteString/fetchNeoN3FeedRecords \u2014 also reusable by relayer), decimal.js (the 4 decimal converters, which duplicate logic elsewhere \u2014 see separate finding), sync-policy.js (buildSyncPolicy/shouldSubmitFeed/computeChangeBps/resolvePairThresholdBps), feed-submit.js (submitQuoteToN3/submitQuotesToN3/fallback + the updatefeeds-missing/unauthorized detectors). feeds.js retains only the public handlers and the orchestration loop. Keep all current exports re-exported from feeds.js so capabilities.js/index.js and the test shims are untouched. The 28KB feeds.test.mjs already pins behavior, so the split is verifiable.",
    "subsystem": "or-worker-oracle",
-   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "root": "/Users/jinghuiliao/git/r3e/neo-os-services",
    "verdict": {
     "isReal": true,
     "confidence": "high",
-    "reason": "Verified against the actual file at /Users/jinghuiliao/git/r3e/neo-morpheus-oracle/workers/nitro-worker/src/oracle/feeds.js. Core premise is TRUE: file is exactly 1523 lines and genuinely mixes 6 cohesive concerns, with cited line ranges accurate (feed-state+cache+supabase L52-271, decimal math L310-373, neo stack decode L694-804, sync-policy L495-884, N3 submission+fallback L1067-1234). handleOracleFeed is ~243 lines (L1247-1490) and inlines the quote loop/decision/state-mutation/submission, calling helpers from every proposed module \u2014 a true orchestrator that the proposal correctly retains. The split is safe and verifiable: the only consumers are index.js (re-exports 8 public fns, all non-test) and feeds.test.mjs (imports 17 __forTests shims directly from feeds.js); the proposed 're-export everything from feeds.js' strategy leaves both untouched. I ran feeds.test.mjs: 22/22 pass, giving a real behavioral pin. The directory already follows the one-concern-per-module + co-located-test convention (crypto.js, fetch.js, message-reveal.js, providers.js, aggregation.js), so the extraction aligns with established structure rather than inventing one. Flagged in monorepo-review-2026-05-29.md L129 and never actioned (the doc cited the pre-migration phala-worker path; same file now under nitro-worker). Caveats that don't sink it: (1) the '~30 __forTests shims' figure is overstated \u2014 actually 17 of 28 exports, though the 'majority are test shims = weak seams' point holds; (2) the secondary 'reusable by relayer' and 'decimal duplicates elsewhere' justifications are speculative/deferred (no live external consumer of the decimal helpers or neo-stack decoders found in this repo beyond index.js re-export) \u2014 but these are side notes, not the core premise. Blast radius is low (internal module move, public + test surface preserved, mechanical errors caught by the existing suite). Genuine maintainability improvement, not a lateral move.",
+    "reason": "Verified against the actual file at /Users/jinghuiliao/git/r3e/neo-os-services/workers/nitro-worker/src/oracle/feeds.js. Core premise is TRUE: file is exactly 1523 lines and genuinely mixes 6 cohesive concerns, with cited line ranges accurate (feed-state+cache+supabase L52-271, decimal math L310-373, neo stack decode L694-804, sync-policy L495-884, N3 submission+fallback L1067-1234). handleOracleFeed is ~243 lines (L1247-1490) and inlines the quote loop/decision/state-mutation/submission, calling helpers from every proposed module \u2014 a true orchestrator that the proposal correctly retains. The split is safe and verifiable: the only consumers are index.js (re-exports 8 public fns, all non-test) and feeds.test.mjs (imports 17 __forTests shims directly from feeds.js); the proposed 're-export everything from feeds.js' strategy leaves both untouched. I ran feeds.test.mjs: 22/22 pass, giving a real behavioral pin. The directory already follows the one-concern-per-module + co-located-test convention (crypto.js, fetch.js, message-reveal.js, providers.js, aggregation.js), so the extraction aligns with established structure rather than inventing one. Flagged in monorepo-review-2026-05-29.md L129 and never actioned (the doc cited the pre-migration phala-worker path; same file now under nitro-worker). Caveats that don't sink it: (1) the '~30 __forTests shims' figure is overstated \u2014 actually 17 of 28 exports, though the 'majority are test shims = weak seams' point holds; (2) the secondary 'reusable by relayer' and 'decimal duplicates elsewhere' justifications are speculative/deferred (no live external consumer of the decimal helpers or neo-stack decoders found in this repo beyond index.js re-export) \u2014 but these are side notes, not the core premise. Blast radius is low (internal module move, public + test surface preserved, mechanical errors caught by the existing suite). Genuine maintainability improvement, not a lateral move.",
     "impact_adjust": "lower"
    }
   },
@@ -128,7 +128,7 @@
    "evidence": "getFeedPairRegistry() (L226) calls deepMerge(DEFAULT_FEED_PAIRS, parseRegistryOverride()) \u2014 a recursive object clone of ~36 pairs PLUS parseRegistryOverride() which JSON.parses env MORPHEUS_FEED_PAIR_REGISTRY_JSON (L207-216) \u2014 and there is no memoization. getFeedPairConfig() (L230) calls it once; getFeedDisplaySymbol/getFeedUnitLabel/getFeedPriceMultiplier/getFeedPriceTransform each call getFeedPairConfig again. resolveQuoteForProvider (feeds.js L927-930) invokes 4 of these getters per quote, plus getFeedStoragePair/getSourceSetIdForProvider, so a single price quote triggers the full deepMerge+JSON.parse 6+ times. handleOracleFeed loops over ~36 default symbols per cycle \u2192 hundreds of redundant clones/parses per feed run, every 2-5 minutes forever.",
    "proposal": "Memoize the merged registry: cache the result of getFeedPairRegistry() keyed by the raw MORPHEUS_FEED_PAIR_REGISTRY_JSON string (invalidate only when the env string changes), so the deepMerge+JSON.parse runs once per distinct override value instead of per getter. The registry is effectively static at runtime. Drop-in, ~10 lines, no API change, covered by providers/feed tests.",
    "subsystem": "or-worker-oracle",
-   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "root": "/Users/jinghuiliao/git/r3e/neo-os-services",
    "verdict": {
     "isReal": true,
     "confidence": "high",
@@ -145,7 +145,7 @@
    "evidence": "buildSignedResultEnvelope() internally calls maybeBuildDstackAttestation (line 200) and returns it as signed.tee_attestation (line 209). But every caller discards signed.tee_attestation and calls maybeBuildDstackAttestation a SECOND time: compute/index.js:712, paymaster/index.js:334, neodid/index.js:477, oracle/vrf.js:9, oracle/feeds.js:956, oracle/fetch.js:371. maybeBuildNitroAttestation (nitro-signer.js:256) does a POST to the enclave /attest endpoint (with a 10s AbortSignal.timeout) whenever shouldEmitAttestation is true \u2014 so each attested request issues two enclave round-trips and computes the same attestation digest twice. The two calls also pass different report inputs in some handlers (signed.output_hash vs result), so the value actually surfaced to the caller can differ from the one baked into the signed envelope.",
    "proposal": "Make buildSignedResultEnvelope the single source of the attestation: have it return tee_attestation (already does) and have each handler use signed.tee_attestation instead of re-calling maybeBuildDstackAttestation. Standardize the report input on output_hash inside buildSignedResultEnvelope so the signed and surfaced attestation are identical. This halves enclave attestation traffic on the attested lanes and removes a subtle inconsistency, with no change to the response shape.",
    "subsystem": "or-worker-platform",
-   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "root": "/Users/jinghuiliao/git/r3e/neo-os-services",
    "verdict": {
     "isReal": true,
     "confidence": "high",
@@ -162,7 +162,7 @@
    "evidence": "fetchOnchainState() (onchain-state.ts:270) issues 7 RPC reads (Promise.all at :201-217) with cache:'no-store' (:156) and no module-level cache. /api/onchain/state/route.ts:22 calls it on every request with no revalidate/dynamic directive. It is polled by status/page.tsx (every 30s, :166), OverviewTab.tsx (every 20s, :116), and on-mount by StarterStudio + OracleTab + ComputeTab. With M concurrent clients this is M\u00d77 RPC round-trips every 20-30s, all redundant since on-chain feed state changes at most every few minutes. The identical caching pattern already exists in lib/feeds-status.ts:152-162 (getFeedsStatusBody, 30s STATUS_CACHE_TTL_MS) which itself wraps fetchOnchainState(200).",
    "proposal": "Wrap fetchOnchainState in a per-(network,limit) TTL cache (~10-15s) mirroring feeds-status.ts getFeedsStatusBody, or memoize an in-flight promise to dedupe concurrent polls. Keys must include network and limit. Collapses N\u00d77 RPC calls per interval to ~1 per TTL window across all clients and reduces dashboard poll latency.",
    "subsystem": "or-web",
-   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "root": "/Users/jinghuiliao/git/r3e/neo-os-services",
    "verdict": {
     "isReal": true,
     "confidence": "high",
@@ -650,7 +650,7 @@
    "impact": "medium",
    "effort": "small",
    "file": "workers/morpheus-relayer/src/queue.js:503",
-   "proposal": "Move the fail-fast variant into the shared package (e.g. @neo-morpheus-oracle/shared/utils, where trimString/parseTimestampMs already live) as mapWithConcurrency(items, limit, worker) and import it in all four sites. The fail-fast semantics are the safer default (abort-the-tick on transport error, which both engine scans already rely on). One definition, one test, consistent behavior."
+   "proposal": "Move the fail-fast variant into the shared package (e.g. @neo-os-services/shared/utils, where trimString/parseTimestampMs already live) as mapWithConcurrency(items, limit, worker) and import it in all four sites. The fail-fast semantics are the safer default (abort-the-tick on transport error, which both engine scans already rely on). One definition, one test, consistent behavior."
   },
   {
    "system": "Oracle",
@@ -780,7 +780,7 @@
    "impact": "low",
    "effort": "small",
    "file": "workers/morpheus-relayer/src/request-processor.js",
-   "proposal": "Move it to a single shared util (e.g. a relayer-local lib/concurrency.js or the @neo-morpheus-oracle/shared package, which config.js already imports from) and import in both. Removes a copy that will drift."
+   "proposal": "Move it to a single shared util (e.g. a relayer-local lib/concurrency.js or the @neo-os-services/shared package, which config.js already imports from) and import in both. Removes a copy that will drift."
   },
   {
    "system": "Oracle",
@@ -790,7 +790,7 @@
    "impact": "low",
    "effort": "small",
    "file": "workers/morpheus-relayer/src/persistence.js",
-   "proposal": "Replace the local trimString/isPlainObject copies with imports from @neo-morpheus-oracle/shared/utils, and hoist the duplicated resolveSupabaseNetwork into persistence.js as the single exported source (automation.js imports it). Mechanical and low-risk; trims ~6 near-identical helper blocks."
+   "proposal": "Replace the local trimString/isPlainObject copies with imports from @neo-os-services/shared/utils, and hoist the duplicated resolveSupabaseNetwork into persistence.js as the single exported source (automation.js imports it). Mechanical and low-risk; trims ~6 near-identical helper blocks."
   },
   {
    "system": "Oracle",
@@ -1070,7 +1070,7 @@
    "impact": "low",
    "effort": "small",
    "file": "apps/web/lib/onchain-state.ts",
-   "proposal": "Import trimString (and json/parseTimestampMs where applicable) from @neo-morpheus-oracle/shared in the server-side lib files and delete the local copies. Behavior-identical (shared impl is `typeof v==='string' ? v.trim() : ''`). Low risk; do it as a mechanical pass and rely on the existing test suite + build."
+   "proposal": "Import trimString (and json/parseTimestampMs where applicable) from @neo-os-services/shared in the server-side lib files and delete the local copies. Behavior-identical (shared impl is `typeof v==='string' ? v.trim() : ''`). Low risk; do it as a mechanical pass and rely on the existing test suite + build."
   },
   {
    "system": "Oracle",
@@ -1080,7 +1080,7 @@
    "impact": "medium",
    "effort": "small",
    "file": "apps/web/lib/control-plane-auth.ts",
-   "proposal": "Replace the === secret comparisons in control-plane-auth.ts and cron-auth.ts with timingSafeCompare from @neo-morpheus-oracle/shared (constant-time over equalized-length buffers). These are server-only auth helpers; change is local and unit-testable. Note: cron-auth.ts:26 also still authorizes dev requests on a 'vercel-cron' User-Agent substring \u2014 confirm the NODE_ENV==='production' guard (line 23) fully gates it before relying on the UA path."
+   "proposal": "Replace the === secret comparisons in control-plane-auth.ts and cron-auth.ts with timingSafeCompare from @neo-os-services/shared (constant-time over equalized-length buffers). These are server-only auth helpers; change is local and unit-testable. Note: cron-auth.ts:26 also still authorizes dev requests on a 'vercel-cron' User-Agent substring \u2014 confirm the NODE_ENV==='production' guard (line 23) fully gates it before relying on the UA path."
   },
   {
    "system": "Oracle",

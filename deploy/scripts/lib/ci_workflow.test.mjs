@@ -80,8 +80,10 @@ test("workspace members must not carry their own package-lock.json", () => {
   );
 });
 
-test("verify_repo gate runs the shared miniapp library suite", () => {
+test("verify_repo gate runs the deploy-script suite", () => {
+  // It used to run test:shared as well. apps/shared is the SDK's now and lives
+  // in neo-os-devpack, so that suite runs there; asserting it here would only
+  // pin a command this package no longer defines.
   const verifyRepo = fs.readFileSync(path.join(repoRoot, "scripts/verify_repo.sh"), "utf8");
-  assert.match(verifyRepo, /^npm run -s test:shared$/m);
   assert.match(verifyRepo, /^npm run test:deploy-scripts$/m);
 });

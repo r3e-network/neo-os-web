@@ -159,7 +159,7 @@ export function buildCrossRepoDuplicationReport({
     : path.join(defaultR3eRoot, "neo-abstract-account"),
   morpheusRoot = process.env.MORPHEUS_ORACLE_ROOT
     ? path.resolve(process.env.MORPHEUS_ORACLE_ROOT)
-    : path.join(defaultR3eRoot, "neo-morpheus-oracle"),
+    : path.join(defaultR3eRoot, "neo-os-services"),
   now = () => new Date(),
 } = {}) {
   for (const [name, root] of Object.entries({ miniappsRoot, abstractAccountRoot, morpheusRoot })) {
@@ -324,7 +324,7 @@ export function buildCrossRepoDuplicationReport({
     },
     legacyCloneDeployment,
     morpheusEnginePorts: {
-      dir: "neo-morpheus-oracle/workers/nitro-worker/src/game/engines/",
+      dir: "neo-os-services/workers/nitro-worker/src/game/engines/",
       source_files: sourceFiles.length,
       source_file_list: sourceFiles,
       source_loc: measureFiles(engineRoot, sourceFiles).loc,
@@ -344,7 +344,7 @@ export function buildCrossRepoDuplicationReport({
       boundary: `${[...syncSource.matchAll(/\baction:\s*'generate'/g)].length} engines are generated from miniapps TypeScript sources; ${[...syncSource.matchAll(/\baction:\s*'keep'/g)].length} remain reviewed handwritten ports and ${adapterFiles.length} enclave-only adapters remain. Dirty sibling-repo status is worktree evidence, not landed release proof.`,
     },
     envelopeCopies: {
-      morpheus_file: "neo-morpheus-oracle/packages/shared/src/confidential-envelope.js",
+      morpheus_file: "neo-os-services/packages/shared/src/confidential-envelope.js",
       aa_file: "neo-abstract-account/frontend/src/utils/morpheusEncryption.js",
       aa_generated_file: "neo-abstract-account/frontend/src/utils/morpheusConfidentialEnvelope.generated.js",
       morpheus_sha256: morpheusEnvelopeSha256,

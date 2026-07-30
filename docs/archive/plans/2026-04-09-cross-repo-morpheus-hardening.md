@@ -4,16 +4,16 @@
 
 **Goal:** Make Morpheus the canonical source of public integration metadata, stop leaking validation secrets through stdout, and align neo-os-web plus neo-abstract-account with generated Morpheus registry defaults.
 
-**Architecture:** `neo-morpheus-oracle` exports a normalized public registry plus a split public/secret workspace validation context. Consumer repos keep checked-in generated modules derived from the Morpheus export so runtime defaults stay local, deterministic, and reviewable without introducing sibling-repo runtime coupling.
+**Architecture:** `neo-os-services` exports a normalized public registry plus a split public/secret workspace validation context. Consumer repos keep checked-in generated modules derived from the Morpheus export so runtime defaults stay local, deterministic, and reviewable without introducing sibling-repo runtime coupling.
 
 **Tech Stack:** Node.js, bash, Jest, Node test runner, TypeScript, ESM.
 
 ### Task 1: Repair and lock Morpheus registry export behavior
 
 **Files:**
-- Modify: `/home/neo/git/neo-morpheus-oracle/.worktrees/cross-repo-hardening/scripts/lib-public-network-registry.mjs`
-- Modify: `/home/neo/git/neo-morpheus-oracle/.worktrees/cross-repo-hardening/scripts/export-public-network-registry.mjs`
-- Test: `/home/neo/git/neo-morpheus-oracle/.worktrees/cross-repo-hardening/scripts/export-public-network-registry.test.mjs`
+- Modify: `/home/neo/git/neo-os-services/.worktrees/cross-repo-hardening/scripts/lib-public-network-registry.mjs`
+- Modify: `/home/neo/git/neo-os-services/.worktrees/cross-repo-hardening/scripts/export-public-network-registry.mjs`
+- Test: `/home/neo/git/neo-os-services/.worktrees/cross-repo-hardening/scripts/export-public-network-registry.test.mjs`
 
 **Step 1: Write or keep the failing test**
 
@@ -34,9 +34,9 @@ Run: `node --test scripts/export-public-network-registry.test.mjs`
 ### Task 2: Split public workspace context from secret material
 
 **Files:**
-- Modify: `/home/neo/git/neo-morpheus-oracle/.worktrees/cross-repo-hardening/scripts/lib-workspace-validation-context.mjs`
-- Modify: `/home/neo/git/neo-morpheus-oracle/.worktrees/cross-repo-hardening/scripts/resolve-workspace-validation-context.mjs`
-- Test: `/home/neo/git/neo-morpheus-oracle/.worktrees/cross-repo-hardening/scripts/resolve-workspace-validation-context.test.mjs`
+- Modify: `/home/neo/git/neo-os-services/.worktrees/cross-repo-hardening/scripts/lib-workspace-validation-context.mjs`
+- Modify: `/home/neo/git/neo-os-services/.worktrees/cross-repo-hardening/scripts/resolve-workspace-validation-context.mjs`
+- Test: `/home/neo/git/neo-os-services/.worktrees/cross-repo-hardening/scripts/resolve-workspace-validation-context.test.mjs`
 
 **Step 1: Strengthen the failing test**
 
@@ -57,7 +57,7 @@ Run: `node --test scripts/export-public-network-registry.test.mjs scripts/resolv
 ### Task 3: Update cross-repo validation scripts to consume private env files
 
 **Files:**
-- Modify: `/home/neo/git/neo-morpheus-oracle/.worktrees/cross-repo-hardening/scripts/run_workspace_live_validation.sh`
+- Modify: `/home/neo/git/neo-os-services/.worktrees/cross-repo-hardening/scripts/run_workspace_live_validation.sh`
 - Modify: `/home/neo/git/neo-os-web/.worktrees/cross-repo-hardening/deploy/scripts/verify_cross_repo_testnet.sh`
 
 **Step 1: Add minimal behavior checks indirectly through existing tests**

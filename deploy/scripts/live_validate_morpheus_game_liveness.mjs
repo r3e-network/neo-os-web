@@ -110,9 +110,9 @@ function resolveExpectedTeeSigner() {
   if (/^(02|03)[0-9a-f]{64}$/.test(fromEnv)) return fromEnv;
 
   const candidates = [
-    path.join(repoRoot, "..", "neo-morpheus-oracle", "config", "signer-identities.json"),
-    path.join(repoRoot, "..", "..", "neo-morpheus-oracle", "config", "signer-identities.json"),
-    path.join(process.env.HOME || "", "git", "r3e", "neo-morpheus-oracle", "config", "signer-identities.json"),
+    path.join(repoRoot, "..", "neo-os-services", "config", "signer-identities.json"),
+    path.join(repoRoot, "..", "..", "neo-os-services", "config", "signer-identities.json"),
+    path.join(process.env.HOME || "", "git", "r3e", "neo-os-services", "config", "signer-identities.json"),
   ];
   for (const candidate of candidates) {
     if (!candidate || !fs.existsSync(candidate)) continue;

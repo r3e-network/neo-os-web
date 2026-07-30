@@ -64,7 +64,7 @@ const RPC_CANDIDATES = [
 function canonicalSiblingBuildDirs({ root = ROOT } = {}) {
   const siblingRoots = [
     process.env.NEO_ABSTRACT_ACCOUNT_DIR || process.env.ABSTRACT_ACCOUNT_DIR || path.resolve(root, "../neo-abstract-account"),
-    process.env.NEO_MORPHEUS_ORACLE_DIR || process.env.MORPHEUS_DIR || path.resolve(root, "../neo-morpheus-oracle"),
+    process.env.NEO_MORPHEUS_ORACLE_DIR || process.env.MORPHEUS_DIR || path.resolve(root, "../neo-os-services"),
   ];
   return siblingRoots
     .map((repoRoot) => path.join(repoRoot, "contracts", "build"))

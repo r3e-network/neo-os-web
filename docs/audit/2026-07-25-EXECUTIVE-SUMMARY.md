@@ -7,7 +7,7 @@
 Comprehensive audit of the platform contract library refactoring across three related projects:
 - neo-os-web (main platform)
 - neo-abstract-account (AA system)
-- neo-morpheus-oracle (oracle integration)
+- neo-os-services (oracle integration)
 
 ## Current Status: ✅ Source Complete, ⚠️ Deployment Pending
 

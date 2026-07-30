@@ -1,6 +1,6 @@
 # Joint Testnet Baseline — 2026-07-18
 
-Three-repo joint verification record (neo-os-web × neo-morpheus-oracle × neo-abstract-account). Operator signer: `NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu` (hash `0x13ef519c362973f9a34648a9eac5b71250b2a80a`), well-funded (73,061 NEO / ~112.5k GAS). Network: neo-n3-testnet (magic 894710606), RPC `https://testnet1.neo.coz.io:443`.
+Three-repo joint verification record (neo-os-web × neo-os-services × neo-abstract-account). Operator signer: `NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu` (hash `0x13ef519c362973f9a34648a9eac5b71250b2a80a`), well-funded (73,061 NEO / ~112.5k GAS). Network: neo-n3-testnet (magic 894710606), RPC `https://testnet1.neo.coz.io:443`.
 
 ## Deployed / live contracts (operator-controlled)
 

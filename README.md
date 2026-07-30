@@ -27,7 +27,7 @@ This repository no longer owns the full Go service layer runtime.
 
 The attested Oracle, DataFeed, confidential compute, paymaster, and AA service logic now live in the dedicated upstream repos:
 
-- `neo-morpheus-oracle`
+- `neo-os-services`
 - `neo-abstract-account`
 
 This repository should be treated as:
@@ -65,12 +65,12 @@ The platform does **not** embed the Morpheus Oracle runtime or the AA runtime an
 
 | Capability | Source of truth | Platform integration path |
 | ---------- | --------------- | ------------------------- |
-| Oracle / custom fetch | `neo-morpheus-oracle` | host-side `/api/morpheus/oracle/*` proxy + shared `useOracle()` |
-| DataFeed | `neo-morpheus-oracle` | host-side `/api/morpheus/*` proxy, on-chain DataFeed contract (external), shared config |
-| VRF / randomness | `neo-morpheus-oracle` | host-side `/api/morpheus/vrf/*` proxy |
-| Compute / TEE | `neo-morpheus-oracle` | host-side `/api/morpheus/*` proxy |
-| Paymaster / sponsorship | `neo-morpheus-oracle` | `gas-sponsor-check` / `gas-sponsor-request` edge functions plus AA relay paymaster metadata |
-| NeoDID public resolution / providers | `neo-morpheus-oracle` | host-side `/api/morpheus/neodid/*` proxy + shared `useOracle()` |
+| Oracle / custom fetch | `neo-os-services` | host-side `/api/morpheus/oracle/*` proxy + shared `useOracle()` |
+| DataFeed | `neo-os-services` | host-side `/api/morpheus/*` proxy, on-chain DataFeed contract (external), shared config |
+| VRF / randomness | `neo-os-services` | host-side `/api/morpheus/vrf/*` proxy |
+| Compute / TEE | `neo-os-services` | host-side `/api/morpheus/*` proxy |
+| Paymaster / sponsorship | `neo-os-services` | `gas-sponsor-check` / `gas-sponsor-request` edge functions plus AA relay paymaster metadata |
+| NeoDID public resolution / providers | `neo-os-services` | host-side `/api/morpheus/neodid/*` proxy + shared `useOracle()` |
 | AA core / verifiers / relay | `neo-abstract-account` | host `AA_RELAY_URL`, shared `useAbstractAccount()`, canonical domains / hashes |
 
 Primary integration rule:
@@ -101,7 +101,7 @@ Current flagship payment rule:
         │                    │                                │
         ▼                    ▼                                ▼
 ┌─────────────┐  ┌──────────────────────┐  ┌───────────────────────────┐
-│ Domain      │  │ neo-morpheus-oracle  │  │  neo-abstract-account     │
+│ Domain      │  │ neo-os-services  │  │  neo-abstract-account     │
 │ Contracts   │  │ oracle / datafeed /  │  │ AA core / verifiers /     │
 │ Platform    │  │ vrf / compute /      │  │ relay + AA frontends      │
 │ Anchor/DeFi │  │ paymaster runtime    │  └───────────────────────────┘

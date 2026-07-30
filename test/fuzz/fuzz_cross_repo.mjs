@@ -2,7 +2,7 @@
 /**
  * Fuzz Campaign: Cross-Repo Integration Points
  *
- * Tests the boundaries between neo-os-web, neo-morpheus-oracle,
+ * Tests the boundaries between neo-os-web, neo-os-services,
  * and neo-abstract-account on testnet.
  *
  * Targets:

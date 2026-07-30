@@ -82,7 +82,7 @@ anything, and keep key material out of tracked files.
 
 ### 12.1 Morpheus Oracle Architecture
 
-**Project:** neo-morpheus-oracle
+**Project:** neo-os-services
 **Contracts:**
 - `MorpheusOracle` - Main oracle contract (4 partials)
 - `MorpheusDataFeed` - Price feed oracle
