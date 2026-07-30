@@ -10,6 +10,20 @@ Current production target is **Neo N3 only**.
 
 ## Repo Responsibilities
 
+The platform was one tree — host app, admin console, edge functions, contracts,
+SDK, and all 78 apps with their contracts. It is six repositories now, layered
+bottom-up: chain, contracts, services, platform + devpack, apps.
+
+| Repository | Owns |
+| --- | --- |
+| [`neo-os-contracts`](https://github.com/r3e-network/neo-os-contracts) | The platform on-chain estate: the `Platform*` contracts, `AppAccount`, `MiniAppFactory`, `MiniAppCredits`, the `MiniApp.DevPack` base library, the factory templates and the test fixtures — plus every audit and generator that reads a contract manifest. |
+| [`neo-os-services`](https://github.com/r3e-network/neo-os-services) | Oracle / DataFeed / VRF / Compute / Paymaster, including the **kernel contract** that backs all `os-*` edge functions. |
+| **`neo-os-web`** (this repo) | The platform only — see below. |
+| [`neo-os-devpack`](https://github.com/r3e-network/neo-os-devpack) | The app-facing SDK: `@r3e-network/neo-miniapp-framework` (was `framework/`) and `@r3e-network/neo-miniapp-shared` (was `apps/shared`), including the audit that keeps the `platform-*-surface.ts` files in step with the contract ABIs. |
+| [`neo-os-miniapps`](https://github.com/r3e-network/neo-os-miniapps) | The non-game MiniApps, their Neo N3 contracts, and their CDN publish pipeline. |
+| [`neo-os-minigames`](https://github.com/r3e-network/neo-os-minigames) | The MiniGames, their contracts (including the compiler-pinned `MiniAppTarotVrf`), and their CDN publish pipeline. |
+| [`neo-abstract-account`](https://github.com/r3e-network/neo-abstract-account) | AA core contracts, verifiers, relay UX, and AA runtime. |
+
 This repo owns:
 
 - `platform/host-app`: Next.js / React end-user host shell that injects
@@ -18,24 +32,20 @@ This repo owns:
 - `platform/admin-console`: Next.js operational/admin UX
 - `platform/edge/functions`: Supabase Edge (Deno) gateway functions — auth,
   wallet binding, policy / rate-limit / scope enforcement, forwarding to
-  external services, and the 42 `os-*` OS service functions
-- `framework/`: `@neo/miniapp-framework`, the TypeScript SDK every MiniApp
-  builds on (chain / storage / notify / stats / permissions surfaces, game +
-  gamefi helpers, AA utils)
-- `apps/`: 77 MiniApps plus `apps/shared/` (PlatformServices, OS proxies,
-  manifest types, generated contract constants)
-- `contracts/`: the on-chain estate — 7 platform contracts under
-  `contracts/platform/`, 34 legacy per-app `MiniApp*` contracts, the
-  `MiniApp.DevPack` source-shared base, and 6 test fixtures (full inventory:
-  [`contracts/README.md`](../contracts/README.md))
+  external services, and the `os-*` OS service functions
 - `deploy/`: deployment, validation, and testnet workflow helpers
 
-This repo does **not** own the Oracle / AA runtimes:
+It deliberately owns **no** app and **no** contract. Apps arrive from the CDN at
+runtime and the host knows only what a manifest declares, which is what lets an
+app ship without a platform release. Contract artifacts are read out of
+`neo-os-contracts` (override with `NEO_OS_CONTRACTS_DIR`) or the app repos'
+build output; `deploy/scripts/lib/vendored-from-contracts.test.mjs` fails if a
+`contracts/` tree reappears here.
 
-- `neo-os-services` owns Oracle / DataFeed / VRF / Compute / Paymaster —
-  including the **kernel contract** that backs all `os-*` edge functions
-- `neo-abstract-account` owns AA core contracts, verifiers, relay UX, and AA
-  runtime
+The app manifests the host serves are a committed snapshot,
+`platform/host-app/public/miniapp-manifests.json`, rebuilt from the app repos by
+`scripts/refresh-manifest-snapshot.mjs`. `--check` fails when it drifts, so the
+host never reads a sibling checkout at runtime.
 
 ## SaaS Integrations
 

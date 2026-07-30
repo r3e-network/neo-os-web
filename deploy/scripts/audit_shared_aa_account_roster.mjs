@@ -84,22 +84,28 @@ export function derivePlatformAccountId({
   return `0x${hash160(payload).toString("hex")}`;
 }
 
+// The apps and their neo-manifest.json files are in neo-os-miniapps and
+// neo-os-minigames. What this repo has is the committed snapshot the host app
+// serves, kept current by scripts/refresh-manifest-snapshot.mjs --check, so the
+// roster is read from there rather than from a sibling checkout.
 function readManifestRoster() {
-  const appsRoot = path.join(repoRoot, "apps");
-  return fs.readdirSync(appsRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => {
-      const relative = `apps/${entry.name}/neo-manifest.json`;
-      const absolute = path.join(repoRoot, relative);
-      if (!fs.existsSync(absolute)) return null;
-      const manifest = readJson(absolute);
-      return {
-        id: String(manifest.id ?? ""),
-        source: relative,
-      };
-    })
-    .filter(Boolean)
+  const snapshot = "platform/host-app/public/miniapp-manifests.json";
+  const manifests = readJson(path.join(repoRoot, snapshot)).manifests ?? {};
+  const roster = Object.entries(manifests)
+    .map(([slug, manifest]) => ({
+      id: String(manifest.id ?? ""),
+      source: `${snapshot}#${slug}`,
+    }))
+    .filter((entry) => entry.id.length > 0)
     .sort((left, right) => left.id.localeCompare(right.id));
+
+  // An empty roster would make every downstream comparison vacuous.
+  if (roster.length === 0) {
+    throw new Error(
+      `${snapshot} yielded no app ids; run: node scripts/refresh-manifest-snapshot.mjs`,
+    );
+  }
+  return roster;
 }
 
 function defaultRosterReportPath() {

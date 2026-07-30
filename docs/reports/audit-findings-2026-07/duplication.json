@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at_utc": "2026-07-25T16:00:24.581Z",
+  "generated_at_utc": "2026-07-30T11:58:11.162Z",
   "cloneFamily": {
     "root": "contracts/",
     "contracts": 11,
@@ -43,7 +43,7 @@
     "legacy_manifest_writeback_disabled": true
   },
   "morpheusEnginePorts": {
-    "dir": "neo-morpheus-oracle/workers/nitro-worker/src/game/engines/",
+    "dir": "neo-os-services/workers/nitro-worker/src/game/engines/",
     "source_files": 12,
     "source_file_list": [
       "aim.js",
@@ -87,7 +87,7 @@
     "boundary": "12 engines are generated from miniapps TypeScript sources; 0 remain reviewed handwritten ports and 5 enclave-only adapters remain. Dirty sibling-repo status is worktree evidence, not landed release proof."
   },
   "envelopeCopies": {
-    "morpheus_file": "neo-morpheus-oracle/packages/shared/src/confidential-envelope.js",
+    "morpheus_file": "neo-os-services/packages/shared/src/confidential-envelope.js",
     "aa_file": "neo-abstract-account/frontend/src/utils/morpheusEncryption.js",
     "aa_generated_file": "neo-abstract-account/frontend/src/utils/morpheusConfidentialEnvelope.generated.js",
     "morpheus_sha256": "508329d6f14974733d8f1ca5fb7d3ac6e9b1dc21820e3f12131098de4bb3e129",
@@ -102,8 +102,8 @@
   },
   "sdkGenerations": {
     "framework": {
-      "files": 120,
-      "loc": 31751
+      "files": 123,
+      "loc": 31868
     },
     "services_proxy": {
       "files": 25,
@@ -135,9 +135,9 @@
       "stats-surface.ts",
       "storage-surface.ts"
     ],
-    "ctx_os_text_reference_count": 12,
+    "ctx_os_text_reference_count": 0,
     "ctx_os_runtime_reference_count": 0,
-    "boundary": "framework/ is canonical app-facing API, apps/shared/services remains the live ctx.os compatibility runtime, and platform/sdk remains the iframe wallet-bridge protocol boundary."
+    "boundary": "node_modules/@r3e-network/neo-miniapp-framework/ is canonical app-facing API, apps/shared/services remains the live ctx.os compatibility runtime, and platform/sdk remains the iframe wallet-bridge protocol boundary."
   },
   "audit_complete": true,
   "dedup_complete": false,

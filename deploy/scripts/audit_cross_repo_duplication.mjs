@@ -8,8 +8,13 @@ import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const defaultMiniappsRoot = path.resolve(scriptDir, "..", "..");
-const defaultR3eRoot = path.resolve(defaultMiniappsRoot, "..");
+const defaultR3eRoot = path.resolve(scriptDir, "..", "..", "..");
+// The clone family this audit measures is eleven game contracts. They were built
+// in this repo when it still had contracts/; they are neo-os-minigames' now, so
+// that is where the audit looks unless MINIAPPS_ROOT says otherwise.
+const defaultMiniappsRoot = process.env.NEO_MINIGAMES_DIR
+  ? path.resolve(process.env.NEO_MINIGAMES_DIR)
+  : path.join(defaultR3eRoot, "neo-os-minigames");
 const cloneFamilyNames = [
   "MiniAppAimMaster",
   "MiniAppColorClash",
@@ -150,10 +155,25 @@ export function evaluateDuplicationEvidence(report) {
   };
 }
 
+/**
+ * One root per repo. This used to take a single `miniappsRoot` that held apps/,
+ * contracts/, framework/ and platform/ at once - the monorepo shape. Those four
+ * are in four repos now, so a single root resolved every one of them to the wrong
+ * place and the audit died on the first read.
+ */
 export function buildCrossRepoDuplicationReport({
+  // The eleven cloned game contracts and the build script that skips them.
   miniappsRoot = process.env.MINIAPPS_ROOT
     ? path.resolve(process.env.MINIAPPS_ROOT)
     : defaultMiniappsRoot,
+  // framework/ and shared/, which the SDK-generations measurement compares.
+  devpackRoot = process.env.DEVPACK_ROOT
+    ? path.resolve(process.env.DEVPACK_ROOT)
+    : path.join(defaultR3eRoot, "neo-os-devpack"),
+  // platform/ and the contract deploy script.
+  platformRoot = process.env.PLATFORM_ROOT
+    ? path.resolve(process.env.PLATFORM_ROOT)
+    : path.resolve(scriptDir, "..", ".."),
   abstractAccountRoot = process.env.AA_ROOT
     ? path.resolve(process.env.AA_ROOT)
     : path.join(defaultR3eRoot, "neo-abstract-account"),
@@ -162,7 +182,13 @@ export function buildCrossRepoDuplicationReport({
     : path.join(defaultR3eRoot, "neo-os-services"),
   now = () => new Date(),
 } = {}) {
-  for (const [name, root] of Object.entries({ miniappsRoot, abstractAccountRoot, morpheusRoot })) {
+  for (const [name, root] of Object.entries({
+    miniappsRoot,
+    devpackRoot,
+    platformRoot,
+    abstractAccountRoot,
+    morpheusRoot,
+  })) {
     if (!fs.existsSync(root)) throw new Error(`${name} not found: ${root}`);
   }
 
@@ -200,7 +226,7 @@ export function buildCrossRepoDuplicationReport({
   ];
   const syncSource = fs.readFileSync(path.join(morpheusRoot, syncRelativePaths[0]), "utf8");
   const deployScriptRelativePath = "deploy/scripts/deploy_selected_miniapp_contracts.go";
-  const deployScriptSource = fs.readFileSync(path.join(miniappsRoot, deployScriptRelativePath), "utf8");
+  const deployScriptSource = fs.readFileSync(path.join(platformRoot, deployScriptRelativePath), "utf8");
   const legacyTargetMarker = "var legacyCloneDeployTargets";
   const legacyTargetOffset = deployScriptSource.indexOf(legacyTargetMarker);
   const defaultDeploySource = legacyTargetOffset < 0
@@ -276,17 +302,17 @@ export function buildCrossRepoDuplicationReport({
 
   const ignoredDirectories = new Set(["node_modules", "dist", "build", "coverage"]);
   const frameworkFiles = relativeFiles(
-    path.join(miniappsRoot, "framework"),
+    path.join(devpackRoot, "framework"),
     (file) => file.endsWith(".ts"),
     ignoredDirectories
   );
   const serviceFiles = relativeFiles(
-    path.join(miniappsRoot, "apps", "shared", "services"),
+    path.join(devpackRoot, "shared", "services"),
     (file) => file.endsWith(".ts"),
     ignoredDirectories
   );
   const platformSdkFiles = relativeFiles(
-    path.join(miniappsRoot, "platform", "sdk", "src"),
+    path.join(platformRoot, "platform", "sdk", "src"),
     (file) => file.endsWith(".ts"),
     ignoredDirectories
   );
@@ -366,12 +392,12 @@ export function buildCrossRepoDuplicationReport({
         : "The package export exists, but AA does not yet consume a generated canonical envelope artifact.",
     },
     sdkGenerations: {
-      framework: measureFiles(path.join(miniappsRoot, "framework"), frameworkFiles),
+      framework: measureFiles(path.join(devpackRoot, "framework"), frameworkFiles),
       services_proxy: measureFiles(
-        path.join(miniappsRoot, "apps", "shared", "services"),
+        path.join(devpackRoot, "shared", "services"),
         serviceFiles
       ),
-      platform_sdk: measureFiles(path.join(miniappsRoot, "platform", "sdk", "src"), platformSdkFiles),
+      platform_sdk: measureFiles(path.join(platformRoot, "platform", "sdk", "src"), platformSdkFiles),
       framework_surface_files: frameworkFiles
         .filter((file) => file.endsWith("-surface.ts") && !file.includes("/test/"))
         .sort(),
@@ -388,8 +414,13 @@ export function buildCrossRepoDuplicationReport({
 
 export function writeCrossRepoDuplicationReport({ check = false, print = false } = {}) {
   const report = buildCrossRepoDuplicationReport();
-  const outputPath = path.join(
-    defaultMiniappsRoot,
+  // The report is this repo's, whichever repos it measured. It used to be written
+  // under defaultMiniappsRoot, which pointed here while the apps were here and
+  // pointed at neo-os-minigames afterwards.
+  const outputPath = path.resolve(
+    scriptDir,
+    "..",
+    "..",
     "docs",
     "reports",
     "audit-findings-2026-07",

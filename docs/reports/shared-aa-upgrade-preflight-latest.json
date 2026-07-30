@@ -1,9 +1,9 @@
 {
-  "generated_at_utc": "2026-07-24T14:34:14.742Z",
+  "generated_at_utc": "2026-07-30T11:50:06.919Z",
   "network": {
     "rpc_url": "https://testnet1.neo.coz.io:443",
     "magic": 894710606,
-    "chain_time_ms": 1784903647496
+    "chain_time_ms": 1785412199188
   },
   "contracts": {
     "registry": {
@@ -151,10 +151,10 @@
   },
   "local_artifacts": {
     "registry": {
-      "nef_path": "contracts/build/PlatformRegistry.nef",
-      "manifest_path": "contracts/build/PlatformRegistry.manifest.json",
-      "nef_sha256": "0xd486aea5df431e3f9ed92f4f741988915c9964b21a6d27ca3c6135609e392c1f",
-      "manifest_sha256": "0x94563e4ae2a436ed5e6a3edd2ae757b5fbb0a246f96c01ab1004dbdab536fb6f",
+      "nef_path": "neo-os-contracts/contracts/build/PlatformRegistry.nef",
+      "manifest_path": "neo-os-contracts/contracts/build/PlatformRegistry.manifest.json",
+      "nef_sha256": "0x34233a499fc56fe6c81d6fdbeb79cbfca6c99731b5dcb0844295840938c2e9f9",
+      "manifest_sha256": "0x2fae3fc200f27fe26b42eeaee2b83a7ca41c92ac2440760bdd1f5861276a10d9",
       "methods": [
         "_deploy",
         "_initialize",
@@ -234,8 +234,8 @@
       ]
     },
     "abstract_account": {
-      "nef_path": "../neo-abstract-account/contracts/bin/v3/UnifiedSmartWalletV3.nef",
-      "manifest_path": "../neo-abstract-account/contracts/bin/v3/UnifiedSmartWalletV3.manifest.json",
+      "nef_path": "neo-os-contracts/../neo-abstract-account/contracts/bin/v3/UnifiedSmartWalletV3.nef",
+      "manifest_path": "neo-os-contracts/../neo-abstract-account/contracts/bin/v3/UnifiedSmartWalletV3.manifest.json",
       "nef_sha256": "0x2933d023df120878a54e77180281175d1030485e5bb5203d18931fd0164fe330",
       "manifest_sha256": "0x31a32647417595c0bd64a38cc6028d0df396993fca7b3152d1faca9ea1dc4982",
       "methods": [
@@ -355,7 +355,7 @@
       "compatibility": "conditional",
       "source_provenance": "semantic_proxy_only",
       "exact_live_source_revision_known": false,
-      "semantic_baseline_revision": "6d733ececca9ee41d7c08fb3450e1bd28650ad62",
+      "semantic_baseline_revision": "fa452d141013d6f7d44470b57a655b671df70331",
       "live_nef_checksum": 1086937376,
       "semantic_baseline_nef_checksum": 2765313802,
       "semantic_baseline_matches_live": true,

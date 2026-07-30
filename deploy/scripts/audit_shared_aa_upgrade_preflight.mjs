@@ -16,6 +16,9 @@ import {
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..");
 const defaultAaRoot = path.resolve(repoRoot, "..", "neo-abstract-account");
+// PlatformRegistry is built in neo-os-contracts; this repo has no contracts/.
+const contractsRoot = process.env.NEO_OS_CONTRACTS_DIR
+  || path.resolve(repoRoot, "..", "neo-os-contracts");
 const defaultAaTestnetHash = "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2";
 const zeroHash = `0x${"0".repeat(40)}`;
 
@@ -384,8 +387,8 @@ async function simulateLegacyAaUpdate({ rpcUrl, aaHash, signer, aaRoot, rpcCall 
 function artifactEvidence(aaRoot) {
   const artifacts = {
     registry: {
-      nef: path.join(repoRoot, "contracts/build/PlatformRegistry.nef"),
-      manifest: path.join(repoRoot, "contracts/build/PlatformRegistry.manifest.json"),
+      nef: path.join(contractsRoot, "contracts/build/PlatformRegistry.nef"),
+      manifest: path.join(contractsRoot, "contracts/build/PlatformRegistry.manifest.json"),
     },
     abstract_account: {
       nef: path.join(aaRoot, "contracts/bin/v3/UnifiedSmartWalletV3.nef"),
@@ -397,8 +400,8 @@ function artifactEvidence(aaRoot) {
     const manifest = fs.readFileSync(files.manifest);
     const parsed = JSON.parse(manifest.toString("utf8"));
     return [name, {
-      nef_path: path.relative(repoRoot, files.nef),
-      manifest_path: path.relative(repoRoot, files.manifest),
+      nef_path: `neo-os-contracts/${path.relative(contractsRoot, files.nef)}`,
+      manifest_path: `neo-os-contracts/${path.relative(contractsRoot, files.manifest)}`,
       nef_sha256: `0x${crypto.createHash("sha256").update(nef).digest("hex")}`,
       manifest_sha256: `0x${crypto.createHash("sha256").update(manifest).digest("hex")}`,
       methods: [...new Set((parsed.abi?.methods ?? []).map((method) => method.name))].sort(),

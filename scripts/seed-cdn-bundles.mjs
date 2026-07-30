@@ -9,7 +9,7 @@
  * publisher writes, so the platform can be switched over to the CDN immediately
  * and later releases simply overwrite these keys.
  *
- * Layout (see docs/split/cdn-layout.md):
+ * Layout (see docs/ARCHITECTURE.md for the repo split; the CDN paths are below):
  *   <kind>/<slug>/<version>/**           immutable, 1y
  *   meta/<kind>/<slug>/latest.json       60s pointer
  *   catalog/<kind>.json                  60s launcher catalogue

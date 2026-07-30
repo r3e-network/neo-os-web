@@ -20,7 +20,7 @@
   "records": [
     {
       "app_id": "miniapp-aa-account-lab",
-      "source_manifest": "apps/aa-account-lab/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#aa-account-lab",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x9e8eac57e6b62f7b839822888d0e4c46ab1f374d",
@@ -29,7 +29,7 @@
     },
     {
       "app_id": "miniapp-aa-market-hub",
-      "source_manifest": "apps/aa-market-hub/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#aa-market-hub",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xf74b8c955245aef973b14c22ccddd062d63425ce",
@@ -38,7 +38,7 @@
     },
     {
       "app_id": "miniapp-aa-permissions-lab",
-      "source_manifest": "apps/aa-permissions-lab/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#aa-permissions-lab",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xf7998cec5713450bca4fc0ee2e0affb0dca8ac54",
@@ -47,7 +47,7 @@
     },
     {
       "app_id": "miniapp-aa-relay-console",
-      "source_manifest": "apps/aa-relay-console/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#aa-relay-console",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x69f551b4a8f1c064f88f04912ab18b52d76a53bf",
@@ -56,7 +56,7 @@
     },
     {
       "app_id": "miniapp-aa-session-key-lab",
-      "source_manifest": "apps/aa-session-key-lab/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#aa-session-key-lab",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x400ea39fab7750017127725a2e56a78d49c69ada",
@@ -65,7 +65,7 @@
     },
     {
       "app_id": "miniapp-aim-master",
-      "source_manifest": "apps/aim-master/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#aim-master",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x741c52c292fa0f8807118d6d6c0c4f3c57b71b36",
@@ -74,7 +74,7 @@
     },
     {
       "app_id": "miniapp-arrow-escape",
-      "source_manifest": "apps/arrow-escape/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#arrow-escape",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x8c9aa93f2b63f9951fcf02ded05c2d9be6788507",
@@ -83,7 +83,7 @@
     },
     {
       "app_id": "miniapp-asset-factory",
-      "source_manifest": "apps/asset-factory/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#asset-factory",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x0c6d338e3b0614b4fe2a7b79a8ff2376c365b305",
@@ -92,7 +92,7 @@
     },
     {
       "app_id": "miniapp-automation-copilot",
-      "source_manifest": "apps/automation-copilot/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#automation-copilot",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xd0b8859ae85fdb065da22cc41e98a2c8b0654971",
@@ -101,7 +101,7 @@
     },
     {
       "app_id": "miniapp-bead-workshop",
-      "source_manifest": "apps/bead-workshop/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#bead-workshop",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x28bd4a5a277548776175f1e05652acf0d1f67e79",
@@ -110,7 +110,7 @@
     },
     {
       "app_id": "miniapp-breakupcontract",
-      "source_manifest": "apps/breakup-contract/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#breakup-contract",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x177c79bf070bfb23730ab0348915276b7a6cb435",
@@ -119,7 +119,7 @@
     },
     {
       "app_id": "miniapp-burn-league",
-      "source_manifest": "apps/burn-league/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#burn-league",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x185a12ceb74539fae83b75a1fa5137044a8f530d",
@@ -128,7 +128,7 @@
     },
     {
       "app_id": "miniapp-color-clash",
-      "source_manifest": "apps/color-clash/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#color-clash",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x3818eb692beb0bb7fd8562cbc79bd45d38c363fd",
@@ -137,7 +137,7 @@
     },
     {
       "app_id": "miniapp-council-governance",
-      "source_manifest": "apps/council-governance/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#council-governance",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x44553790ffe0eddb57329c556919080c8fdd895d",
@@ -146,7 +146,7 @@
     },
     {
       "app_id": "miniapp-curve-arrow",
-      "source_manifest": "apps/curve-arrow/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#curve-arrow",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x8369b63b67461df0fcb84184e28888057739caed",
@@ -155,7 +155,7 @@
     },
     {
       "app_id": "miniapp-custom-anchor",
-      "source_manifest": "apps/custom-anchor/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#custom-anchor",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x67fb07d867f580bb55893ee1db5df5c729957adf",
@@ -164,7 +164,7 @@
     },
     {
       "app_id": "miniapp-dailycheckin",
-      "source_manifest": "apps/daily-checkin/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#daily-checkin",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xbccfb72f1663342ee2f7f3a324298f7ddd7e9d4b",
@@ -173,7 +173,7 @@
     },
     {
       "app_id": "miniapp-dev-tipping",
-      "source_manifest": "apps/dev-tipping/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#dev-tipping",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xa622f7e3a8f46a24f1d90ccfc14b6d2826b39935",
@@ -182,7 +182,7 @@
     },
     {
       "app_id": "miniapp-dice-game",
-      "source_manifest": "apps/dice-game/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#dice-game",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xcd8ba2224d97e0bba00264fc89a9eb5e17258ec8",
@@ -191,7 +191,7 @@
     },
     {
       "app_id": "miniapp-event-ticket-pass",
-      "source_manifest": "apps/event-ticket-pass/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#event-ticket-pass",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x91c7c7dfb3ba54ece569f9b2077d1456411521fb",
@@ -200,7 +200,7 @@
     },
     {
       "app_id": "miniapp-explorer",
-      "source_manifest": "apps/explorer/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#explorer",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x0ea3533a5bdd0dc3d03bf70a6bac11d65da432e4",
@@ -209,7 +209,7 @@
     },
     {
       "app_id": "miniapp-flappy-dash",
-      "source_manifest": "apps/flappy-dash/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#flappy-dash",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xf68c2dd9f0ed4f0685208c80b04668c4018680a6",
@@ -218,7 +218,7 @@
     },
     {
       "app_id": "miniapp-flashloan",
-      "source_manifest": "apps/flashloan/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#flashloan",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xd76fa548bf051da467de5c3712a7da19b5253dcf",
@@ -227,7 +227,7 @@
     },
     {
       "app_id": "miniapp-fogplay",
-      "source_manifest": "apps/fogplay/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#fogplay",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xd4f902ffe364d1b2d597b7e4ff66aae96676bb86",
@@ -236,7 +236,7 @@
     },
     {
       "app_id": "miniapp-forever-album",
-      "source_manifest": "apps/forever-album/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#forever-album",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xd99591c333d67c602e1e5a6e6eadb033ea4f35fe",
@@ -245,7 +245,7 @@
     },
     {
       "app_id": "miniapp-fruit-funnel",
-      "source_manifest": "apps/fruit-funnel/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#fruit-funnel",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x203d4ad509f2aa3dd007c9844a4d87618a97347e",
@@ -254,7 +254,7 @@
     },
     {
       "app_id": "miniapp-game-2048",
-      "source_manifest": "apps/game-2048/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#game-2048",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x83ffe985f646bda67dd34bbfe58d3eeba9cd8587",
@@ -263,7 +263,7 @@
     },
     {
       "app_id": "miniapp-gas-lucky-pool",
-      "source_manifest": "apps/gas-lucky-pool/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#gas-lucky-pool",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x748283d699e96142d8c973c54ef24106435e913f",
@@ -272,7 +272,7 @@
     },
     {
       "app_id": "miniapp-gas-sponsor",
-      "source_manifest": "apps/gas-sponsor/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#gas-sponsor",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x5bb92ca76915ae709cca6b39f49673c4764be8db",
@@ -281,7 +281,7 @@
     },
     {
       "app_id": "miniapp-gasbox",
-      "source_manifest": "apps/gasbox/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#gasbox",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x5e0cb110e84ed4df13b102f4ccaf375d0893851c",
@@ -290,7 +290,7 @@
     },
     {
       "app_id": "miniapp-gomoku",
-      "source_manifest": "apps/gomoku/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#gomoku",
       "source_report_status": "missing",
       "app_admin": null,
       "predicted_account_id": null,
@@ -299,7 +299,7 @@
     },
     {
       "app_id": "miniapp-gov-merc",
-      "source_manifest": "apps/gov-merc/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#gov-merc",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xf721b2381dd8d348afd57ac3ac31d62d491ae6f2",
@@ -308,7 +308,7 @@
     },
     {
       "app_id": "miniapp-graveyard",
-      "source_manifest": "apps/graveyard/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#graveyard",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xb576ef6971b3ae3864f2975a8434a75ce6ba8d76",
@@ -317,7 +317,7 @@
     },
     {
       "app_id": "miniapp-jump-rush",
-      "source_manifest": "apps/jump-rush/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#jump-rush",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x810ab40316a25958cfef1f3d52d4a3406eade0e1",
@@ -326,7 +326,7 @@
     },
     {
       "app_id": "miniapp-last-survivor",
-      "source_manifest": "apps/last-survivor/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#last-survivor",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x18b6b2ae0cb815857fff647b82b58b1af58bde35",
@@ -335,7 +335,7 @@
     },
     {
       "app_id": "miniapp-memorial-shrine",
-      "source_manifest": "apps/memorial-shrine/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#memorial-shrine",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xcd7ffe1a24a0db85bdc6919647107fd57bb554ea",
@@ -344,7 +344,7 @@
     },
     {
       "app_id": "miniapp-merge-kingdom",
-      "source_manifest": "apps/merge-kingdom/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#merge-kingdom",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x0c8f9113746e4a7bdd8e3892852cee8764b70c54",
@@ -353,7 +353,7 @@
     },
     {
       "app_id": "miniapp-milestone-escrow",
-      "source_manifest": "apps/milestone-escrow/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#milestone-escrow",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x4ba9ed99efbb67bddb260691b2963f947093d50d",
@@ -362,7 +362,7 @@
     },
     {
       "app_id": "miniapp-miniapp-factory",
-      "source_manifest": "apps/miniapp-factory/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#miniapp-factory",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xa6ab7faf74c20f0a118a6b7e3373c9608f9933e7",
@@ -371,7 +371,7 @@
     },
     {
       "app_id": "miniapp-neo-convert",
-      "source_manifest": "apps/neo-convert/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-convert",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x1057373074d50a926a1e4f87f00e18c1e09859bd",
@@ -380,7 +380,7 @@
     },
     {
       "app_id": "miniapp-neo-message",
-      "source_manifest": "apps/neo-message/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-message",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xd01b80dd5004cd81184b645a862ff6b0ba12b3c0",
@@ -389,7 +389,7 @@
     },
     {
       "app_id": "miniapp-neo-multisig",
-      "source_manifest": "apps/neo-multisig/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-multisig",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xc61e62c91fbe50500439cfd8c4ba5f1c1681952e",
@@ -398,7 +398,7 @@
     },
     {
       "app_id": "miniapp-neo-ns",
-      "source_manifest": "apps/neo-ns/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-ns",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x7f19e414b96aa43973addd682d6a3834b8feb10b",
@@ -407,7 +407,7 @@
     },
     {
       "app_id": "miniapp-neo-pay",
-      "source_manifest": "apps/neo-pay/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-pay",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x87e9fe9d46eb83a501f6527d9ed04495fdddb88d",
@@ -416,7 +416,7 @@
     },
     {
       "app_id": "miniapp-neo-pay-shared-example",
-      "source_manifest": "apps/neo-pay-shared-example/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-pay-shared-example",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x224b60910cee224fc003adefbed04ba93e650ba9",
@@ -425,7 +425,7 @@
     },
     {
       "app_id": "miniapp-neo-sign-anything",
-      "source_manifest": "apps/neo-sign-anything/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-sign-anything",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x969e5bf6682acce9c3f0355f025141d8dfb86b7c",
@@ -434,7 +434,7 @@
     },
     {
       "app_id": "miniapp-neo-swap",
-      "source_manifest": "apps/neo-swap/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-swap",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x9fe420f2ab38da45dab5469bece8a0a0b5b56e1b",
@@ -443,7 +443,7 @@
     },
     {
       "app_id": "miniapp-neo-treasury",
-      "source_manifest": "apps/neo-treasury/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-treasury",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x069d69bee30d798062b3884dd71b4bbaa09ac4c4",
@@ -452,7 +452,7 @@
     },
     {
       "app_id": "miniapp-neo-x-bridge",
-      "source_manifest": "apps/neo-x-bridge/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neo-x-bridge",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xcf83e5d31640e7fe520fddfd479b847a0c46b8e5",
@@ -461,7 +461,7 @@
     },
     {
       "app_id": "miniapp-neodid-passport",
-      "source_manifest": "apps/neodid-passport/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#neodid-passport",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xa9f85163b9e753dfda593ad25715120c207a3206",
@@ -470,7 +470,7 @@
     },
     {
       "app_id": "miniapp-nft-factory",
-      "source_manifest": "apps/nft-factory/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#nft-factory",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xcdb2c81820aa30173949b28830d690028eec53d5",
@@ -479,7 +479,7 @@
     },
     {
       "app_id": "miniapp-onchaintarot",
-      "source_manifest": "apps/on-chain-tarot/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#on-chain-tarot",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xb8d13981839658d88414e47c546e797d5023bc1e",
@@ -488,7 +488,7 @@
     },
     {
       "app_id": "miniapp-oracle-compute-lab",
-      "source_manifest": "apps/oracle-compute-lab/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#oracle-compute-lab",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xadab7ec971f7cac9cb77266cf5dd7734105b4166",
@@ -497,7 +497,7 @@
     },
     {
       "app_id": "miniapp-oracle-http-console",
-      "source_manifest": "apps/oracle-http-console/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#oracle-http-console",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x7acc1870c6308c1b24a0ca60eee0a99b185dd8f1",
@@ -506,7 +506,7 @@
     },
     {
       "app_id": "miniapp-oracle-neodid-console",
-      "source_manifest": "apps/oracle-neodid-console/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#oracle-neodid-console",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xab631575d3d8e1bbd02530d96cfca1f451fbf957",
@@ -515,7 +515,7 @@
     },
     {
       "app_id": "miniapp-oracle-price-console",
-      "source_manifest": "apps/oracle-price-console/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#oracle-price-console",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x7fbba7934724709ebd9082c57e30bf7ea2f42a42",
@@ -524,7 +524,7 @@
     },
     {
       "app_id": "miniapp-oracle-seal-console",
-      "source_manifest": "apps/oracle-seal-console/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#oracle-seal-console",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xa1b86d99ad7e717c259200d009f8b1d25692738d",
@@ -533,7 +533,7 @@
     },
     {
       "app_id": "miniapp-oracle-vrf-console",
-      "source_manifest": "apps/oracle-vrf-console/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#oracle-vrf-console",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x293c3c267941f86f97a1cff05515e70db3af7935",
@@ -542,7 +542,7 @@
     },
     {
       "app_id": "miniapp-pet-potion",
-      "source_manifest": "apps/pet-potion/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#pet-potion",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xab4a5fae90e9bfa73e8cf9b7e37cbd620c10bc3e",
@@ -551,7 +551,7 @@
     },
     {
       "app_id": "miniapp-private-transfer",
-      "source_manifest": "apps/private-transfer/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#private-transfer",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x5c5e9c4618ab6e6b929e456dc6914eeda619bcf9",
@@ -560,7 +560,7 @@
     },
     {
       "app_id": "miniapp-profitanchor",
-      "source_manifest": "apps/profitanchor/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#profitanchor",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x046fb99f138cf0001894df203dbdcb4e618a2b2c",
@@ -569,7 +569,7 @@
     },
     {
       "app_id": "miniapp-profitanchor-admin",
-      "source_manifest": "apps/profitanchor-admin/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#profitanchor-admin",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x8874f07c66e5ff3bff693ca67bc9ad138ae08e30",
@@ -578,7 +578,7 @@
     },
     {
       "app_id": "miniapp-quadratic-funding",
-      "source_manifest": "apps/quadratic-funding/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#quadratic-funding",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xf2cec7073a5518adbdbab38ce3ad8352b6c65f3a",
@@ -587,7 +587,7 @@
     },
     {
       "app_id": "miniapp-recovery-guardian",
-      "source_manifest": "apps/recovery-guardian/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#recovery-guardian",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x3cd53c31e2ba231c90c8db304535057336bdf457",
@@ -596,7 +596,7 @@
     },
     {
       "app_id": "miniapp-redenvelope",
-      "source_manifest": "apps/red-envelope/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#red-envelope",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xe30f116381f35f538c58f71f7eeaa8962ffdd549",
@@ -605,7 +605,7 @@
     },
     {
       "app_id": "miniapp-screw-sort",
-      "source_manifest": "apps/screw-sort/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#screw-sort",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x6a0011d0ae7d70371b7b119507910c96db33ed38",
@@ -614,7 +614,7 @@
     },
     {
       "app_id": "miniapp-self-loan",
-      "source_manifest": "apps/self-loan/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#self-loan",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xe0289ee24f2856e148cfda4fda7999aa2aaa67f2",
@@ -623,7 +623,7 @@
     },
     {
       "app_id": "miniapp-sheep-solitaire",
-      "source_manifest": "apps/sheep-solitaire/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#sheep-solitaire",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xa856b24a1d11b2d7fb8bc01c710c02218d279de3",
@@ -632,7 +632,7 @@
     },
     {
       "app_id": "miniapp-snake-bounty",
-      "source_manifest": "apps/snake-bounty/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#snake-bounty",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x23399c07683d391554cdb1aecaf297ed9edf0a82",
@@ -641,7 +641,7 @@
     },
     {
       "app_id": "miniapp-soulbound-certificate",
-      "source_manifest": "apps/soulbound-certificate/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#soulbound-certificate",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x492c5e63b7d2098eeb927c273e9b119a70427593",
@@ -650,7 +650,7 @@
     },
     {
       "app_id": "miniapp-sudoku",
-      "source_manifest": "apps/sudoku/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#sudoku",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x8705e6e5dbf873f6f477d74cc05b672c9b57ebd1",
@@ -659,7 +659,7 @@
     },
     {
       "app_id": "miniapp-time-capsule",
-      "source_manifest": "apps/time-capsule/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#time-capsule",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xb04be36cf79861f4b4b87e2a1ef40e652c36cc1d",
@@ -668,7 +668,7 @@
     },
     {
       "app_id": "miniapp-timestamp-proof",
-      "source_manifest": "apps/timestamp-proof/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#timestamp-proof",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x254ed728881852106fe7d4ebef9f07725c502ccf",
@@ -677,7 +677,7 @@
     },
     {
       "app_id": "miniapp-trustanchor",
-      "source_manifest": "apps/trustanchor/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#trustanchor",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x9916f9fd7abaacce28a48bd70b81d92ee0de21b8",
@@ -686,7 +686,7 @@
     },
     {
       "app_id": "miniapp-trustanchor-admin",
-      "source_manifest": "apps/trustanchor-admin/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#trustanchor-admin",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0xd5b556bbdf0fe2e13cc1cf2da37507a5e9ff0027",
@@ -695,7 +695,7 @@
     },
     {
       "app_id": "miniapp-unbreakablevault",
-      "source_manifest": "apps/unbreakable-vault/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#unbreakable-vault",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x5e977b65a8d71db3ef36adcbe2def1633dc4715d",
@@ -704,7 +704,7 @@
     },
     {
       "app_id": "miniapp-wallet-health",
-      "source_manifest": "apps/wallet-health/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#wallet-health",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x074284236066fb6343bd83b24ed244f2f0231648",
@@ -713,7 +713,7 @@
     },
     {
       "app_id": "miniapp-zhuada-e",
-      "source_manifest": "apps/zhuada-e/neo-manifest.json",
+      "source_manifest": "platform/host-app/public/miniapp-manifests.json#zhuada-e",
       "source_report_status": "planned",
       "app_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "predicted_account_id": "0x691726a24e94e045f4cdaa2986376cd9b5166e7f",
