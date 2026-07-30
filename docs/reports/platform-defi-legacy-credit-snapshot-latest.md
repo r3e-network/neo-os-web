@@ -1,11 +1,11 @@
 # PlatformDeFi Legacy Credit Snapshot
 
-Generated: 2026-07-23T05:21:42.650Z
+Generated: 2026-07-30T10:44:47.278Z
 
 ## Summary
 
 - Network: neo-n3-testnet (magic 894710606)
-- RPC block count: 17924995
+- RPC block count: 18123779
 - PlatformDeFi: 0x39d4584ddb0731e48e611647931993ee033bf373
 - Legacy credit rows: 3
 - NEO prefix 0x14: 0 rows, total 0, native balance 8, gap 8

@@ -61,10 +61,17 @@ const RPC_CANDIDATES = [
   .filter(Boolean)
   .filter((value, index, list) => list.indexOf(value) === index);
 
+// Every repo that builds a contract this verifier checks. The app and platform
+// contracts used to be built in this repo, so only the two external siblings were
+// listed here; after the split that left the app manifests unfindable and every
+// app reported as a blocker.
 function canonicalSiblingBuildDirs({ root = ROOT } = {}) {
   const siblingRoots = [
+    process.env.NEO_OS_CONTRACTS_DIR || path.resolve(root, "../neo-os-contracts"),
+    process.env.NEO_MINIAPPS_DIR || path.resolve(root, "../neo-os-miniapps"),
+    process.env.NEO_MINIGAMES_DIR || path.resolve(root, "../neo-os-minigames"),
     process.env.NEO_ABSTRACT_ACCOUNT_DIR || process.env.ABSTRACT_ACCOUNT_DIR || path.resolve(root, "../neo-abstract-account"),
-    process.env.NEO_MORPHEUS_ORACLE_DIR || process.env.MORPHEUS_DIR || path.resolve(root, "../neo-os-services"),
+    process.env.NEO_OS_SERVICES_DIR || process.env.MORPHEUS_DIR || path.resolve(root, "../neo-os-services"),
   ];
   return siblingRoots
     .map((repoRoot) => path.join(repoRoot, "contracts", "build"))

@@ -137,22 +137,19 @@ run_npm_audit_scope "host-app audit" --workspace platform/host-app
 npm run test:deploy-scripts
 npm run test:shared-aa-governance
 
-# Framework and repo-hygiene gates. Each is a `check:` script that exits
-# non-zero on a real regression, so they run before the slower suites.
-# check:platform:contracts, :engine-base, :game-migration and :joint-aa audited
-# contract sources and moved to neo-os-contracts with them; they run in that
-# repo's verification now.
+# Repo-hygiene gates. Each is a `check:` script that exits non-zero on a real
+# regression, so they run before the slower suites.
+#
+# The platform-contract gates are gone from this list, not disabled. The contract
+# acceptance, engine-base, game-migration and joint-aa audits read contract
+# sources and run in neo-os-contracts. The seven per-contract framework audits
+# compared a contract ABI against the SDK surface and additionally read one named
+# app's source each; that pairing is now neo-os-devpack's
+# check:platform-surface, which covers all six surfaces at once and does not need
+# to know any app by name.
 for gate in \
   check:repo:secret-material \
   check:repo:lint-scope \
-  check:factory-template-artifacts \
-  check:platform:social-framework \
-  check:platform:anchor-framework \
-  check:platform:registry-framework \
-  check:platform:defi-framework \
-  check:platform:factory-framework \
-  check:platform:vesting-framework \
-  check:platform:escrow-framework \
   check:platform:shared-aa-roster \
   check:cross-repo:duplication; do
   echo "[verify_repo] gate: ${gate}"

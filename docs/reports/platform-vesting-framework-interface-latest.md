@@ -1,6 +1,6 @@
 # PlatformVesting Framework Interface
 
-Generated: 2026-07-24T01:39:36.375Z
+Generated: 2026-07-30T10:27:23.880Z
 
 - Interface audit: **PASS**
 - Tenant contract ABI: 13 methods

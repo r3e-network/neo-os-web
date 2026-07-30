@@ -1,30 +1,31 @@
 {
-  "generatedAt": "2026-07-23T20:05:32.805Z",
+  "generatedAt": "2026-07-30T11:14:34.375Z",
   "network": "neo-n3-mainnet",
   "rpcUrl": "https://mainnet2.neo.coz.io:443",
   "networkMagic": 860833102,
-  "totalMiniapps": 77,
+  "totalMiniapps": 78,
   "mainnetContractApps": 36,
-  "frontendOrServerOnlyApps": 41,
+  "frontendOrServerOnlyApps": 42,
   "uniqueMainnetContracts": 29,
   "contractStateErrors": 0,
   "coverageMainnetContractApps": 36,
   "coverageGapCount": 0,
   "coverageGaps": [],
-  "buildManifestsLoaded": 73,
+  "buildManifestsLoaded": 79,
   "safeMethodsDiscovered": 646,
   "safeInvocationsAttempted": 646,
   "safeInvocationsSkipped": 0,
   "haltCount": 599,
   "expectedFaultCount": 42,
   "sampleFaultCount": 5,
-  "blockerCount": 61,
+  "blockerCount": 79,
   "blockers": [
     "miniapp-aa-account-lab: build-manifest safe method getPendingContractAdmin (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-account-lab: build-manifest safe method getAdminTransferAvailableAt (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-account-lab: build-manifest safe method hasMarketEscrowOwnerCancel (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-account-lab: build-manifest safe method getMarketEscrowOwnerCancelTime (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-account-lab: build-manifest safe method computePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
+    "miniapp-aa-account-lab: build-manifest safe method computeStablePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-account-lab: build-manifest safe method getPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-account-lab: build-manifest safe method getPendingPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-account-lab: build-manifest safe method getPlatformRegistrarAvailableAt (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
@@ -34,6 +35,7 @@
     "miniapp-aa-permissions-lab: build-manifest safe method hasMarketEscrowOwnerCancel (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-permissions-lab: build-manifest safe method getMarketEscrowOwnerCancelTime (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-permissions-lab: build-manifest safe method computePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
+    "miniapp-aa-permissions-lab: build-manifest safe method computeStablePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-permissions-lab: build-manifest safe method getPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-permissions-lab: build-manifest safe method getPendingPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-permissions-lab: build-manifest safe method getPlatformRegistrarAvailableAt (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
@@ -42,44 +44,60 @@
     "miniapp-aa-relay-console: build-manifest safe method hasMarketEscrowOwnerCancel (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-relay-console: build-manifest safe method getMarketEscrowOwnerCancelTime (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-relay-console: build-manifest safe method computePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
+    "miniapp-aa-relay-console: build-manifest safe method computeStablePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-relay-console: build-manifest safe method getPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-relay-console: build-manifest safe method getPendingPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-relay-console: build-manifest safe method getPlatformRegistrarAvailableAt (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
     "miniapp-aa-session-key-lab: build-manifest safe method supportsV3 (../neo-abstract-account/contracts/build/SessionKeyVerifier.manifest.json) missing from live ABI",
-    "miniapp-breakupcontract: build-manifest safe method getOwner (contracts/build/MiniAppBreakupPact.manifest.json) missing from live ABI",
+    "miniapp-breakupcontract: build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppBreakupPact.manifest.json) missing from live ABI",
     "miniapp-council-governance: no expected-method source: deployed contract \"MiniAppCouncilGovernance\" has no canonical build manifest and the manifest declares no runtime operations",
-    "miniapp-custom-anchor: build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
-    "miniapp-dev-tipping: build-manifest safe method getOwner (contracts/build/MiniAppTipJar.manifest.json) missing from live ABI",
-    "miniapp-event-ticket-pass: build-manifest safe method directAssetCreditOf (contracts/build/MiniAppEventTicketPass.manifest.json) missing from live ABI",
+    "miniapp-custom-anchor: build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-custom-anchor: build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-custom-anchor: build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-custom-anchor: build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-dev-tipping: build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppTipJar.manifest.json) missing from live ABI",
+    "miniapp-event-ticket-pass: build-manifest safe method directAssetCreditOf (../neo-os-miniapps/contracts/build/MiniAppEventTicketPass.manifest.json) missing from live ABI",
     "miniapp-flashloan: no expected-method source: deployed contract \"MiniAppFlashLoan\" has no canonical build manifest and the manifest declares no runtime operations",
-    "miniapp-fogplay: build-manifest safe method getOwner (contracts/build/MiniAppCoinFlipV2.manifest.json) missing from live ABI",
+    "miniapp-fogplay: build-manifest safe method getOwner (../neo-os-minigames/contracts/build/MiniAppCoinFlipV2.manifest.json) missing from live ABI",
     "miniapp-gas-sponsor: no expected-method source: deployed contract \"MiniAppGasSponsor\" has no canonical build manifest and the manifest declares no runtime operations",
-    "miniapp-gov-merc: build-manifest safe method getOwner (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
-    "miniapp-gov-merc: build-manifest safe method eligibleStaked (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
-    "miniapp-gov-merc: build-manifest safe method eligibleStakeOf (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
-    "miniapp-gov-merc: build-manifest safe method pendingStakeOf (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
-    "miniapp-gov-merc: build-manifest safe method pendingStakeEpoch (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
-    "miniapp-last-survivor: build-manifest safe method getOwner (contracts/build/MiniAppLastSurvivor.manifest.json) missing from live ABI",
+    "miniapp-gov-merc: build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
+    "miniapp-gov-merc: build-manifest safe method eligibleStaked (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
+    "miniapp-gov-merc: build-manifest safe method eligibleStakeOf (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
+    "miniapp-gov-merc: build-manifest safe method pendingStakeOf (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
+    "miniapp-gov-merc: build-manifest safe method pendingStakeEpoch (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
+    "miniapp-last-survivor: build-manifest safe method getOwner (../neo-os-minigames/contracts/build/MiniAppLastSurvivor.manifest.json) missing from live ABI",
     "miniapp-memorial-shrine: no expected-method source: deployed contract \"MiniAppMemorialShrine\" has no canonical build manifest and the manifest declares no runtime operations",
-    "miniapp-milestone-escrow: build-manifest safe method directAssetCreditOf (contracts/build/MiniAppMilestoneEscrow.manifest.json) missing from live ABI",
-    "miniapp-neo-multisig: build-manifest safe method getOwner (contracts/build/MiniAppMultisig.manifest.json) missing from live ABI",
+    "miniapp-milestone-escrow: build-manifest safe method directAssetCreditOf (../neo-os-miniapps/contracts/build/MiniAppMilestoneEscrow.manifest.json) missing from live ABI",
+    "miniapp-neo-multisig: build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppMultisig.manifest.json) missing from live ABI",
     "miniapp-neo-ns: no expected-method source: deployed contract \"NameService\" has no canonical build manifest and the manifest declares no runtime operations",
     "miniapp-neo-pay: no expected-method source: deployed contract \"MiniAppNeoPay\" has no canonical build manifest and the manifest declares no runtime operations",
     "miniapp-neo-pay-shared-example: no expected-method source: deployed contract \"MiniAppNeoPay\" has no canonical build manifest and the manifest declares no runtime operations",
-    "miniapp-oracle-price-console: build-manifest safe method oracleVerificationKey (../neo-morpheus-oracle/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
-    "miniapp-oracle-price-console: build-manifest safe method getResource (../neo-morpheus-oracle/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
-    "miniapp-oracle-price-console: build-manifest safe method getAllResources (../neo-morpheus-oracle/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
-    "miniapp-profitanchor: build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
-    "miniapp-profitanchor-admin: build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
-    "miniapp-quadratic-funding: build-manifest safe method directAssetCreditOf (contracts/build/MiniAppQuadraticFunding.manifest.json) missing from live ABI",
+    "miniapp-oracle-price-console: build-manifest safe method oracleVerificationKey (../neo-os-services/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
+    "miniapp-oracle-price-console: build-manifest safe method getResource (../neo-os-services/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
+    "miniapp-oracle-price-console: build-manifest safe method getAllResources (../neo-os-services/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
+    "miniapp-profitanchor: build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-profitanchor: build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-profitanchor: build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-profitanchor: build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-profitanchor-admin: build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-profitanchor-admin: build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-profitanchor-admin: build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-profitanchor-admin: build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-quadratic-funding: build-manifest safe method directAssetCreditOf (../neo-os-miniapps/contracts/build/MiniAppQuadraticFunding.manifest.json) missing from live ABI",
     "miniapp-recovery-guardian: build-manifest safe method authorizedCore (../neo-abstract-account/contracts/build/SocialRecoveryVerifier.manifest.json) missing from live ABI",
     "miniapp-recovery-guardian: build-manifest safe method getOracleCredit (../neo-abstract-account/contracts/build/SocialRecoveryVerifier.manifest.json) missing from live ABI",
-    "miniapp-redenvelope: build-manifest safe method getOwner (contracts/build/MiniAppRedEnvelope.manifest.json) missing from live ABI",
-    "miniapp-soulbound-certificate: build-manifest safe method directAssetCreditOf (contracts/build/MiniAppSoulboundCertificate.manifest.json) missing from live ABI",
-    "miniapp-time-capsule: build-manifest safe method getOwner (contracts/build/MiniAppTimeCapsule.manifest.json) missing from live ABI",
-    "miniapp-time-capsule: build-manifest safe method fishRevenueOf (contracts/build/MiniAppTimeCapsule.manifest.json) missing from live ABI",
-    "miniapp-trustanchor: build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
-    "miniapp-trustanchor-admin: build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-redenvelope: build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppRedEnvelope.manifest.json) missing from live ABI",
+    "miniapp-soulbound-certificate: build-manifest safe method directAssetCreditOf (../neo-os-miniapps/contracts/build/MiniAppSoulboundCertificate.manifest.json) missing from live ABI",
+    "miniapp-time-capsule: build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppTimeCapsule.manifest.json) missing from live ABI",
+    "miniapp-time-capsule: build-manifest safe method fishRevenueOf (../neo-os-miniapps/contracts/build/MiniAppTimeCapsule.manifest.json) missing from live ABI",
+    "miniapp-trustanchor: build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-trustanchor: build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-trustanchor: build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-trustanchor: build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-trustanchor-admin: build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-trustanchor-admin: build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-trustanchor-admin: build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+    "miniapp-trustanchor-admin: build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
     "miniapp-unbreakablevault: no expected-method source: deployed contract \"MiniAppUnbreakableVault\" has no canonical build manifest and the manifest declares no runtime operations"
   ],
   "rows": [
@@ -87,7 +105,7 @@
       "appId": "miniapp-aa-account-lab",
       "slug": "aa-account-lab",
       "name": "AA Account Lab",
-      "manifestPath": "apps/aa-account-lab/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x0268a387913b250166ddec032b03332690a1ef78",
       "contractBacked": true,
       "contractName": "UnifiedSmartWalletV3",
@@ -114,6 +132,7 @@
         "build-manifest safe method hasMarketEscrowOwnerCancel (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getMarketEscrowOwnerCancelTime (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method computePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
+        "build-manifest safe method computeStablePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getPendingPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getPlatformRegistrarAvailableAt (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI"
@@ -125,13 +144,14 @@
         "contractName": "UnifiedSmartWalletV3",
         "manifestFile": "UnifiedSmartWalletV3.manifest.json",
         "manifestPath": "/Users/jinghuiliao/git/r3e/neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json",
-        "expectedSafeMethods": 46,
+        "expectedSafeMethods": 47,
         "missingSafeMethods": [
           "getPendingContractAdmin",
           "getAdminTransferAvailableAt",
           "hasMarketEscrowOwnerCancel",
           "getMarketEscrowOwnerCancelTime",
           "computePlatformAccountId",
+          "computeStablePlatformAccountId",
           "getPlatformRegistrar",
           "getPendingPlatformRegistrar",
           "getPlatformRegistrarAvailableAt"
@@ -778,7 +798,7 @@
       "appId": "miniapp-aa-market-hub",
       "slug": "aa-market-hub",
       "name": "AA Market Hub",
-      "manifestPath": "apps/aa-market-hub/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69",
       "contractBacked": true,
       "contractName": "AAAddressMarket",
@@ -880,7 +900,7 @@
       "appId": "miniapp-aa-permissions-lab",
       "slug": "aa-permissions-lab",
       "name": "AA Permissions",
-      "manifestPath": "apps/aa-permissions-lab/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x0268a387913b250166ddec032b03332690a1ef78",
       "contractBacked": true,
       "contractName": "UnifiedSmartWalletV3",
@@ -907,6 +927,7 @@
         "build-manifest safe method hasMarketEscrowOwnerCancel (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getMarketEscrowOwnerCancelTime (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method computePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
+        "build-manifest safe method computeStablePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getPendingPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getPlatformRegistrarAvailableAt (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI"
@@ -918,13 +939,14 @@
         "contractName": "UnifiedSmartWalletV3",
         "manifestFile": "UnifiedSmartWalletV3.manifest.json",
         "manifestPath": "/Users/jinghuiliao/git/r3e/neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json",
-        "expectedSafeMethods": 46,
+        "expectedSafeMethods": 47,
         "missingSafeMethods": [
           "getPendingContractAdmin",
           "getAdminTransferAvailableAt",
           "hasMarketEscrowOwnerCancel",
           "getMarketEscrowOwnerCancelTime",
           "computePlatformAccountId",
+          "computeStablePlatformAccountId",
           "getPlatformRegistrar",
           "getPendingPlatformRegistrar",
           "getPlatformRegistrarAvailableAt"
@@ -1571,7 +1593,7 @@
       "appId": "miniapp-aa-relay-console",
       "slug": "aa-relay-console",
       "name": "AA Relay Console",
-      "manifestPath": "apps/aa-relay-console/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x0268a387913b250166ddec032b03332690a1ef78",
       "contractBacked": true,
       "contractName": "UnifiedSmartWalletV3",
@@ -1598,6 +1620,7 @@
         "build-manifest safe method hasMarketEscrowOwnerCancel (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getMarketEscrowOwnerCancelTime (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method computePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
+        "build-manifest safe method computeStablePlatformAccountId (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getPendingPlatformRegistrar (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI",
         "build-manifest safe method getPlatformRegistrarAvailableAt (../neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json) missing from live ABI"
@@ -1609,13 +1632,14 @@
         "contractName": "UnifiedSmartWalletV3",
         "manifestFile": "UnifiedSmartWalletV3.manifest.json",
         "manifestPath": "/Users/jinghuiliao/git/r3e/neo-abstract-account/contracts/build/UnifiedSmartWalletV3.manifest.json",
-        "expectedSafeMethods": 46,
+        "expectedSafeMethods": 47,
         "missingSafeMethods": [
           "getPendingContractAdmin",
           "getAdminTransferAvailableAt",
           "hasMarketEscrowOwnerCancel",
           "getMarketEscrowOwnerCancelTime",
           "computePlatformAccountId",
+          "computeStablePlatformAccountId",
           "getPlatformRegistrar",
           "getPendingPlatformRegistrar",
           "getPlatformRegistrarAvailableAt"
@@ -2262,7 +2286,7 @@
       "appId": "miniapp-aa-session-key-lab",
       "slug": "aa-session-key-lab",
       "name": "AA Session Key Lab",
-      "manifestPath": "apps/aa-session-key-lab/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x3ba8333406e59f9fd83cf378b33706a33d9f3755",
       "contractBacked": true,
       "contractName": "SessionKeyVerifier",
@@ -2395,7 +2419,7 @@
       "appId": "miniapp-aim-master",
       "slug": "aim-master",
       "name": "Aim Master",
-      "manifestPath": "apps/aim-master/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -2409,7 +2433,7 @@
       "appId": "miniapp-arrow-escape",
       "slug": "arrow-escape",
       "name": "Garden Arrowworks",
-      "manifestPath": "apps/arrow-escape/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -2423,7 +2447,7 @@
       "appId": "miniapp-asset-factory",
       "slug": "asset-factory",
       "name": "Asset Factory",
-      "manifestPath": "apps/asset-factory/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -2437,7 +2461,7 @@
       "appId": "miniapp-automation-copilot",
       "slug": "automation-copilot",
       "name": "Automation Copilot",
-      "manifestPath": "apps/automation-copilot/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -2451,7 +2475,7 @@
       "appId": "miniapp-bead-workshop",
       "slug": "bead-workshop",
       "name": "Bead Workshop",
-      "manifestPath": "apps/bead-workshop/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -2465,7 +2489,7 @@
       "appId": "miniapp-breakupcontract",
       "slug": "breakup-contract",
       "name": "Breakup Contract",
-      "manifestPath": "apps/breakup-contract/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xf6769c080395f15c28013108b7af7631e1665336",
       "contractBacked": true,
       "contractName": "MiniAppBreakupPact",
@@ -2486,7 +2510,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method getOwner (contracts/build/MiniAppBreakupPact.manifest.json) missing from live ABI"
+        "build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppBreakupPact.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": false,
       "methodCount": 12,
@@ -2494,7 +2518,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppBreakupPact",
         "manifestFile": "MiniAppBreakupPact.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppBreakupPact.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppBreakupPact.manifest.json",
         "expectedSafeMethods": 6,
         "missingSafeMethods": [
           "getOwner"
@@ -2588,7 +2612,7 @@
       "appId": "miniapp-burn-league",
       "slug": "burn-league",
       "name": "Burn League",
-      "manifestPath": "apps/burn-league/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -2609,7 +2633,7 @@
       "appId": "miniapp-color-clash",
       "slug": "color-clash",
       "name": "Color Clash",
-      "manifestPath": "apps/color-clash/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -2623,7 +2647,7 @@
       "appId": "miniapp-council-governance",
       "slug": "council-governance",
       "name": "Council Governance",
-      "manifestPath": "apps/council-governance/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xc7e50e67589df63302cbea1a6b00beb649ee74d8",
       "contractBacked": true,
       "contractName": "MiniAppCouncilGovernance",
@@ -3246,7 +3270,7 @@
       "appId": "miniapp-curve-arrow",
       "slug": "curve-arrow",
       "name": "Curve Arrow",
-      "manifestPath": "apps/curve-arrow/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -3260,7 +3284,7 @@
       "appId": "miniapp-custom-anchor",
       "slug": "custom-anchor",
       "name": "Custom Anchor",
-      "manifestPath": "apps/custom-anchor/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "contractBacked": true,
       "contractName": "PlatformAnchor",
@@ -3435,7 +3459,10 @@
         ]
       },
       "failures": [
-        "build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
+        "build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 45,
@@ -3443,10 +3470,13 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
-        "expectedSafeMethods": 23,
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-contracts/contracts/build/PlatformAnchor.manifest.json",
+        "expectedSafeMethods": 26,
         "missingSafeMethods": [
-          "abstractAccount"
+          "abstractAccount",
+          "getAppCredit",
+          "getAppTotalNeoCredit",
+          "getAppTotalGasCredit"
         ]
       },
       "safeMethodResults": [
@@ -3810,7 +3840,7 @@
       "appId": "miniapp-dailycheckin",
       "slug": "daily-checkin",
       "name": "Daily Check-in",
-      "manifestPath": "apps/daily-checkin/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x25db219a701a2b23130788723fcf9a2e76857235",
       "contractBacked": true,
       "contractName": "MiniAppDailyCheckin",
@@ -3860,7 +3890,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppDailyCheckin",
         "manifestFile": "MiniAppDailyCheckin.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppDailyCheckin.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-minigames/contracts/build/MiniAppDailyCheckin.manifest.json",
         "expectedSafeMethods": 8,
         "missingSafeMethods": []
       },
@@ -3979,7 +4009,7 @@
       "appId": "miniapp-dev-tipping",
       "slug": "dev-tipping",
       "name": "Developer Tipping",
-      "manifestPath": "apps/dev-tipping/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x6fdcf2ff29bde658cdcd9fddd082fe1813dd21ec",
       "contractBacked": true,
       "contractName": "MiniAppTipJar",
@@ -4003,7 +4033,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method getOwner (contracts/build/MiniAppTipJar.manifest.json) missing from live ABI"
+        "build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppTipJar.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": false,
       "methodCount": 13,
@@ -4011,7 +4041,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppTipJar",
         "manifestFile": "MiniAppTipJar.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppTipJar.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppTipJar.manifest.json",
         "expectedSafeMethods": 8,
         "missingSafeMethods": [
           "getOwner"
@@ -4119,7 +4149,7 @@
       "appId": "miniapp-dice-game",
       "slug": "dice-game",
       "name": "Dice Game",
-      "manifestPath": "apps/dice-game/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
       "contractBacked": true,
       "contractName": "MiniAppDiceGameV2",
@@ -4150,7 +4180,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppDiceGameV2",
         "manifestFile": "MiniAppDiceGameV2.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppDiceGameV2.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-minigames/contracts/build/MiniAppDiceGameV2.manifest.json",
         "expectedSafeMethods": 10,
         "missingSafeMethods": []
       },
@@ -4306,7 +4336,7 @@
       "appId": "miniapp-event-ticket-pass",
       "slug": "event-ticket-pass",
       "name": "Event Ticket",
-      "manifestPath": "apps/event-ticket-pass/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x90bad472146aab97de71498e8d736c3124e7c82b",
       "contractBacked": true,
       "contractName": "MiniAppEventTicketPass",
@@ -4338,7 +4368,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method directAssetCreditOf (contracts/build/MiniAppEventTicketPass.manifest.json) missing from live ABI"
+        "build-manifest safe method directAssetCreditOf (../neo-os-miniapps/contracts/build/MiniAppEventTicketPass.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 36,
@@ -4346,7 +4376,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppEventTicketPass",
         "manifestFile": "MiniAppEventTicketPass.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppEventTicketPass.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppEventTicketPass.manifest.json",
         "expectedSafeMethods": 23,
         "missingSafeMethods": [
           "directAssetCreditOf"
@@ -4669,7 +4699,7 @@
       "appId": "miniapp-explorer",
       "slug": "explorer",
       "name": "Block Explorer",
-      "manifestPath": "apps/explorer/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -4683,7 +4713,7 @@
       "appId": "miniapp-flappy-dash",
       "slug": "flappy-dash",
       "name": "Flappy Dash",
-      "manifestPath": "apps/flappy-dash/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -4697,7 +4727,7 @@
       "appId": "miniapp-flashloan",
       "slug": "flashloan",
       "name": "Flash Loan",
-      "manifestPath": "apps/flashloan/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xb5d8fb0dc2319edc4be3104304b4136b925df6e4",
       "contractBacked": true,
       "contractName": "MiniAppFlashLoan",
@@ -5165,7 +5195,7 @@
       "appId": "miniapp-fogplay",
       "slug": "fogplay",
       "name": "FogPlay",
-      "manifestPath": "apps/fogplay/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
       "contractBacked": true,
       "contractName": "MiniAppCoinFlipV2",
@@ -5190,7 +5220,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method getOwner (contracts/build/MiniAppCoinFlipV2.manifest.json) missing from live ABI"
+        "build-manifest safe method getOwner (../neo-os-minigames/contracts/build/MiniAppCoinFlipV2.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": false,
       "methodCount": 16,
@@ -5198,7 +5228,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppCoinFlipV2",
         "manifestFile": "MiniAppCoinFlipV2.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppCoinFlipV2.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-minigames/contracts/build/MiniAppCoinFlipV2.manifest.json",
         "expectedSafeMethods": 11,
         "missingSafeMethods": [
           "getOwner"
@@ -5356,7 +5386,7 @@
       "appId": "miniapp-forever-album",
       "slug": "forever-album",
       "name": "Forever Album",
-      "manifestPath": "apps/forever-album/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -5370,7 +5400,7 @@
       "appId": "miniapp-fruit-funnel",
       "slug": "fruit-funnel",
       "name": "Fruit Funnel",
-      "manifestPath": "apps/fruit-funnel/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -5384,7 +5414,7 @@
       "appId": "miniapp-game-2048",
       "slug": "game-2048",
       "name": "2048 Rush",
-      "manifestPath": "apps/game-2048/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -5398,7 +5428,7 @@
       "appId": "miniapp-gas-lucky-pool",
       "slug": "gas-lucky-pool",
       "name": "OneGate Vault",
-      "manifestPath": "apps/gas-lucky-pool/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -5412,7 +5442,7 @@
       "appId": "miniapp-gas-sponsor",
       "slug": "gas-sponsor",
       "name": "Gas Sponsor",
-      "manifestPath": "apps/gas-sponsor/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x80ea8435a88334b9b80077220097d88c440615f1",
       "contractBacked": true,
       "contractName": "MiniAppGasSponsor",
@@ -5902,7 +5932,7 @@
       "appId": "miniapp-gasbox",
       "slug": "gasbox",
       "name": "GASBOX",
-      "manifestPath": "apps/gasbox/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db",
       "contractBacked": true,
       "contractName": "MiniAppGasBoxV2",
@@ -5932,7 +5962,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppGasBoxV2",
         "manifestFile": "MiniAppGasBoxV2.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppGasBoxV2.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-minigames/contracts/build/MiniAppGasBoxV2.manifest.json",
         "expectedSafeMethods": 10,
         "missingSafeMethods": []
       },
@@ -6082,10 +6112,24 @@
       ]
     },
     {
+      "appId": "miniapp-gomoku",
+      "slug": "gomoku",
+      "name": "Gomoku Arena",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
+      "mainnetHash": null,
+      "contractBacked": false,
+      "contractName": null,
+      "status": "frontend-or-server-only",
+      "runtimeOperations": [],
+      "uiOperations": [],
+      "safeMethodSummary": null,
+      "failures": []
+    },
+    {
       "appId": "miniapp-gov-merc",
       "slug": "gov-merc",
       "name": "Gov Merc",
-      "manifestPath": "apps/gov-merc/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x140f5faf5692d21421a79278b0e45b9b9bd4bb46",
       "contractBacked": true,
       "contractName": "MiniAppGovMerc",
@@ -6110,11 +6154,11 @@
         ]
       },
       "failures": [
-        "build-manifest safe method getOwner (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
-        "build-manifest safe method eligibleStaked (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
-        "build-manifest safe method eligibleStakeOf (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
-        "build-manifest safe method pendingStakeOf (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
-        "build-manifest safe method pendingStakeEpoch (contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI"
+        "build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
+        "build-manifest safe method eligibleStaked (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
+        "build-manifest safe method eligibleStakeOf (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
+        "build-manifest safe method pendingStakeOf (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI",
+        "build-manifest safe method pendingStakeEpoch (../neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": false,
       "methodCount": 22,
@@ -6122,7 +6166,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppGovMerc",
         "manifestFile": "MiniAppGovMerc.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppGovMerc.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppGovMerc.manifest.json",
         "expectedSafeMethods": 19,
         "missingSafeMethods": [
           "getOwner",
@@ -6346,7 +6390,7 @@
       "appId": "miniapp-graveyard",
       "slug": "graveyard",
       "name": "Graveyard",
-      "manifestPath": "apps/graveyard/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -6360,7 +6404,7 @@
       "appId": "miniapp-jump-rush",
       "slug": "jump-rush",
       "name": "Jump Rush",
-      "manifestPath": "apps/jump-rush/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -6374,7 +6418,7 @@
       "appId": "miniapp-last-survivor",
       "slug": "last-survivor",
       "name": "LastSurvivor",
-      "manifestPath": "apps/last-survivor/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x8e1e432e966357de8d7642564b744d3274a81bd0",
       "contractBacked": true,
       "contractName": "MiniAppLastSurvivor",
@@ -6396,7 +6440,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method getOwner (contracts/build/MiniAppLastSurvivor.manifest.json) missing from live ABI"
+        "build-manifest safe method getOwner (../neo-os-minigames/contracts/build/MiniAppLastSurvivor.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": false,
       "methodCount": 12,
@@ -6404,7 +6448,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppLastSurvivor",
         "manifestFile": "MiniAppLastSurvivor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppLastSurvivor.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-minigames/contracts/build/MiniAppLastSurvivor.manifest.json",
         "expectedSafeMethods": 8,
         "missingSafeMethods": [
           "getOwner"
@@ -6527,7 +6571,7 @@
       "appId": "miniapp-memorial-shrine",
       "slug": "memorial-shrine",
       "name": "Memorial Shrine",
-      "manifestPath": "apps/memorial-shrine/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xee7a548b71c69364fcb0e45a63a40f141b938e42",
       "contractBacked": true,
       "contractName": "MiniAppMemorialShrine",
@@ -7086,7 +7130,7 @@
       "appId": "miniapp-merge-kingdom",
       "slug": "merge-kingdom",
       "name": "Merge Kingdom",
-      "manifestPath": "apps/merge-kingdom/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -7100,7 +7144,7 @@
       "appId": "miniapp-milestone-escrow",
       "slug": "milestone-escrow",
       "name": "Milestone Escrow",
-      "manifestPath": "apps/milestone-escrow/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x442162de25008ac78d4cce62ed8d8a64401b7ece",
       "contractBacked": true,
       "contractName": "MiniAppMilestoneEscrow",
@@ -7129,7 +7173,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method directAssetCreditOf (contracts/build/MiniAppMilestoneEscrow.manifest.json) missing from live ABI"
+        "build-manifest safe method directAssetCreditOf (../neo-os-miniapps/contracts/build/MiniAppMilestoneEscrow.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 28,
@@ -7137,7 +7181,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppMilestoneEscrow",
         "manifestFile": "MiniAppMilestoneEscrow.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppMilestoneEscrow.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppMilestoneEscrow.manifest.json",
         "expectedSafeMethods": 16,
         "missingSafeMethods": [
           "directAssetCreditOf"
@@ -7372,7 +7416,7 @@
       "appId": "miniapp-miniapp-factory",
       "slug": "miniapp-factory",
       "name": "MiniApp Factory",
-      "manifestPath": "apps/miniapp-factory/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -7386,7 +7430,7 @@
       "appId": "miniapp-neo-convert",
       "slug": "neo-convert",
       "name": "Neo Convert",
-      "manifestPath": "apps/neo-convert/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -7400,7 +7444,7 @@
       "appId": "miniapp-neo-message",
       "slug": "neo-message",
       "name": "Neo Message",
-      "manifestPath": "apps/neo-message/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -7414,7 +7458,7 @@
       "appId": "miniapp-neo-multisig",
       "slug": "neo-multisig",
       "name": "Neo Multisig",
-      "manifestPath": "apps/neo-multisig/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xa361cdc792e97c4d8ddf42048cf48f3283ea7178",
       "contractBacked": true,
       "contractName": "MiniAppMultisig",
@@ -7436,7 +7480,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method getOwner (contracts/build/MiniAppMultisig.manifest.json) missing from live ABI"
+        "build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppMultisig.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": false,
       "methodCount": 12,
@@ -7444,7 +7488,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppMultisig",
         "manifestFile": "MiniAppMultisig.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppMultisig.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppMultisig.manifest.json",
         "expectedSafeMethods": 7,
         "missingSafeMethods": [
           "getOwner"
@@ -7548,7 +7592,7 @@
       "appId": "miniapp-neo-ns",
       "slug": "neo-ns",
       "name": "Neo Name Service",
-      "manifestPath": "apps/neo-ns/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
       "contractBacked": true,
       "contractName": "NameService",
@@ -7795,7 +7839,7 @@
       "appId": "miniapp-neo-pay",
       "slug": "neo-pay",
       "name": "NeoPay",
-      "manifestPath": "apps/neo-pay/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
       "contractBacked": true,
       "contractName": "MiniAppNeoPay",
@@ -8078,7 +8122,7 @@
       "appId": "miniapp-neo-pay-shared-example",
       "slug": "neo-pay-shared-example",
       "name": "NeoPay Stream Studio",
-      "manifestPath": "apps/neo-pay-shared-example/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
       "contractBacked": true,
       "contractName": "MiniAppNeoPay",
@@ -8343,7 +8387,7 @@
       "appId": "miniapp-neo-sign-anything",
       "slug": "neo-sign-anything",
       "name": "Neo Signature Desk",
-      "manifestPath": "apps/neo-sign-anything/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8357,7 +8401,7 @@
       "appId": "miniapp-neo-swap",
       "slug": "neo-swap",
       "name": "Neo Swap",
-      "manifestPath": "apps/neo-swap/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8371,7 +8415,7 @@
       "appId": "miniapp-neo-treasury",
       "slug": "neo-treasury",
       "name": "Neo Treasury",
-      "manifestPath": "apps/neo-treasury/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8398,7 +8442,7 @@
       "appId": "miniapp-neo-x-bridge",
       "slug": "neo-x-bridge",
       "name": "Neo X Bridge",
-      "manifestPath": "apps/neo-x-bridge/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8412,7 +8456,7 @@
       "appId": "miniapp-neodid-passport",
       "slug": "neodid-passport",
       "name": "NeoDID Passport",
-      "manifestPath": "apps/neodid-passport/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8426,7 +8470,7 @@
       "appId": "miniapp-nft-factory",
       "slug": "nft-factory",
       "name": "NFT Factory",
-      "manifestPath": "apps/nft-factory/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8440,7 +8484,7 @@
       "appId": "miniapp-onchaintarot",
       "slug": "on-chain-tarot",
       "name": "On-chain Tarot",
-      "manifestPath": "apps/on-chain-tarot/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8454,7 +8498,7 @@
       "appId": "miniapp-oracle-compute-lab",
       "slug": "oracle-compute-lab",
       "name": "Oracle Compute Lab",
-      "manifestPath": "apps/oracle-compute-lab/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8468,7 +8512,7 @@
       "appId": "miniapp-oracle-http-console",
       "slug": "oracle-http-console",
       "name": "Oracle HTTP Console",
-      "manifestPath": "apps/oracle-http-console/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8482,7 +8526,7 @@
       "appId": "miniapp-oracle-neodid-console",
       "slug": "oracle-neodid-console",
       "name": "Oracle NeoDID Console",
-      "manifestPath": "apps/oracle-neodid-console/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8496,7 +8540,7 @@
       "appId": "miniapp-oracle-price-console",
       "slug": "oracle-price-console",
       "name": "Oracle Price Console",
-      "manifestPath": "apps/oracle-price-console/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
       "contractBacked": true,
       "contractName": "MorpheusDataFeed",
@@ -8521,9 +8565,9 @@
         ]
       },
       "failures": [
-        "build-manifest safe method oracleVerificationKey (../neo-morpheus-oracle/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
-        "build-manifest safe method getResource (../neo-morpheus-oracle/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
-        "build-manifest safe method getAllResources (../neo-morpheus-oracle/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI"
+        "build-manifest safe method oracleVerificationKey (../neo-os-services/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
+        "build-manifest safe method getResource (../neo-os-services/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI",
+        "build-manifest safe method getAllResources (../neo-os-services/contracts/build/MorpheusDataFeed.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 14,
@@ -8531,7 +8575,7 @@
       "buildAbiSource": {
         "contractName": "MorpheusDataFeed",
         "manifestFile": "MorpheusDataFeed.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle/contracts/build/MorpheusDataFeed.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-services/contracts/build/MorpheusDataFeed.manifest.json",
         "expectedSafeMethods": 10,
         "missingSafeMethods": [
           "oracleVerificationKey",
@@ -8638,7 +8682,7 @@
       "appId": "miniapp-oracle-seal-console",
       "slug": "oracle-seal-console",
       "name": "Oracle Seal Console",
-      "manifestPath": "apps/oracle-seal-console/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8652,7 +8696,7 @@
       "appId": "miniapp-oracle-vrf-console",
       "slug": "oracle-vrf-console",
       "name": "Oracle VRF Workbench",
-      "manifestPath": "apps/oracle-vrf-console/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8666,7 +8710,7 @@
       "appId": "miniapp-pet-potion",
       "slug": "pet-potion",
       "name": "Pet Potion",
-      "manifestPath": "apps/pet-potion/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8680,7 +8724,7 @@
       "appId": "miniapp-private-transfer",
       "slug": "private-transfer",
       "name": "Confidential Transfer",
-      "manifestPath": "apps/private-transfer/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -8694,7 +8738,7 @@
       "appId": "miniapp-profitanchor",
       "slug": "profitanchor",
       "name": "ProfitAnchor",
-      "manifestPath": "apps/profitanchor/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "contractBacked": true,
       "contractName": "PlatformAnchor",
@@ -8793,7 +8837,10 @@
         ]
       },
       "failures": [
-        "build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
+        "build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 45,
@@ -8801,10 +8848,13 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
-        "expectedSafeMethods": 23,
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-contracts/contracts/build/PlatformAnchor.manifest.json",
+        "expectedSafeMethods": 26,
         "missingSafeMethods": [
-          "abstractAccount"
+          "abstractAccount",
+          "getAppCredit",
+          "getAppTotalNeoCredit",
+          "getAppTotalGasCredit"
         ]
       },
       "safeMethodResults": [
@@ -9168,7 +9218,7 @@
       "appId": "miniapp-profitanchor-admin",
       "slug": "profitanchor-admin",
       "name": "ProfitAnchor Admin",
-      "manifestPath": "apps/profitanchor-admin/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "contractBacked": true,
       "contractName": "PlatformAnchor",
@@ -9267,7 +9317,10 @@
         ]
       },
       "failures": [
-        "build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
+        "build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 45,
@@ -9275,10 +9328,13 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
-        "expectedSafeMethods": 23,
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-contracts/contracts/build/PlatformAnchor.manifest.json",
+        "expectedSafeMethods": 26,
         "missingSafeMethods": [
-          "abstractAccount"
+          "abstractAccount",
+          "getAppCredit",
+          "getAppTotalNeoCredit",
+          "getAppTotalGasCredit"
         ]
       },
       "safeMethodResults": [
@@ -9642,7 +9698,7 @@
       "appId": "miniapp-quadratic-funding",
       "slug": "quadratic-funding",
       "name": "Quadratic Funding",
-      "manifestPath": "apps/quadratic-funding/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43",
       "contractBacked": true,
       "contractName": "MiniAppQuadraticFunding",
@@ -9670,7 +9726,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method directAssetCreditOf (contracts/build/MiniAppQuadraticFunding.manifest.json) missing from live ABI"
+        "build-manifest safe method directAssetCreditOf (../neo-os-miniapps/contracts/build/MiniAppQuadraticFunding.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 35,
@@ -9678,7 +9734,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppQuadraticFunding",
         "manifestFile": "MiniAppQuadraticFunding.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppQuadraticFunding.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppQuadraticFunding.manifest.json",
         "expectedSafeMethods": 18,
         "missingSafeMethods": [
           "directAssetCreditOf"
@@ -9958,7 +10014,7 @@
       "appId": "miniapp-recovery-guardian",
       "slug": "recovery-guardian",
       "name": "Recovery Guardian",
-      "manifestPath": "apps/recovery-guardian/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
       "contractBacked": true,
       "contractName": "SocialRecoveryVerifier",
@@ -10289,7 +10345,7 @@
       "appId": "miniapp-redenvelope",
       "slug": "red-envelope",
       "name": "Red Envelope",
-      "manifestPath": "apps/red-envelope/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x363c5de9760d1aaaed5096fdf3bdc877cd0368e9",
       "contractBacked": true,
       "contractName": "MiniAppRedEnvelope",
@@ -10338,7 +10394,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method getOwner (contracts/build/MiniAppRedEnvelope.manifest.json) missing from live ABI"
+        "build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppRedEnvelope.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": false,
       "methodCount": 15,
@@ -10346,7 +10402,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppRedEnvelope",
         "manifestFile": "MiniAppRedEnvelope.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppRedEnvelope.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppRedEnvelope.manifest.json",
         "expectedSafeMethods": 10,
         "missingSafeMethods": [
           "getOwner"
@@ -10516,7 +10572,7 @@
       "appId": "miniapp-screw-sort",
       "slug": "screw-sort",
       "name": "Screw Sort",
-      "manifestPath": "apps/screw-sort/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -10530,7 +10586,7 @@
       "appId": "miniapp-self-loan",
       "slug": "self-loan",
       "name": "SelfLoan",
-      "manifestPath": "apps/self-loan/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x87f94598c78cb954ca8200d3964ded9b584d7250",
       "contractBacked": true,
       "contractName": "MiniAppSelfLoan",
@@ -10591,7 +10647,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppSelfLoan",
         "manifestFile": "MiniAppSelfLoan.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppSelfLoan.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppSelfLoan.manifest.json",
         "expectedSafeMethods": 11,
         "missingSafeMethods": []
       },
@@ -10749,7 +10805,7 @@
       "appId": "miniapp-sheep-solitaire",
       "slug": "sheep-solitaire",
       "name": "Sheep Solitaire",
-      "manifestPath": "apps/sheep-solitaire/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -10763,7 +10819,7 @@
       "appId": "miniapp-snake-bounty",
       "slug": "snake-bounty",
       "name": "Snake Bounty",
-      "manifestPath": "apps/snake-bounty/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -10777,7 +10833,7 @@
       "appId": "miniapp-soulbound-certificate",
       "slug": "soulbound-certificate",
       "name": "Soulbound Certificate",
-      "manifestPath": "apps/soulbound-certificate/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
       "contractBacked": true,
       "contractName": "MiniAppSoulboundCertificate",
@@ -10809,7 +10865,7 @@
         ]
       },
       "failures": [
-        "build-manifest safe method directAssetCreditOf (contracts/build/MiniAppSoulboundCertificate.manifest.json) missing from live ABI"
+        "build-manifest safe method directAssetCreditOf (../neo-os-miniapps/contracts/build/MiniAppSoulboundCertificate.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 36,
@@ -10817,7 +10873,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppSoulboundCertificate",
         "manifestFile": "MiniAppSoulboundCertificate.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppSoulboundCertificate.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppSoulboundCertificate.manifest.json",
         "expectedSafeMethods": 23,
         "missingSafeMethods": [
           "directAssetCreditOf"
@@ -11140,7 +11196,7 @@
       "appId": "miniapp-sudoku",
       "slug": "sudoku",
       "name": "Sudoku Arena",
-      "manifestPath": "apps/sudoku/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -11154,7 +11210,7 @@
       "appId": "miniapp-time-capsule",
       "slug": "time-capsule",
       "name": "Time Capsule",
-      "manifestPath": "apps/time-capsule/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x3e88058ef32c4d8d17eb1a2188d6d5e329c94f8a",
       "contractBacked": true,
       "contractName": "MiniAppTimeCapsule",
@@ -11175,8 +11231,8 @@
         ]
       },
       "failures": [
-        "build-manifest safe method getOwner (contracts/build/MiniAppTimeCapsule.manifest.json) missing from live ABI",
-        "build-manifest safe method fishRevenueOf (contracts/build/MiniAppTimeCapsule.manifest.json) missing from live ABI"
+        "build-manifest safe method getOwner (../neo-os-miniapps/contracts/build/MiniAppTimeCapsule.manifest.json) missing from live ABI",
+        "build-manifest safe method fishRevenueOf (../neo-os-miniapps/contracts/build/MiniAppTimeCapsule.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": false,
       "methodCount": 10,
@@ -11184,7 +11240,7 @@
       "buildAbiSource": {
         "contractName": "MiniAppTimeCapsule",
         "manifestFile": "MiniAppTimeCapsule.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/MiniAppTimeCapsule.manifest.json",
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-miniapps/contracts/build/MiniAppTimeCapsule.manifest.json",
         "expectedSafeMethods": 7,
         "missingSafeMethods": [
           "getOwner",
@@ -11279,7 +11335,7 @@
       "appId": "miniapp-timestamp-proof",
       "slug": "timestamp-proof",
       "name": "Timestamp Proof",
-      "manifestPath": "apps/timestamp-proof/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -11293,7 +11349,7 @@
       "appId": "miniapp-trustanchor",
       "slug": "trustanchor",
       "name": "TrustAnchor",
-      "manifestPath": "apps/trustanchor/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "contractBacked": true,
       "contractName": "PlatformAnchor",
@@ -11392,7 +11448,10 @@
         ]
       },
       "failures": [
-        "build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
+        "build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 45,
@@ -11400,10 +11459,13 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
-        "expectedSafeMethods": 23,
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-contracts/contracts/build/PlatformAnchor.manifest.json",
+        "expectedSafeMethods": 26,
         "missingSafeMethods": [
-          "abstractAccount"
+          "abstractAccount",
+          "getAppCredit",
+          "getAppTotalNeoCredit",
+          "getAppTotalGasCredit"
         ]
       },
       "safeMethodResults": [
@@ -11767,7 +11829,7 @@
       "appId": "miniapp-trustanchor-admin",
       "slug": "trustanchor-admin",
       "name": "TrustAnchor Admin",
-      "manifestPath": "apps/trustanchor-admin/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "contractBacked": true,
       "contractName": "PlatformAnchor",
@@ -11866,7 +11928,10 @@
         ]
       },
       "failures": [
-        "build-manifest safe method abstractAccount (contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
+        "build-manifest safe method abstractAccount (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalNeoCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI",
+        "build-manifest safe method getAppTotalGasCredit (../neo-os-contracts/contracts/build/PlatformAnchor.manifest.json) missing from live ABI"
       ],
       "contractUpdateMethod": true,
       "methodCount": 45,
@@ -11874,10 +11939,13 @@
       "buildAbiSource": {
         "contractName": "PlatformAnchor",
         "manifestFile": "PlatformAnchor.manifest.json",
-        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-web/contracts/build/PlatformAnchor.manifest.json",
-        "expectedSafeMethods": 23,
+        "manifestPath": "/Users/jinghuiliao/git/r3e/neo-os-contracts/contracts/build/PlatformAnchor.manifest.json",
+        "expectedSafeMethods": 26,
         "missingSafeMethods": [
-          "abstractAccount"
+          "abstractAccount",
+          "getAppCredit",
+          "getAppTotalNeoCredit",
+          "getAppTotalGasCredit"
         ]
       },
       "safeMethodResults": [
@@ -12241,7 +12309,7 @@
       "appId": "miniapp-unbreakablevault",
       "slug": "unbreakable-vault",
       "name": "Unbreakable Vault",
-      "manifestPath": "apps/unbreakable-vault/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": "0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa",
       "contractBacked": true,
       "contractName": "MiniAppUnbreakableVault",
@@ -12741,7 +12809,7 @@
       "appId": "miniapp-wallet-health",
       "slug": "wallet-health",
       "name": "Wallet Health",
-      "manifestPath": "apps/wallet-health/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,
@@ -12755,7 +12823,7 @@
       "appId": "miniapp-zhuada-e",
       "slug": "zhuada-e",
       "name": "Goose Basket Shuffle",
-      "manifestPath": "apps/zhuada-e/neo-manifest.json",
+      "manifestPath": "platform/host-app/public/miniapp-manifests.json",
       "mainnetHash": null,
       "contractBacked": false,
       "contractName": null,

@@ -1,6 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <AssemblyName>AbstractAccountCoreMockFixture</AssemblyName>
-    <RootNamespace>NeoMiniAppPlatform.Contracts</RootNamespace>
-  </PropertyGroup>
-</Project>

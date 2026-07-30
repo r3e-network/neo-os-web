@@ -1,8 +1,0 @@
-[
-  {
-    "name": "MiniAppRedEnvelope",
-    "network": "testnet",
-    "hash": "0x5a5ecc80cd5225acd7431a5dd6f0e32bb9260a87",
-    "app_manifest": "apps/red-envelope/neo-manifest.json"
-  }
-]

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -33,7 +34,11 @@ function trackedShellScripts() {
     { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   );
   assert.equal(listed.status, 0, listed.stderr);
-  const files = listed.stdout.split("\0").filter(Boolean);
+  const files = listed.stdout.split("\0").filter(Boolean)
+    // A path can be listed by git and absent on disk while a deletion is staged
+    // or a move is in progress; handing it to a linter reports a read error rather
+    // than a finding.
+    .filter((file) => existsSync(path.join(repoRoot, file)));
   assert.ok(files.length > 0, "expected the repository to contain shell scripts");
   return files;
 }

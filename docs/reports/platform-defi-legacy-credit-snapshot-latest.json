@@ -1,9 +1,9 @@
 {
-  "generated_at_utc": "2026-07-23T05:21:42.650Z",
+  "generated_at_utc": "2026-07-30T10:44:47.278Z",
   "network": "neo-n3-testnet",
   "network_magic": 894710606,
   "rpc_url": "https://testnet1.neo.coz.io:443",
-  "block_count": 17924995,
+  "block_count": 18123779,
   "platform_defi_hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
   "legacy_credit_prefixes": {
     "neo": {

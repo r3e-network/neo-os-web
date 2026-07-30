@@ -10,8 +10,24 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..");
 const expectedNetworkMagic = 894710606;
 
+// Deployment records live with the contracts they record, in neo-os-contracts.
+// Overridable so CI can point at wherever it placed the checkout.
+const contractsRoot = process.env.NEO_OS_CONTRACTS_DIR || path.resolve(repoRoot, "../neo-os-contracts");
+
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), "utf8"));
+}
+
+// A path under contracts/, which this repo does not have any more.
+function readContractsJson(relativePath) {
+  const target = path.join(contractsRoot, relativePath);
+  if (!fs.existsSync(target)) {
+    throw new Error(
+      `${relativePath} is missing. It is committed in neo-os-contracts; clone it beside this ` +
+        `repo or set NEO_OS_CONTRACTS_DIR. Looked in ${contractsRoot}.`,
+    );
+  }
+  return JSON.parse(fs.readFileSync(target, "utf8"));
 }
 
 function requiredHash(value, label) {
@@ -28,13 +44,21 @@ export function readNefChecksum(filePath) {
   return bytes.readUInt32LE(bytes.length - 4);
 }
 
+// The compiled platform artifact, read from neo-os-contracts. Paths are reported
+// relative to that repo so a mismatch names a file the reader can actually find.
 function localArtifact(name) {
-  const manifestPath = path.join(repoRoot, "contracts", "build", `${name}.manifest.json`);
-  const nefPath = path.join(repoRoot, "contracts", "build", `${name}.nef`);
+  const manifestPath = path.join(contractsRoot, "contracts", "build", `${name}.manifest.json`);
+  const nefPath = path.join(contractsRoot, "contracts", "build", `${name}.nef`);
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(
+      `${name} build artifacts are missing. They are built in neo-os-contracts; clone it beside ` +
+        `this repo or set NEO_OS_CONTRACTS_DIR. Looked in ${contractsRoot}.`,
+    );
+  }
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   return {
-    manifestPath: path.relative(repoRoot, manifestPath),
-    nefPath: path.relative(repoRoot, nefPath),
+    manifestPath: `neo-os-contracts/${path.relative(contractsRoot, manifestPath)}`,
+    nefPath: `neo-os-contracts/${path.relative(contractsRoot, nefPath)}`,
     checksum: readNefChecksum(nefPath),
     methodNames: [...new Set((manifest.abi?.methods ?? []).map((method) => method.name))].sort(),
   };
@@ -45,8 +69,8 @@ export function loadPlatformTargets() {
   const gameReportPath = "contracts/build/testnet_game_deployment.json";
   const anchorReportPath = "contracts/build/testnet_anchor_deployment.json";
   const registryReport = readJson(registryReportPath);
-  const gameReport = readJson(gameReportPath);
-  const anchorReport = readJson(anchorReportPath);
+  const gameReport = readContractsJson(gameReportPath);
+  const anchorReport = readContractsJson(anchorReportPath);
   // The consumer apps live in neo-miniapps; the committed snapshot is this
   // repo's copy of their manifests and refresh-manifest-snapshot.mjs --check
   // fails when it drifts.

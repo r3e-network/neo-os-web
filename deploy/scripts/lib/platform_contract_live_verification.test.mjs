@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -15,10 +17,24 @@ const testDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(testDir, "..", "..", "..");
 
 test("NEF checksum is decoded from the final little-endian uint32", () => {
-  assert.equal(
-    readNefChecksum(path.join(repoRoot, "contracts/build/AppAccount.nef")),
-    2055764547,
-  );
+  // A NEF written for the test rather than a real artifact: this repo has no
+  // contracts/build any more, and the decoding is about the last four bytes, not
+  // about any particular contract.
+  const nef = Buffer.alloc(64);
+  nef.writeUInt32LE(2055764547, nef.length - 4);
+  const nefPath = path.join(mkdtempSync(path.join(tmpdir(), "nef-")), "sample.nef");
+  writeFileSync(nefPath, nef);
+
+  assert.equal(readNefChecksum(nefPath), 2055764547);
+
+  // Little-endian, so the same bytes read big-endian would be a different number.
+  assert.notEqual(nef.readUInt32BE(nef.length - 4), 2055764547);
+});
+
+test("a file too short to hold a checksum is rejected", () => {
+  const nefPath = path.join(mkdtempSync(path.join(tmpdir(), "nef-")), "short.nef");
+  writeFileSync(nefPath, Buffer.alloc(3));
+  assert.throws(() => readNefChecksum(nefPath), /not a valid NEF file/);
 });
 
 test("platform targets resolve the seven-contract testnet inventory", () => {

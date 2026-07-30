@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 
 /** Repo root: deploy/scripts/lib -> ../../.. */
 export function defaultRepoRoot() {
-  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 }
 
 export function buildManifestDir(repoRoot = defaultRepoRoot()) {

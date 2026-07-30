@@ -1,6 +1,6 @@
 # PlatformEscrow Framework Interface
 
-Generated: 2026-07-24T16:23:58.764Z
+Generated: 2026-07-30T10:27:23.793Z
 
 - Interface audit: **PASS**
 - Tenant contract ABI: 18 methods

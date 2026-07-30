@@ -33,8 +33,11 @@ test("repo verification script runs the canonical local validation stack", () =>
   assert.match(script, /^run_npm_audit_scope "root audit"$/m);
   assert.match(script, /^run_npm_audit_scope "host-app audit" --workspace platform\/host-app$/m);
   assert.match(script, /test:deploy-scripts/);
-  assert.match(script, /check:platform:social-framework/);
-  assert.match(script, /check:factory-template-artifacts/);
+  // The platform-contract and surface gates moved with what they audit -
+  // neo-os-contracts and neo-os-devpack. The gate list is checked for internal
+  // consistency by the test below rather than by naming gates here, which is
+  // what went stale last time.
+  assert.match(script, /check:repo:secret-material/);
   assert.match(script, /platform\/admin-console test --silent/);
   assert.match(script, /platform\/admin-console run typecheck/);
   assert.match(script, /platform\/admin-console run build/);

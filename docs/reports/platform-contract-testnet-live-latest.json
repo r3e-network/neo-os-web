@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T21:31:59.774Z",
+  "generated_at_utc": "2026-07-30T11:18:12.517Z",
   "network": "neo-n3-testnet",
   "read_only": true,
   "chain_writes_performed": false,
@@ -10,8 +10,8 @@
     "contracts": 7,
     "live_contracts_found": 5,
     "active_registry_artifacts": 1,
-    "current_local_artifact_matches": 2,
-    "artifact_drifts": 4,
+    "current_local_artifact_matches": 1,
+    "artifact_drifts": 5,
     "no_deployment_record": 1,
     "admin_domains": 2
   },
@@ -34,11 +34,11 @@
       "admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "expected_admin_matches": true,
-      "local_nef_checksum": 579281221,
+      "local_nef_checksum": 1192239435,
       "on_chain_nef_checksum": 372915605,
       "current_local_artifact_match": false,
       "abi": {
-        "local_count": 74,
+        "local_count": 75,
         "on_chain_count": 63,
         "missing_on_chain": [
           "abstractAccountCore",
@@ -48,6 +48,7 @@
           "cancelSpendThresholdRaise",
           "executeSpendThresholdRaise",
           "getAppAbstractAccount",
+          "getPredictedAbstractAccount",
           "materializeAbstractAccount",
           "pendingAbstractAccountCore",
           "proposeAbstractAccountCore",
@@ -74,9 +75,7 @@
       "name": "MiniAppFactory",
       "kind": "contract",
       "evidence": [
-        "apps/asset-factory/neo-manifest.json",
-        "apps/miniapp-factory/neo-manifest.json",
-        "apps/nft-factory/neo-manifest.json"
+        "platform/host-app/public/miniapp-manifests.json"
       ],
       "hash": "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49",
       "contract_id": 7511,
@@ -113,13 +112,20 @@
       "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
       "expected_admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
       "expected_admin_matches": true,
-      "local_nef_checksum": 1528462004,
+      "local_nef_checksum": 4069501170,
       "on_chain_nef_checksum": 1604090204,
       "current_local_artifact_match": false,
       "abi": {
-        "local_count": 45,
+        "local_count": 51,
         "on_chain_count": 47,
-        "missing_on_chain": [],
+        "missing_on_chain": [
+          "fundRewardsFromAppCredit",
+          "getAppCredit",
+          "getAppTotalGasCredit",
+          "getAppTotalNeoCredit",
+          "stakeFromAppCredit",
+          "withdrawAppCredit"
+        ],
         "extra_on_chain": [
           "setAgentAccounts",
           "setAgentWeight"
@@ -141,16 +147,16 @@
       "admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "expected_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
       "expected_admin_matches": true,
-      "local_nef_checksum": 2377918952,
+      "local_nef_checksum": 1709745112,
       "on_chain_nef_checksum": 2377918952,
-      "current_local_artifact_match": true,
+      "current_local_artifact_match": false,
       "abi": {
         "local_count": 77,
         "on_chain_count": 77,
         "missing_on_chain": [],
         "extra_on_chain": []
       },
-      "status": "live-artifact-match"
+      "status": "live-artifact-drift"
     },
     {
       "name": "PlatformDeFi",
@@ -166,7 +172,7 @@
       "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
       "expected_admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
       "expected_admin_matches": true,
-      "local_nef_checksum": 1040116875,
+      "local_nef_checksum": 1576392343,
       "on_chain_nef_checksum": 3687605410,
       "current_local_artifact_match": false,
       "abi": {
@@ -229,7 +235,7 @@
       "name": "PlatformSocial",
       "kind": "undeployed",
       "evidence": [],
-      "local_nef_checksum": 2068556140,
+      "local_nef_checksum": 849054580,
       "current_local_artifact_match": false,
       "status": "no-deployment-record"
     }
